@@ -1,0 +1,19 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Build çıktıları
+target/
+bin/
+dist/
+node_modules/
+.next/
+build/
+.dart_tool/
