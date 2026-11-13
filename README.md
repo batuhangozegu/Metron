@@ -24,3 +24,4 @@ No code will be carried over from v1. What will be used as reference: the API co
 
 - [Feature list](docs/FEATURES.md)
 - [Architecture decisions](docs/ARCHITECTURE.md)
+- [First release roadmap](docs/ROADMAP.md)

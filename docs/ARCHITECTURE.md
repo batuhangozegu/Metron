@@ -131,4 +131,4 @@ These folders do not exist yet; they are created when coding starts.
 
 ## 7. Open decisions
 
-None at the architecture level. The next step is a roadmap that splits the first release into small ordered steps.
+None at the architecture level. The work for the first release is ordered in [ROADMAP.md](ROADMAP.md).
