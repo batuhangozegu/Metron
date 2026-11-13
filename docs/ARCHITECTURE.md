@@ -129,6 +129,28 @@ These folders do not exist yet; they are created when coding starts.
 - **`main` always works.** Every piece of work happens on a short-lived branch and merges through a pull request.
 - **Generated code is not committed.** Go, Rust, TypeScript and Dart files generated from the contracts are produced at build time, so contract and code cannot drift apart.
 
-## 7. Open decisions
+## 7. Scope and tooling
 
-None at the architecture level. The work for the first release is ordered in [ROADMAP.md](ROADMAP.md).
+### 7.1 First-release scope limits
+
+- **Trading scope.** Spot only, USDT pairs only (for example BTC/USDT), as in v1. Other quote currencies and futures complicate the risk calculation and are left out.
+- **Interface language.** The UI is written in English, with all text kept in translation files from the start, so Turkish can be added later as one more file.
+- **Hosting.** None. Metron runs locally through Docker Compose; there is no server and no deployment target for now.
+- **License.** None. The repository is public but carries no license file; all rights are reserved.
+
+### 7.2 Libraries
+
+Chosen because each is widely used in its area and well documented; needed from roadmap step 0.
+
+| Part | Choice |
+| --- | --- |
+| Go | chi (routing), pgx and sqlc (database) |
+| Rust | tokio (async runtime), tonic (gRPC), sqlx (database), rust_decimal (money) |
+| Migrations | goose |
+| Web | Tailwind, shadcn/ui, TanStack Query, lightweight-charts (price charts) |
+| Mobile | Riverpod and Dio, as in v1 |
+
+## 8. Open decisions
+
+- **Visual design.** The direction in section 3 stands, but the concrete design (colors, type, screens) is not decided yet. It will be specified before the UI work in the roadmap begins.
+- **Nothing else is open.** The work for the first release is ordered in [ROADMAP.md](ROADMAP.md).
