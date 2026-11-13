@@ -1,24 +1,24 @@
 # AETHER v2
 
-AETHER v2, kripto varlıklar için risk yönetimi ve portföy takibi platformudur. v1'in ayrı bir proje olarak sıfırdan yeniden yapılmış halidir: tasarım tamamen yenidir ve kapsam daha detaylıdır. Ana odak, her coinin kendi özelliklerine göre stop-loss ve pozisyon büyüklüğü hesaplayan bir risk motorudur.
+AETHER v2 is the second generation of [AETHER](https://github.com/batuhangozegu/AETHER), a crypto risk management and portfolio platform. v1 (Java/Spring Boot + Flutter) is complete and archived; v2 is a ground-up rewrite with a Go + Rust backend and web + mobile clients.
 
-## Durum
+The design is entirely new and the scope is more detailed. The main focus is a risk engine that calculates stop-loss and position size according to each coin's own characteristics.
 
-Planlama aşamasında, henüz kod yok.
+## Status
 
-## Hedef teknoloji
+Planning stage, no code yet.
 
-- **Go:** API gateway, kimlik doğrulama, kullanıcı/portföy CRUD, REST uçları.
-- **Rust:** risk motoru, canlı fiyat akışı (WebSocket), PnL/pozisyon hesapları.
-- **İstemciler:** web: Next.js (React + TypeScript), mobil: Flutter.
+## Target technology
 
-## v1 ile ilişki
+- **Go:** API gateway, authentication, user/portfolio CRUD, REST endpoints.
+- **Rust:** risk engine, live price feed (WebSocket), PnL/position calculations.
+- **Clients:** web: Next.js (React + TypeScript), mobile: Flutter.
 
-v1 (Java/Spring Boot + Flutter) arşivlendi: https://github.com/batuhangozegu/AETHER
+## Relationship to v1
 
-v1'den kod taşınmayacak. Referans alınacaklar: API sözleşmesi, Flyway SQL şeması ve risk hesaplama kuralları.
+No code will be carried over from v1. What will be used as reference: the API contract, the Flyway SQL schema and the risk calculation rules.
 
-## Belgeler
+## Documents
 
-- [Özellik listesi](docs/OZELLIKLER.md)
-- [Mimari kararlar](docs/MIMARI.md)
+- [Feature list](docs/FEATURES.md)
+- [Architecture decisions](docs/ARCHITECTURE.md)

@@ -9,7 +9,7 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Build çıktıları
+# Build outputs
 target/
 bin/
 dist/
