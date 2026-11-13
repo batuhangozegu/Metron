@@ -92,6 +92,43 @@ In v1 a single `Order` table held both the order and the position (entry price, 
 - **How a coin gets its class.** Classifying by market cap would need a separate data source. In the first release coins are classified automatically by Binance trading volume, and the user can override the class manually.
 - **Which candles are stored.** Storing one-minute candles for every coin grows the table quickly. Hourly and daily candles are enough for ATR; older history is fetched from Binance when needed. Finer-grained storage is decided when backtesting is built (second release).
 
-## 6. Open decisions
+## 6. Repository layout
 
-1. Repository layout: single repository or separate repositories.
+Metron is a single repository; everything lives in the existing Metron repo.
+
+```
+metron/
+  api/       Go service
+  engine/    Rust engine
+  web/       Next.js
+  mobile/    Flutter
+  proto/     gRPC contract between Go and Rust
+  openapi/   REST contract between clients and Go
+  db/        Migration files (app and market schemas in separate folders)
+  design/    Shared color, type and spacing values
+  deploy/    Docker Compose and deployment files
+  docs/      Planning docs
+```
+
+These folders do not exist yet; they are created when coding starts.
+
+### 6.1 Why a single repository
+
+- **Shared contracts.** All four parts use `proto/` and `openapi/`. In separate repos, adding a field means separate commits and version matching across repos; in one repo the contract and the code using it change in the same commit.
+- **One developer.** Separate repos exist so separate teams can move independently. That need is absent here; only the overhead would remain.
+- **One command to run.** Database, Redis, Go and Rust start from a single Docker Compose file.
+- **One address for the portfolio.** A visitor sees the whole system in one place. v1 was also a single repo (`backend` and `aether-mobile`).
+
+### 6.2 Costs
+
+- **Four toolchains in one repo.** Go, Rust, Node and Flutter. A single task file at the root runs the common jobs: build everything, test everything, generate client code from the contracts.
+- **CI must run per folder.** If only `web/` changed, Rust tests should not run. Solved with path filters in GitHub Actions.
+
+### 6.3 Working rules
+
+- **`main` always works.** Every piece of work happens on a short-lived branch and merges through a pull request.
+- **Generated code is not committed.** Go, Rust, TypeScript and Dart files generated from the contracts are produced at build time, so contract and code cannot drift apart.
+
+## 7. Open decisions
+
+None at the architecture level. The next step is a roadmap that splits the first release into small ordered steps.
