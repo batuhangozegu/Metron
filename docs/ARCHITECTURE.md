@@ -57,7 +57,41 @@ The two clients will not be copies of the same application.
 - **The stop always sits on the exchange too.** If the system tracks the stop only internally, the position is left unprotected when the server crashes. A real stop order is placed on the exchange for every position; in cases such as a trailing stop, the engine updates that order.
 - **Paper trading goes through the same path.** On the Go side the exchange connection is a swappable component (one is the real Binance, one is a virtual exchange). The risk engine does not distinguish between the two; paper trading is not written as a separate system.
 
-## 5. Open decisions
+## 5. Database
 
-1. Database: what remains from the v1 schema, and how coin classes and the "asset class" concept are modeled.
-2. Repository layout: single repository or separate repositories.
+### 5.1 Ground rules
+
+- **PostgreSQL, single database.** Same as v1; there is no reason to change.
+- **Two schemas, two owners.** Only the Go service writes to the `app` schema (users, orders, portfolio). Only the Rust engine writes to the `market` schema (candles, ATR, coin statistics). The other side may read but never write, so there is never a question of which service corrupted a table.
+- **No floating point for money.** `NUMERIC` in the database, decimal libraries in Go and Rust. All timestamps are UTC.
+- **Migrations only.** The schema changes only through migration files. v1 had Hibernate's automatic schema update enabled alongside Flyway; in v2 migrations are the single source of truth.
+
+### 5.2 Orders and positions are split
+
+In v1 a single `Order` table held both the order and the position (entry price, exit price, closed status). Scaled take-profit, fees and average cost cannot be computed with that shape. v2 uses three tables:
+
+- **Orders.** Every instruction sent to the exchange.
+- **Fills.** The parts of an order that actually executed, each with its price and fee.
+- **Positions.** The quantity held, average cost and current stop state.
+
+### 5.3 New tables
+
+- **Assets and pairs.** Each asset has an asset class (crypto, stablecoin, later tokenized stock) and a coin class. Adding tokenized stocks later needs new rows, not a schema change.
+- **Coin class rules.** System defaults plus per-user overrides (ATR multiplier, maximum position size, risk per trade).
+- **Accounts.** v1's exchange key table becomes an "account" with a type, live or paper. Paper trading is therefore not a separate system, only a different account type.
+- **Risk check records.** For every pre-trade check: its inputs, result, violated rules, and whether the user proceeded anyway. Discipline statistics and the weekly report are built from these.
+- **Discipline rules and violations.** The rules a user sets and the record of each time one is broken.
+- **Portfolio snapshots.** Account equity recorded at regular intervals; historical performance and maximum drawdown are computed from them.
+
+### 5.4 Carried over from v1 nearly unchanged
+
+- **Existing tables.** Users, risk profile (with weekly loss cap and total open risk limit fields added), price alarms, notifications, favorites.
+
+### 5.5 Decisions on two details
+
+- **How a coin gets its class.** Classifying by market cap would need a separate data source. In the first release coins are classified automatically by Binance trading volume, and the user can override the class manually.
+- **Which candles are stored.** Storing one-minute candles for every coin grows the table quickly. Hourly and daily candles are enough for ATR; older history is fetched from Binance when needed. Finer-grained storage is decided when backtesting is built (second release).
+
+## 6. Open decisions
+
+1. Repository layout: single repository or separate repositories.
