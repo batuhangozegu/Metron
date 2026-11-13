@@ -1,4 +1,4 @@
-# AETHER v2 — Feature List
+# Metron — Feature List
 
 13 November 2026
 
@@ -85,7 +85,7 @@ Three topics (portfolio management, stablecoin, tokenized stocks) are grouped un
 
 Features outside the risk engine and the portfolio.
 
-- **Pre-trade check screen.** Before an order is sent, a single screen shows how much can be lost on this trade, what the total open risk will be, the drift from the target allocation, and which rules are being broken. It makes AETHER's core idea ("a risk calculation before every order") visible; the risk engine and the portfolio side already produce the data.
+- **Pre-trade check screen.** Before an order is sent, a single screen shows how much can be lost on this trade, what the total open risk will be, the drift from the target allocation, and which rules are being broken. It makes Metron's core idea ("a risk calculation before every order") visible; the risk engine and the portfolio side already produce the data.
 - **Paper trading.** Trading in a virtual account with live prices and no real money. The user tries their rules without risk, and the system is also tested without risking real money. It is the exchange-independent version of v1's Binance demo support.
 - **Backtest.** Answers the question "what would have happened last month if the ATR multiplier had been 2 instead of 1.5" using historical data; stop settings are chosen with data rather than guesswork. It suits the Rust side and is the item that takes the most effort.
 - **Discipline rules.** Rules the user sets for themselves (example: "no trading for 1 hour after a loss", "no orders after 00:00", "a stop cannot be widened in the loss direction"). The system either prevents the rule from being broken or at least records the violation.

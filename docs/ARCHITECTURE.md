@@ -1,4 +1,4 @@
-# AETHER v2 — Architecture Decisions
+# Metron — Architecture Decisions
 
 13 November 2026
 
