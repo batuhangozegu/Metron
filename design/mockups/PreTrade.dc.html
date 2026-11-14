@@ -86,9 +86,9 @@ Metron
 <svg role="img" aria-label="Caution" width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="var(--caution)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M18 4.5l15 26H3l15-26z"/><path d="M18 14v8M18 26v.2"/></svg>
 <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px">
 <h2 style="margin: 0; font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em">One rule would be broken</h2>
-<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--muted)">Size and limits pass. Your cooldown rule asks you to wait 22 more minutes.</p>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--muted)">No limit is exceeded, and this would be your fourth of five positions. Your cooldown rule asks you to wait 22 more minutes.</p>
 </div>
-<span class="num" style="font-size: 13px; color: var(--muted)">5 passed · 1 caution · 0 blocked</span>
+<span class="num" style="font-size: 13px; color: var(--muted)">4 passed · 2 caution · 0 blocked</span>
 </div>
 
 <article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px 24px; display: flex; flex-direction: column; gap: 24px">
@@ -222,7 +222,7 @@ checks: [
 { name: 'Daily loss cap', detail: 'Today, if this stop also triggers', before: '25%', add: '10%', value: '1.25% → 1.75% of 5.00%', state: 'Safe', color: safe, ok: true, warn: false },
 { name: 'Position size', detail: 'Largest single Small-cap position', before: '0%', add: '52.1%', value: '4.17% of 8.00%', state: 'Safe', color: safe, ok: true, warn: false },
 { name: 'Small-cap total', detail: 'All Small-cap holdings together', before: '0%', add: '41.7%', value: '0% → 4.17% of 10.00%', state: 'Safe', color: safe, ok: true, warn: false },
-{ name: 'Open positions', detail: 'Positions held at the same time', before: '60%', add: '20%', value: '3 → 4 of 5', state: 'Safe', color: safe, ok: true, warn: false },
+{ name: 'Open positions', detail: 'Positions held at the same time', before: '60%', add: '20%', value: '3 → 4 of 5', state: 'Caution', color: caution, ok: false, warn: true },
 { name: 'Cooldown after a loss', detail: 'Your rule: wait 60 minutes · warn and record', before: '63.3%', add: '0%', value: '38 of 60 min waited', state: 'Broken', color: caution, ok: false, warn: true }
 ]
 };

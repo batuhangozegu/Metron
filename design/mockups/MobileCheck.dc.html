@@ -48,7 +48,7 @@ a{color:inherit;text-decoration:none}a:hover{color:inherit}
 <svg role="img" aria-label="Caution" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="var(--caution)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="M18 4.5l15 26H3l15-26z"/><path d="M18 14v8M18 26v.2"/></svg>
 <div style="display: flex; flex-direction: column; gap: 4px">
 <h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em">One rule would be broken</h2>
-<p style="margin: 0; font-size: 14px; line-height: 20px; color: var(--muted)">Size and limits pass. Your cooldown rule asks you to wait 22 more minutes.</p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: var(--muted)">No limit is exceeded. Your cooldown rule asks you to wait 22 more minutes.</p>
 </div>
 </div>
 
@@ -160,7 +160,7 @@ checks: [
 { name: 'Daily loss cap', before: '25%', add: '10%', value: '1.25% → 1.75% of 5.00%', state: 'Safe', color: safe, ok: true, warn: false },
 { name: 'Position size', before: '0%', add: '52.1%', value: '4.17% of 8.00%', state: 'Safe', color: safe, ok: true, warn: false },
 { name: 'Small-cap total', before: '0%', add: '41.7%', value: '0% → 4.17% of 10.00%', state: 'Safe', color: safe, ok: true, warn: false },
-{ name: 'Open positions', before: '60%', add: '20%', value: '3 → 4 of 5', state: 'Safe', color: safe, ok: true, warn: false }
+{ name: 'Open positions', before: '60%', add: '20%', value: '3 → 4 of 5', state: 'Caution', color: caution, ok: false, warn: true }
 ]
 };
 }
