@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metron foundations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+.m{--bg:#0D1012;--surface:#14181B;--raised:#1B2125;--line:#2A3238;--text:#E9EDEF;--muted:#A3AEB5;--subtle:#86929A;--inverse:#0D1012;--profit:#3FCF8E;--loss:#F47C7C;--safe:#6CB6FF;--caution:#F2B84B;--limit:#E879F9;--safe-t:rgba(108,182,255,.12);--caution-t:rgba(242,184,75,.12);--limit-t:rgba(232,121,249,.12);font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.m[data-theme="light"]{--bg:#F3F5F6;--surface:#FFFFFF;--raised:#ECEFF1;--line:#D3D9DD;--text:#12171A;--muted:#4A565E;--subtle:#5F6B73;--inverse:#FFFFFF;--profit:#0B7446;--loss:#BF2F38;--safe:#1B66B5;--caution:#8A5A00;--limit:#9A1FA8;--safe-t:rgba(27,102,181,.10);--caution-t:rgba(214,150,20,.16);--limit-t:rgba(154,31,168,.10)}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="m" data-theme="dark" style="min-height: 1500px; box-sizing: border-box; padding: 40px 32px">
+<div style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px">
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em">Foundations</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--muted); max-width: 720px">One set of values for web and mobile. The interface is neutral so that only two things carry color: the result of a trade, and how close you are to a limit.</p>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+<sc-for list="{{themes}}" as="t" hint-placeholder-count="2">
+<article class="m" data-theme="{{t.theme}}" style="flex: 1 1 520px; min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 24px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">{{t.name}}</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px">
+<sc-for list="{{t.swatches}}" as="s" hint-placeholder-count="12">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="height: 48px; border-radius: 8px; border: 1px solid var(--line); background: {{s.css}}"></div>
+<span style="font-size: 12px; font-weight: 500">{{s.name}}</span>
+<span class="num" style="font-size: 11px; color: var(--subtle)">{{s.hex}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 1px solid var(--line)">
+<span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Risk scale · color, shape and word together</span>
+<sc-for list="{{t.states}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line)">
+<span style="flex: 0 0 150px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: {{r.color}}">
+<sc-if value="{{r.isSafe}}" hint-placeholder-val="{{ true }}">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="7"/><path d="M5.8 9.3l2.2 2.2 4-4.8"/></svg>
+</sc-if>
+<sc-if value="{{r.isCaution}}" hint-placeholder-val="{{ false }}">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.2l7.3 12.8H1.7L9 2.2z"/><path d="M9 7.2v3.6M9 12.9v.1"/></svg>
+</sc-if>
+<sc-if value="{{r.isLimit}}" hint-placeholder-val="{{ false }}">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h6l4 4v6l-4 4H6l-4-4V6l4-4z"/><path d="M5.8 9h6.4"/></svg>
+</sc-if>
+{{r.label}}
+</span>
+<div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 4px">
+<div style="height: 6px; background-image: repeating-linear-gradient(90deg, var(--subtle) 0 1px, transparent 1px 10%); border-right: 1px solid var(--subtle)"></div>
+<div style="position: relative; height: 8px; border-radius: 2px; background: var(--raised)">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: {{r.color}}; width: {{r.fill}}"></div>
+<div style="position: absolute; left: 75%; top: -3px; bottom: -3px; width: 2px; background: var(--caution)"></div>
+<div style="position: absolute; right: 0; top: -3px; bottom: -3px; width: 2px; background: var(--limit)"></div>
+</div>
+</div>
+<span class="num" style="flex: 0 0 130px; text-align: right; font-size: 13px">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding-top: 20px; border-top: 1px solid var(--line)">
+<span style="flex: 1 1 100%; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Result of a trade · arrow and sign, never color alone</span>
+<span class="num" style="font-size: 20px; color: var(--profit)">▲ +125.01</span>
+<span class="num" style="font-size: 20px; color: var(--loss)">▼ −55.59</span>
+<span class="num" style="font-size: 20px; color: var(--muted)">0.00</span>
+<span style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 8px; background: var(--text); color: var(--inverse); font-size: 14px; font-weight: 600">Primary action</span>
+<span style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px; font-weight: 500">Secondary</span>
+</div>
+</article>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<article style="flex: 2 1 560px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Type</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Display · Inter 600 · 40/44</span>
+<span style="font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em">Within your limits</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Title · Inter 600 · 28/34</span>
+<span style="font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em">Pre-trade check</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Heading · Inter 600 · 16</span>
+<span style="font-size: 16px; font-weight: 600">Open positions</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Body · Inter 400 · 15/22</span>
+<span style="font-size: 15px; line-height: 22px; color: var(--muted)">The wider a coin moves, the wider its stop and the smaller the position.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Label · Inter 400 · 12 caps</span>
+<span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Risk status · 14:20 UTC</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Figure, large · Mono 500 · 44/48</span>
+<span class="num" style="font-size: 44px; line-height: 48px; font-weight: 500; letter-spacing: -0.03em">2.75%</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px">
+<span style="flex: 0 0 170px; font-size: 12px; color: var(--subtle)">Figure, table · Mono 400 · 14</span>
+<span class="num" style="font-size: 14px">97,846.00 &nbsp; 3,461.04 &nbsp; 178.75 &nbsp; 5.204</span>
+</div>
+<p style="margin: 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; line-height: 19px; color: var(--subtle)">Every number is set in JetBrains Mono so digits line up in columns. Words are set in Inter.</p>
+</article>
+
+<article style="flex: 1 1 320px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Space and shape</h2>
+<div style="display: flex; align-items: flex-end; gap: 12px">
+<sc-for list="{{spaces}}" as="sp" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<div style="background: var(--muted); border-radius: 2px; width: {{sp.px}}; height: {{sp.px}}"></div>
+<span class="num" style="font-size: 11px; color: var(--subtle)">{{sp.n}}</span>
+</div>
+</sc-for>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 10px 16px; font-size: 14px">
+<dt style="color: var(--muted)">Chip and tag radius</dt><dd class="num" style="margin: 0; text-align: right">6</dd>
+<dt style="color: var(--muted)">Control radius</dt><dd class="num" style="margin: 0; text-align: right">8</dd>
+<dt style="color: var(--muted)">Card radius</dt><dd class="num" style="margin: 0; text-align: right">12</dd>
+<dt style="color: var(--muted)">Control height</dt><dd class="num" style="margin: 0; text-align: right">44</dd>
+<dt style="color: var(--muted)">Card padding</dt><dd class="num" style="margin: 0; text-align: right">24</dd>
+<dt style="color: var(--muted)">Page width</dt><dd class="num" style="margin: 0; text-align: right">1280</dd>
+</dl>
+<p style="margin: 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; line-height: 19px; color: var(--subtle)">Cards are flat: a one-pixel line, no shadow. The measure is the only ornament, and it always shows a real quantity against a real limit.</p>
+</article>
+
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+const names = [
+['Background', '--bg'], ['Surface', '--surface'], ['Raised', '--raised'], ['Line', '--line'],
+['Text', '--text'], ['Muted', '--muted'], ['Subtle', '--subtle'],
+['Profit', '--profit'], ['Loss', '--loss'],
+['Safe', '--safe'], ['Caution', '--caution'], ['Limit', '--limit']
+];
+const dark = ['#0D1012', '#14181B', '#1B2125', '#2A3238', '#E9EDEF', '#A3AEB5', '#86929A', '#3FCF8E', '#F47C7C', '#6CB6FF', '#F2B84B', '#E879F9'];
+const light = ['#F3F5F6', '#FFFFFF', '#ECEFF1', '#D3D9DD', '#12171A', '#4A565E', '#5F6B73', '#0B7446', '#BF2F38', '#1B66B5', '#8A5A00', '#9A1FA8'];
+const swatches = (hexes) => names.map((n, i) => ({ name: n[0], css: 'var(' + n[1] + ')', hex: hexes[i] }));
+const states = [
+{ label: 'Safe', color: 'var(--safe)', fill: '45.8%', value: '2.75% of 6.00%', isSafe: true, isCaution: false, isLimit: false },
+{ label: 'Caution', color: 'var(--caution)', fill: '85%', value: '5.10% of 6.00%', isSafe: false, isCaution: true, isLimit: false },
+{ label: 'Limit exceeded', color: 'var(--limit)', fill: '100%', value: '6.40% of 6.00%', isSafe: false, isCaution: false, isLimit: true }
+];
+return {
+themes: [
+{ theme: 'dark', name: 'Dark, the default', swatches: swatches(dark), states: states },
+{ theme: 'light', name: 'Light', swatches: swatches(light), states: states }
+],
+spaces: [4, 8, 12, 16, 24, 32].map((n) => ({ n: String(n), px: n + 'px' }))
+};
+}
+}
+</script>
+</body>
+</html>

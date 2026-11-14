@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metron rules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+.m{--bg:#0D1012;--surface:#14181B;--raised:#1B2125;--line:#2A3238;--text:#E9EDEF;--muted:#A3AEB5;--subtle:#86929A;--inverse:#0D1012;--profit:#3FCF8E;--loss:#F47C7C;--safe:#6CB6FF;--caution:#F2B84B;--limit:#E879F9;--safe-t:rgba(108,182,255,.12);--caution-t:rgba(242,184,75,.12);--limit-t:rgba(232,121,249,.12);font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.m[data-theme="light"]{--bg:#F3F5F6;--surface:#FFFFFF;--raised:#ECEFF1;--line:#D3D9DD;--text:#12171A;--muted:#4A565E;--subtle:#5F6B73;--inverse:#FFFFFF;--profit:#0B7446;--loss:#BF2F38;--safe:#1B66B5;--caution:#8A5A00;--limit:#9A1FA8;--safe-t:rgba(27,102,181,.10);--caution-t:rgba(214,150,20,.16);--limit-t:rgba(154,31,168,.10)}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="m" data-theme="{{theme}}" style="min-height: 1320px; box-sizing: border-box">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 10px 32px; border-bottom: 1px solid var(--line); background: var(--surface)">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; letter-spacing: 0.02em; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 16h18M2 16V7M6.5 16v-4M11 16V7M15.5 16v-4M20 16V7"/></svg>
+Metron
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+<a href="Main.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Overview</a>
+<a href="PreTrade.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Pre-trade check</a>
+<a href="Markets.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Markets</a>
+<a href="Portfolio.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Portfolio</a>
+<a href="Rules.dc.html" aria-current="page" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 500; background: var(--raised); color: var(--text)">Rules</a>
+</nav>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<span style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted)">Paper account</span>
+<span class="num" style="font-size: 14px">25,000.00 <span style="color: var(--subtle)">USDT</span></span>
+<a href="PreTrade.dc.html" style="padding: 12px 18px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 600; background: var(--text); color: var(--inverse)">New order</a>
+</div>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em">Rules</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--muted); max-width: 620px">Set these with a clear head. Every pre-trade check measures an order against them.</p>
+</div>
+<button type="button" style="height: 44px; padding: 0 20px; border: 0; border-radius: 8px; background: var(--text); color: var(--inverse); font: 600 14px Inter, system-ui, sans-serif">Save changes</button>
+</section>
+
+<article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Account limits</h2>
+<p style="margin: 0; font-size: 13px; color: var(--subtle)">Percentages are of the account value.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="open-risk" style="font-size: 13px; color: var(--muted)">Total open risk limit, %</label>
+<input id="open-risk" class="num" inputmode="decimal" value="6.00" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+<span style="font-size: 12px; line-height: 17px; color: var(--subtle)">The most you can lose if every stop triggers together.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="daily" style="font-size: 13px; color: var(--muted)">Daily loss cap, %</label>
+<input id="daily" class="num" inputmode="decimal" value="5.00" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+<span style="font-size: 12px; line-height: 17px; color: var(--subtle)">New orders are blocked for the rest of the day once reached.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="weekly" style="font-size: 13px; color: var(--muted)">Weekly loss cap, %</label>
+<input id="weekly" class="num" inputmode="decimal" value="10.00" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+<span style="font-size: 12px; line-height: 17px; color: var(--subtle)">Counted from Monday 00:00 UTC.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="max-pos" style="font-size: 13px; color: var(--muted)">Open positions at once</label>
+<input id="max-pos" class="num" inputmode="numeric" value="5" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="rr" style="font-size: 13px; color: var(--muted)">Target risk/reward</label>
+<input id="rr" class="num" inputmode="decimal" value="2.0" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="caution-at" style="font-size: 13px; color: var(--muted)">Caution starts at, % of a limit</label>
+<input id="caution-at" class="num" inputmode="numeric" value="75" style="height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: 16px; box-sizing: border-box; width: 100%">
+</div>
+</div>
+</article>
+
+<article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 20px 24px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Coin class rules</h2>
+<p style="margin: 0; font-size: 13px; color: var(--subtle)">Stop distance is the multiplier times the coin's daily movement. A wider stop means a smaller position, so the money at risk stays the same.</p>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 14px">
+<thead>
+<tr style="text-align: right; color: var(--subtle); font-size: 12px">
+<th scope="col" style="text-align: left; font-weight: 500; padding: 10px 24px; border-top: 1px solid var(--line)">Class</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">ATR multiplier</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Risk per trade</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Largest position</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Class total</th>
+<th scope="col" style="text-align: left; font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Source</th>
+<th scope="col" style="font-weight: 500; padding: 10px 24px 10px 12px; border-top: 1px solid var(--line)"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Action</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{classes}}" as="k" hint-placeholder-count="4">
+<tr style="text-align: right">
+<td style="text-align: left; padding: 6px 24px; border-top: 1px solid var(--line)">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">{{k.cls}}</span>
+<span style="font-size: 12px; color: var(--subtle)">{{k.who}}</span>
+</div>
+</td>
+<td class="num" style="padding: 6px 12px; border-top: 1px solid var(--line)">{{k.mult}}</td>
+<td class="num" style="padding: 6px 12px; border-top: 1px solid var(--line)">{{k.risk}}</td>
+<td class="num" style="padding: 6px 12px; border-top: 1px solid var(--line)">{{k.maxPos}}</td>
+<td class="num" style="padding: 6px 12px; border-top: 1px solid var(--line)">{{k.total}}</td>
+<td style="text-align: left; padding: 6px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted)">{{k.source}}</td>
+<td style="padding: 6px 24px 6px 12px; border-top: 1px solid var(--line)"><button type="button" style="height: 44px; padding: 0 14px; border: 0; background: transparent; color: var(--text); font: 500 13px Inter, system-ui, sans-serif; text-decoration: underline">Edit</button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</article>
+
+<article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 20px 24px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Discipline rules</h2>
+<p style="margin: 0; font-size: 13px; color: var(--subtle)">Promises you make to yourself. Metron either blocks the order or warns and records it.</p>
+</div>
+<button type="button" style="height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--text); font: 500 14px Inter, system-ui, sans-serif">Add a rule</button>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{discipline}}" as="d" hint-placeholder-count="3">
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 24px; border-top: 1px solid var(--line)">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 14px; font-weight: 500">{{d.name}}</span>
+<span style="font-size: 13px; color: var(--subtle)">{{d.detail}}</span>
+</div>
+<span style="flex: 0 0 150px; font-size: 13px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-align: center; background: {{d.modeBg}}; color: {{d.modeColor}}">{{d.mode}}</span>
+<span class="num" style="flex: 0 0 190px; font-size: 13px; color: var(--muted)">{{d.history}}</span>
+<button type="button" style="height: 44px; padding: 0 14px; border: 0; background: transparent; color: var(--text); font: 500 13px Inter, system-ui, sans-serif; text-decoration: underline">Edit</button>
+</li>
+</sc-for>
+</ul>
+<p style="margin: 0; padding: 14px 24px; border-top: 1px solid var(--line); font-size: 13px; line-height: 19px; color: var(--subtle)">A rule cannot be loosened while it is counting down or within an hour of a loss.</p>
+</article>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":1440,"height":1320}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+theme: this.props.theme ?? 'dark',
+classes: [
+{ cls: 'BTC/ETH', who: 'BTC, ETH', mult: '1.5×', risk: '1.00%', maxPos: '40%', total: 'No cap', source: 'Changed by you' },
+{ cls: 'Large-cap', who: 'SOL, BNB, XRP and 21 more', mult: '1.5×', risk: '0.75%', maxPos: '15%', total: '40%', source: 'System default' },
+{ cls: 'Small-cap', who: 'PENDLE, INJ and 180 more', mult: '1.5×', risk: '0.50%', maxPos: '8%', total: '10%', source: 'System default' },
+{ cls: 'Stablecoin', who: 'USDC, FDUSD', mult: 'None', risk: 'None', maxPos: 'No cap', total: 'No cap', source: 'Held as cash' }
+],
+discipline: [
+{ name: 'Cooldown after a loss', detail: 'No new order for 60 minutes after a position closes at a loss.', mode: 'Warn and record', modeBg: 'var(--caution-t)', modeColor: 'var(--caution)', history: '2 broken in 30 days' },
+{ name: 'No orders after 00:00', detail: 'No new order between 00:00 and 06:00 UTC.', mode: 'Warn and record', modeBg: 'var(--caution-t)', modeColor: 'var(--caution)', history: '1 broken in 30 days' },
+{ name: 'A stop is never widened', detail: 'A stop can move toward the price, never away from it.', mode: 'Block', modeBg: 'var(--limit-t)', modeColor: 'var(--limit)', history: 'Blocked 3 times' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

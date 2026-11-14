@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metron overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+.m{--bg:#0D1012;--surface:#14181B;--raised:#1B2125;--line:#2A3238;--text:#E9EDEF;--muted:#A3AEB5;--subtle:#86929A;--inverse:#0D1012;--profit:#3FCF8E;--loss:#F47C7C;--safe:#6CB6FF;--caution:#F2B84B;--limit:#E879F9;--safe-t:rgba(108,182,255,.12);--caution-t:rgba(242,184,75,.12);--limit-t:rgba(232,121,249,.12);font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.m[data-theme="light"]{--bg:#F3F5F6;--surface:#FFFFFF;--raised:#ECEFF1;--line:#D3D9DD;--text:#12171A;--muted:#4A565E;--subtle:#5F6B73;--inverse:#FFFFFF;--profit:#0B7446;--loss:#BF2F38;--safe:#1B66B5;--caution:#8A5A00;--limit:#9A1FA8;--safe-t:rgba(27,102,181,.10);--caution-t:rgba(214,150,20,.16);--limit-t:rgba(154,31,168,.10)}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="m" data-theme="{{theme}}" style="min-height: 1180px; box-sizing: border-box">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 10px 32px; border-bottom: 1px solid var(--line); background: var(--surface)">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; letter-spacing: 0.02em; min-height: 44px">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 16h18M2 16V7M6.5 16v-4M11 16V7M15.5 16v-4M20 16V7"/></svg>
+Metron
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+<a href="Main.dc.html" aria-current="page" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 500; background: var(--raised); color: var(--text)">Overview</a>
+<a href="PreTrade.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Pre-trade check</a>
+<a href="Markets.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Markets</a>
+<a href="Portfolio.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Portfolio</a>
+<a href="Rules.dc.html" style="padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Rules</a>
+</nav>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<span style="font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted)">Paper account</span>
+<span class="num" style="font-size: 14px">25,000.00 <span style="color: var(--subtle)">USDT</span></span>
+<a href="PreTrade.dc.html" style="padding: 12px 18px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 600; background: var(--text); color: var(--inverse)">New order</a>
+</div>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Risk status · 14:20 UTC</span>
+<div style="display: flex; align-items: center; gap: 14px">
+<svg role="img" aria-label="Safe" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="var(--safe)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="13"/><path d="M10 16.5l4 4 8-9"/></svg>
+<h1 style="margin: 0; font-size: 40px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em">Within your limits</h1>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--muted); max-width: 640px">If every stop triggered right now you would lose <span class="num" style="color: var(--text)">687.50 USDT</span>, which is 2.75% of the account. One discipline rule is counting down.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: var(--subtle)">Realized today</span>
+<span class="num" style="font-size: 20px; color: var(--loss)">▼ −312.50</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: var(--subtle)">Unrealized</span>
+<span class="num" style="font-size: 20px; color: var(--profit)">▲ +140.85</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: var(--subtle)">Open positions</span>
+<span class="num" style="font-size: 20px">3 <span style="color: var(--subtle)">of 5</span></span>
+</div>
+</div>
+</section>
+
+<section aria-label="Risk gauges" style="display: flex; flex-wrap: wrap; gap: 16px">
+<sc-for list="{{gauges}}" as="g" hint-placeholder-count="3">
+<article style="flex: 1 1 320px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 style="margin: 0; font-size: 14px; font-weight: 500; color: var(--muted)">{{g.label}}</h2>
+<span style="font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 6px; background: var(--safe-t); color: var(--safe)">Safe</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span class="num" style="font-size: 44px; line-height: 48px; font-weight: 500; letter-spacing: -0.03em">{{g.value}}</span>
+<span class="num" style="font-size: 15px; color: var(--subtle)">of {{g.limit}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="height: 8px; background-image: repeating-linear-gradient(90deg, var(--subtle) 0 1px, transparent 1px 10%); border-right: 1px solid var(--subtle)"></div>
+<div style="position: relative; height: 8px; border-radius: 2px; background: var(--raised)">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--safe); width: {{g.fill}}"></div>
+<div style="position: absolute; left: 75%; top: -4px; bottom: -4px; width: 2px; background: var(--caution)"></div>
+<div style="position: absolute; right: 0; top: -4px; bottom: -4px; width: 2px; background: var(--limit)"></div>
+</div>
+<div class="num" style="display: flex; justify-content: space-between; font-size: 11px; color: var(--subtle)">
+<span>0</span>
+<span style="margin-left: 50%">{{g.cautionAt}}</span>
+<span>{{g.limit}}</span>
+</div>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 20px; color: var(--muted)"><span class="num" style="color: var(--text)">{{g.amount}}</span> {{g.note}}</p>
+</article>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<article style="flex: 999 1 640px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 24px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Open positions</h2>
+<span style="font-size: 13px; color: var(--subtle)">Sorted by distance to stop</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px">
+<thead>
+<tr style="text-align: right; color: var(--subtle); font-size: 12px">
+<th scope="col" style="text-align: left; font-weight: 500; padding: 10px 24px; border-top: 1px solid var(--line)">Pair</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Entry</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Price</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">Stop</th>
+<th scope="col" style="text-align: left; font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">To stop</th>
+<th scope="col" style="font-weight: 500; padding: 10px 12px; border-top: 1px solid var(--line)">At risk</th>
+<th scope="col" style="font-weight: 500; padding: 10px 24px 10px 12px; border-top: 1px solid var(--line)">Unrealized</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{positions}}" as="p" hint-placeholder-count="3">
+<tr style="text-align: right">
+<td style="text-align: left; padding: 14px 24px; border-top: 1px solid var(--line)">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">{{p.pair}}</span>
+<span style="font-size: 12px; color: var(--subtle)">{{p.cls}} · <span class="num">{{p.qty}}</span></span>
+</div>
+</td>
+<td class="num" style="padding: 14px 12px; border-top: 1px solid var(--line); color: var(--muted)">{{p.entry}}</td>
+<td class="num" style="padding: 14px 12px; border-top: 1px solid var(--line)">{{p.price}}</td>
+<td class="num" style="padding: 14px 12px; border-top: 1px solid var(--line); color: var(--muted)">{{p.stop}}</td>
+<td style="padding: 14px 12px; border-top: 1px solid var(--line); text-align: left">
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="position: relative; width: 72px; height: 6px; border-radius: 2px; background: var(--raised)">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--safe); width: {{p.stopFill}}"></div>
+</div>
+<span class="num" style="font-size: 13px">{{p.toStop}}</span>
+</div>
+</td>
+<td class="num" style="padding: 14px 12px; border-top: 1px solid var(--line)">{{p.risk}}</td>
+<td class="num" style="padding: 14px 24px 14px 12px; border-top: 1px solid var(--line); color: {{p.plColor}}">{{p.pl}}</td>
+</tr>
+</sc-for>
+</tbody>
+<tfoot>
+<tr style="text-align: right; font-weight: 500">
+<td colspan="5" style="text-align: left; padding: 14px 24px; border-top: 1px solid var(--line); color: var(--muted)">Total open risk</td>
+<td class="num" style="padding: 14px 12px; border-top: 1px solid var(--line)">687.50</td>
+<td class="num" style="padding: 14px 24px 14px 12px; border-top: 1px solid var(--line); color: var(--profit)">▲ +140.85</td>
+</tr>
+</tfoot>
+</table>
+</div>
+<p style="margin: 0; padding: 14px 24px; border-top: 1px solid var(--line); font-size: 13px; color: var(--subtle)">Every stop is also placed as an order on the exchange.</p>
+</article>
+
+<aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Discipline</h2>
+<a href="Rules.dc.html" style="font-size: 13px; color: var(--muted); text-decoration: underline; padding: 12px 0">Edit rules</a>
+</div>
+<div style="display: flex; gap: 12px; padding: 14px; border-radius: 10px; background: var(--caution-t)">
+<svg role="img" aria-label="Caution" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--caution)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 1px"><path d="M10 2.5l8 14H2l8-14z"/><path d="M10 8v4M10 14.4v.1"/></svg>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14px; font-weight: 500">Cooldown after a loss</span>
+<span style="font-size: 13px; line-height: 19px; color: var(--muted)">AVAX/USDT closed at a loss at 13:42. Your rule asks you to wait until <span class="num" style="color: var(--text)">14:42</span>, 22 minutes from now.</span>
+</div>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
+<li style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+<svg role="img" aria-label="Kept" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--safe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>
+No orders after 00:00 UTC
+</li>
+<li style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+<svg role="img" aria-label="Kept" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--safe)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.5"/></svg>
+A stop is never widened
+</li>
+</ul>
+<p style="margin: 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--subtle)">1 violation recorded this week</p>
+</article>
+
+<article style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Checks today</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 10px 16px; font-size: 14px">
+<dt style="color: var(--muted)">Pre-trade checks run</dt><dd class="num" style="margin: 0; text-align: right">4</dd>
+<dt style="color: var(--muted)">Orders placed</dt><dd class="num" style="margin: 0; text-align: right">2</dd>
+<dt style="color: var(--muted)">Blocked by a limit</dt><dd class="num" style="margin: 0; text-align: right">1</dd>
+<dt style="color: var(--muted)">Abandoned after the check</dt><dd class="num" style="margin: 0; text-align: right">1</dd>
+</dl>
+</article>
+</aside>
+
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+theme: this.props.theme ?? 'dark',
+gauges: [
+{ label: 'Total open risk', value: '2.75%', limit: '6.00%', cautionAt: '4.50%', fill: '45.8%', amount: '687.50 USDT', note: 'lost if every stop triggers at once.' },
+{ label: 'Daily loss cap used', value: '1.25%', limit: '5.00%', cautionAt: '3.75%', fill: '25%', amount: '937.50 USDT', note: 'left before trading stops for today.' },
+{ label: 'Weekly loss cap used', value: '1.80%', limit: '10.00%', cautionAt: '7.50%', fill: '18%', amount: '2,050.00 USDT', note: 'left before trading stops for the week.' }
+],
+positions: [
+{ pair: 'BTC/USDT', cls: 'BTC/ETH', qty: '0.08645 BTC', entry: '96,400.00', price: '97,846.00', stop: '93,508.00', toStop: '4.43%', stopFill: '74%', risk: '250.00', pl: '▲ +125.01', plColor: 'var(--profit)' },
+{ pair: 'SOL/USDT', cls: 'Large-cap', qty: '15.229 SOL', entry: '182.40', price: '178.75', stop: '170.09', toStop: '4.84%', stopFill: '81%', risk: '187.50', pl: '▼ −55.59', plColor: 'var(--loss)' },
+{ pair: 'ETH/USDT', cls: 'BTC/ETH', qty: '1.7405 ETH', entry: '3,420.00', price: '3,461.04', stop: '3,276.36', toStop: '5.34%', stopFill: '89%', risk: '250.00', pl: '▲ +71.43', plColor: 'var(--profit)' }
+]
+};
+}
+}
+</script>
+</body>
+</html>
