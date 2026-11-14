@@ -31,6 +31,17 @@ Note: This folder holds the visual design that section 8 of [ARCHITECTURE.md](..
 | `Rules.dc.html` | `/rules` | Account limits, coin class rules, discipline rules |
 | `Foundations.dc.html` | none | Token reference in both themes |
 
+### 3.1 Mobile
+
+Mobile is for monitoring and quick trading, not analysis (ARCHITECTURE.md section 2). Screens are 390 px wide, with a four-item bottom bar (Risk, Markets, Alerts, Rules) and the main action fixed above it.
+
+| Mockup | Purpose |
+| --- | --- |
+| `MobileHome.dc.html` | Risk status, total open risk gauge, daily and weekly caps, discipline notice, open positions, "Check a new order" |
+| `MobileCheck.dc.html` | Pre-trade check: pair and price, verdict, stop/entry/target measure, limits after the order, actions fixed at the bottom |
+| `MobilePosition.dc.html` | One position: unrealized result, where the price sits between stop and target, stop status, tighten or close |
+| `MobileAlerts.dc.html` | Today's events (cooldown, stops triggered, price alarms, blocked orders) and the price alarm list |
+
 ## 4. Verdicts of the pre-trade check
 
 | Verdict | When | Banner | Actions |
@@ -44,7 +55,7 @@ Only the caution and blocked verdicts are drawn; all clear uses the same layout 
 ## 5. Not designed yet
 
 - **Sign-in, two-factor authentication and paper account creation.** They are in the first release but not in this pass.
-- **Mobile.** It reuses `tokens.json`; its screens are drawn before roadmap step 7.
+- **Mobile markets, rules and quick close flows.** The four mobile screens in section 3 cover monitoring and the pre-trade check; the rest is drawn before roadmap step 7.
 
 ## 6. Sample data
 

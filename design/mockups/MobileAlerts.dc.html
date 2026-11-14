@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metron mobile alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+.m{--bg:#0D1012;--surface:#14181B;--raised:#1B2125;--line:#2A3238;--text:#E9EDEF;--muted:#A3AEB5;--subtle:#86929A;--inverse:#0D1012;--profit:#3FCF8E;--loss:#F47C7C;--safe:#6CB6FF;--caution:#F2B84B;--limit:#E879F9;--safe-t:rgba(108,182,255,.12);--caution-t:rgba(242,184,75,.12);--limit-t:rgba(232,121,249,.12);font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.m[data-theme="light"]{--bg:#F3F5F6;--surface:#FFFFFF;--raised:#ECEFF1;--line:#D3D9DD;--text:#12171A;--muted:#4A565E;--subtle:#5F6B73;--inverse:#FFFFFF;--profit:#0B7446;--loss:#BF2F38;--safe:#1B66B5;--caution:#8A5A00;--limit:#9A1FA8;--safe-t:rgba(27,102,181,.10);--caution-t:rgba(214,150,20,.16);--limit-t:rgba(154,31,168,.10)}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="m" data-theme="{{theme}}" style="width: 390px; height: 940px; box-sizing: border-box; display: flex; flex-direction: column">
+
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px">
+<h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em">Alerts</h1>
+<span style="font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted)">Paper</span>
+</header>
+
+<main style="flex: 1; min-height: 0; padding: 4px 16px 20px; display: flex; flex-direction: column; gap: 20px">
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Today</h2>
+<ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+<li style="display: flex; gap: 12px; padding: 14px 16px; border-top: {{e.border}}">
+<span style="flex: none; margin-top: 1px; color: {{e.color}}">
+<sc-if value="{{e.warn}}" hint-placeholder-val="{{ true }}">
+<svg role="img" aria-label="Caution" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.2l7.3 12.8H1.7L9 2.2z"/><path d="M9 7.2v3.6M9 12.9v.1"/></svg>
+</sc-if>
+<sc-if value="{{e.over}}" hint-placeholder-val="{{ false }}">
+<svg role="img" aria-label="Blocked" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h6l4 4v6l-4 4H6l-4-4V6l4-4z"/><path d="M5.8 9h6.4"/></svg>
+</sc-if>
+<sc-if value="{{e.stop}}" hint-placeholder-val="{{ false }}">
+<svg role="img" aria-label="Stop triggered" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 14.5h13M9 3v8M5.5 7.8L9 11.3l3.5-3.5"/></svg>
+</sc-if>
+<sc-if value="{{e.price}}" hint-placeholder-val="{{ false }}">
+<svg role="img" aria-label="Price alarm" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 13V8.5a4.5 4.5 0 019 0V13l1.2 1.2H3.3L4.5 13zM7.8 16.2h2.4"/></svg>
+</sc-if>
+</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<span style="font-size: 14px; font-weight: 500">{{e.title}}</span>
+<span class="num" style="flex: none; font-size: 12px; color: var(--subtle)">{{e.time}}</span>
+</div>
+<span style="font-size: 13px; line-height: 19px; color: var(--muted)">{{e.body}} <span class="num" style="color: {{e.amountColor}}">{{e.amount}}</span></span>
+</div>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Price alarms</h2>
+<button type="button" style="height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--text); font: 500 14px Inter, system-ui, sans-serif; text-decoration: underline">Add an alarm</button>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<li style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px">
+<span style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 14px; font-weight: 500">BTC/USDT rises above</span>
+<span class="num" style="font-size: 12px; color: var(--subtle)">now 97,846.00</span>
+</span>
+<span class="num" style="font-size: 15px">100,000.00</span>
+</li>
+<li style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line)">
+<span style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 14px; font-weight: 500">ETH/USDT falls below</span>
+<span class="num" style="font-size: 12px; color: var(--subtle)">now 3,461.04</span>
+</span>
+<span class="num" style="font-size: 15px">3,300.00</span>
+</li>
+</ul>
+</section>
+</main>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 8px 10px">
+<a href="MobileHome.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 15a8 8 0 0116 0M11 15l4-5"/></svg>
+Risk
+</a>
+<a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h14M4 11h14M4 16h14"/></svg>
+Markets
+</a>
+<a href="MobileAlerts.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; font-weight: 600; color: var(--text)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 16V10a5.5 5.5 0 0111 0v6l1.5 1.5H4L5.5 16zM9.5 19.5h3"/></svg>
+Alerts
+</a>
+<a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h8M16 7h2M4 15h2M10 15h8"/><circle cx="14" cy="7" r="2"/><circle cx="8" cy="15" r="2"/></svg>
+Rules
+</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":940}}'>
+class Component extends DCLogic {
+renderVals() {
+const line = '1px solid var(--line)';
+const base = { warn: false, over: false, stop: false, price: false, amount: '', amountColor: 'var(--text)' };
+return {
+theme: this.props.theme ?? 'dark',
+events: [
+{ ...base, warn: true, color: 'var(--caution)', title: 'Cooldown is counting down', time: '14:20', body: 'New orders are a broken rule until 14:42.', border: '0' },
+{ ...base, stop: true, color: 'var(--muted)', title: 'Stop triggered · AVAX/USDT', time: '13:42', body: 'Closed at 31.93.', amount: '▼ −187.50', amountColor: 'var(--loss)', border: line },
+{ ...base, price: true, color: 'var(--muted)', title: 'BTC/USDT rose above 97,500.00', time: '11:05', body: 'Your price alarm.', border: line },
+{ ...base, stop: true, color: 'var(--muted)', title: 'Stop triggered · INJ/USDT', time: '09:15', body: 'Closed at 20.58.', amount: '▼ −125.00', amountColor: 'var(--loss)', border: line },
+{ ...base, over: true, color: 'var(--limit)', title: 'Order blocked', time: '08:02', body: 'Moving the SOL/USDT stop away from the price breaks "A stop is never widened".', border: line }
+]
+};
+}
+}
+</script>
+</body>
+</html>
