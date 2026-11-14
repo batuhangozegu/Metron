@@ -41,6 +41,10 @@ Mobile is for monitoring and quick trading, not analysis (ARCHITECTURE.md sectio
 | `MobileCheck.dc.html` | Pre-trade check: pair and price, verdict, stop/entry/target measure, limits after the order, actions fixed at the bottom |
 | `MobilePosition.dc.html` | One position: unrealized result, where the price sits between stop and target, stop status, tighten or close |
 | `MobileAlerts.dc.html` | Today's events (cooldown, stops triggered, price alarms, blocked orders) and the price alarm list |
+| `MobileMarkets.dc.html` | Search, class filter and the price list with class, ATR and suggested stop; a tap opens the check |
+| `MobileRules.dc.html` | Account limits, coin classes and discipline rules, read-only (rules are changed on the web), plus account and sign out |
+| `MobileCheckBlocked.dc.html` | The pre-trade check when a limit is exceeded: reduce or discard only |
+| `MobileSignIn.dc.html` | Sign in, and the two-factor code step (the `step` tweak switches between them) |
 
 ## 4. Verdicts of the pre-trade check
 
@@ -54,8 +58,8 @@ Only the caution and blocked verdicts are drawn; all clear uses the same layout 
 
 ## 5. Not designed yet
 
-- **Sign-in, two-factor authentication and paper account creation.** They are in the first release but not in this pass.
-- **Mobile markets, rules and quick close flows.** The four mobile screens in section 3 cover monitoring and the pre-trade check; the rest is drawn before roadmap step 7.
+- **Web sign-in, two-factor authentication and account creation.** Drawn for mobile only; the web versions follow the same form.
+- **Mobile close-position and tighten-stop confirmations, and the account creation form.** Drawn before roadmap step 7.
 
 ## 6. Sample data
 

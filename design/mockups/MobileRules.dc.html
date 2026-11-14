@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metron mobile rules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}a:hover{color:inherit}
+.m{--bg:#0D1012;--surface:#14181B;--raised:#1B2125;--line:#2A3238;--text:#E9EDEF;--muted:#A3AEB5;--subtle:#86929A;--inverse:#0D1012;--profit:#3FCF8E;--loss:#F47C7C;--safe:#6CB6FF;--caution:#F2B84B;--limit:#E879F9;--safe-t:rgba(108,182,255,.12);--caution-t:rgba(242,184,75,.12);--limit-t:rgba(232,121,249,.12);font-family:Inter,system-ui,sans-serif;color:var(--text);background:var(--bg)}
+.m[data-theme="light"]{--bg:#F3F5F6;--surface:#FFFFFF;--raised:#ECEFF1;--line:#D3D9DD;--text:#12171A;--muted:#4A565E;--subtle:#5F6B73;--inverse:#FFFFFF;--profit:#0B7446;--loss:#BF2F38;--safe:#1B66B5;--caution:#8A5A00;--limit:#9A1FA8;--safe-t:rgba(27,102,181,.10);--caution-t:rgba(214,150,20,.16);--limit-t:rgba(154,31,168,.10)}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="m" data-theme="{{theme}}" style="width: 390px; height: 1180px; box-sizing: border-box; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px">
+<h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em">Rules</h1>
+<p style="margin: 0; font-size: 13px; line-height: 19px; color: var(--muted)">Shown here, changed on the web. Rules are set at a desk, not in the moment.</p>
+</header>
+
+<main style="flex: 1; min-height: 0; padding: 8px 16px 20px; display: flex; flex-direction: column; gap: 20px">
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Account limits</h2>
+<dl style="margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; font-size: 14px">
+<dt style="color: var(--muted)">Total open risk</dt><dd class="num" style="margin: 0; text-align: right">6.00%</dd>
+<dt style="color: var(--muted)">Daily loss cap</dt><dd class="num" style="margin: 0; text-align: right">5.00%</dd>
+<dt style="color: var(--muted)">Weekly loss cap</dt><dd class="num" style="margin: 0; text-align: right">10.00%</dd>
+<dt style="color: var(--muted)">Open positions at once</dt><dd class="num" style="margin: 0; text-align: right">5</dd>
+<dt style="color: var(--muted)">Target risk/reward</dt><dd class="num" style="margin: 0; text-align: right">2.0</dd>
+</dl>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Coin classes</h2>
+<div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<sc-for list="{{classes}}" as="k" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-top: {{k.border}}">
+<span style="font-size: 15px; font-weight: 600">{{k.cls}}</span>
+<div class="num" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 14px">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: 400 11px Inter, system-ui, sans-serif; color: var(--subtle)">Stop</span>{{k.mult}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: 400 11px Inter, system-ui, sans-serif; color: var(--subtle)">Risk per trade</span>{{k.risk}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: 400 11px Inter, system-ui, sans-serif; color: var(--subtle)">Largest position</span>{{k.maxPos}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Discipline</h2>
+<ul style="list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px">
+<sc-for list="{{discipline}}" as="d" hint-placeholder-count="3">
+<li style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-top: {{d.border}}">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<span style="font-size: 14px; font-weight: 500">{{d.name}}</span>
+<span style="flex: none; font-size: 12px; font-weight: 500; padding: 4px 8px; border-radius: 6px; background: {{d.modeBg}}; color: {{d.modeColor}}">{{d.mode}}</span>
+</div>
+<span style="font-size: 13px; line-height: 19px; color: var(--muted)">{{d.detail}}</span>
+<span class="num" style="font-size: 12px; color: var(--subtle)">{{d.history}}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 12px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle)">Account</h2>
+<div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; font-size: 14px">
+<span style="color: var(--muted)">Trading account</span><span>Paper · <span class="num">25,000.00 USDT</span></span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--line); font-size: 14px">
+<span style="color: var(--muted)">Two-factor sign-in</span><span style="color: var(--safe)">On</span>
+</div>
+<button type="button" style="height: 48px; padding: 0 16px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text); font: 500 14px Inter, system-ui, sans-serif; text-align: left">Sign out</button>
+</div>
+</section>
+</main>
+
+<nav aria-label="Main" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 8px 10px">
+<a href="MobileHome.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 15a8 8 0 0116 0M11 15l4-5"/></svg>
+Risk
+</a>
+<a href="MobileMarkets.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h14M4 11h14M4 16h14"/></svg>
+Markets
+</a>
+<a href="MobileAlerts.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; color: var(--muted)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 16V10a5.5 5.5 0 0111 0v6l1.5 1.5H4L5.5 16zM9.5 19.5h3"/></svg>
+Alerts
+</a>
+<a href="MobileRules.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 48px; font-size: 11px; font-weight: 600; color: var(--text)">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h8M16 7h2M4 15h2M10 15h8"/><circle cx="14" cy="7" r="2"/><circle cx="8" cy="15" r="2"/></svg>
+Rules
+</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+const line = '1px solid var(--line)';
+return {
+theme: this.props.theme ?? 'dark',
+classes: [
+{ cls: 'BTC/ETH', mult: '1.5 ATR', risk: '1.00%', maxPos: '40%', border: '0' },
+{ cls: 'Large-cap', mult: '1.5 ATR', risk: '0.75%', maxPos: '15%', border: line },
+{ cls: 'Small-cap', mult: '1.5 ATR', risk: '0.50%', maxPos: '8%', border: line }
+],
+discipline: [
+{ name: 'Cooldown after a loss', detail: 'No new order for 60 minutes after a position closes at a loss.', mode: 'Warn and record', modeBg: 'var(--caution-t)', modeColor: 'var(--caution)', history: '2 broken in 30 days', border: '0' },
+{ name: 'No orders after 00:00', detail: 'No new order between 00:00 and 06:00 UTC.', mode: 'Warn and record', modeBg: 'var(--caution-t)', modeColor: 'var(--caution)', history: '1 broken in 30 days', border: line },
+{ name: 'A stop is never widened', detail: 'A stop can move toward the price, never away from it.', mode: 'Block', modeBg: 'var(--limit-t)', modeColor: 'var(--limit)', history: 'Blocked 3 times', border: line }
+]
+};
+}
+}
+</script>
+</body>
+</html>
