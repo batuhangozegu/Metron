@@ -1,12 +1,304 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../data/models.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_strings.dart';
-import '../../widgets/feature_placeholder.dart';
+import '../../router.dart';
+import '../../theme/metron_colors.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/widgets.dart';
+import 'markets_strings.dart';
 
-/// TODO(screen): Replace using MobileMarkets.dc.html. Own only features/markets/.
-class MarketsScreen extends StatelessWidget {
+class MarketsScreen extends ConsumerStatefulWidget {
   const MarketsScreen({super.key});
   @override
-  Widget build(BuildContext context) =>
-      const FeaturePlaceholder(title: AppStrings.markets);
+  ConsumerState<MarketsScreen> createState() => _MarketsScreenState();
+}
+
+class _MarketsScreenState extends ConsumerState<MarketsScreen> {
+  String _query = '';
+  CoinClass? _class;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final prices = ref
+        .watch(pricesProvider)
+        .where(
+          (coin) =>
+              (_class == null || coin.coinClass == _class) &&
+              coin.pair.toLowerCase().contains(_query.trim().toLowerCase()),
+        )
+        .toList();
+    final note = TextStyle(fontSize: 12, height: 17 / 12, color: c.subtle);
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    AppStrings.markets,
+                    style: MetronType.heading.copyWith(
+                      fontSize: 22,
+                      height: 28 / 22,
+                      letterSpacing: -.22,
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: c.safe,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        MarketsStrings.live,
+                        style: TextStyle(fontSize: 12, color: c.muted),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      label: MarketsStrings.search,
+                      child: TextField(
+                        onChanged: (value) => setState(() => _query = value),
+                        textInputAction: TextInputAction.search,
+                        decoration: const InputDecoration(
+                          hintText: MarketsStrings.search,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Semantics(
+                      label: MarketsStrings.coinClass,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final value in [
+                              null,
+                              ...CoinClass.values,
+                            ]) ...[
+                              if (value != null) const SizedBox(width: 6),
+                              _ClassFilter(
+                                label: value == null
+                                    ? MarketsStrings.all
+                                    : MarketsStrings.className(value),
+                                selected: value == _class,
+                                onPressed: () => setState(() => _class = value),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    MetronCard(
+                      padding: EdgeInsets.zero,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(MetronRadius.card),
+                        child: prices.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  MarketsStrings.noResults,
+                                  style: note,
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  for (var i = 0; i < prices.length; i++) ...[
+                                    if (i > 0) const Divider(height: 1),
+                                    _PriceRow(coin: prices[i]),
+                                  ],
+                                ],
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(text: MarketsStrings.barStart),
+                          WidgetSpan(child: Num('0', style: note)),
+                          const TextSpan(text: MarketsStrings.barTo),
+                          WidgetSpan(child: Num('10%', style: note)),
+                          const TextSpan(text: MarketsStrings.barEnd),
+                        ],
+                      ),
+                      style: note,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClassFilter extends StatelessWidget {
+  const _ClassFilter({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    child: SizedBox(
+      height: MetronSize.control,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: selected ? context.colors.text : context.colors.bg,
+          foregroundColor: selected
+              ? context.colors.inverse
+              : context.colors.muted,
+          side: BorderSide(
+            color: selected ? context.colors.text : context.colors.line,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          textStyle: MetronType.small.copyWith(fontWeight: FontWeight.w500),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(label),
+      ),
+    ),
+  );
+}
+
+class _PriceRow extends StatelessWidget {
+  const _PriceRow({required this.coin});
+  final CoinPrice coin;
+  @override
+  Widget build(BuildContext context) {
+    final subtle = TextStyle(
+      fontSize: 12,
+      height: 16 / 12,
+      color: context.colors.subtle,
+    );
+    return InkWell(
+      onTap: () => context.pushNamed(
+        AppRoutes.check,
+        queryParameters: {'pair': coin.pair},
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    coin.pair,
+                    style: MetronType.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Wrap(
+                    children: [
+                      Text(
+                        '${MarketsStrings.className(coin.coinClass)} · ${MarketsStrings.stop} ',
+                        style: subtle,
+                      ),
+                      Num(
+                        '${_percent(coin.suggestedStopPercent)}%',
+                        style: subtle,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 84,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: (coin.atrPercent / 10).clamp(0, 1),
+                      minHeight: 5,
+                      color: context.colors.muted,
+                      backgroundColor: context.colors.raised,
+                      semanticsLabel: MarketsStrings.atr,
+                      semanticsValue: '${coin.atrPercent.toStringAsFixed(1)}%',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Num(
+                    '${MarketsStrings.atr} ${coin.atrPercent.toStringAsFixed(1)}%',
+                    style: subtle.copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Num(_price(coin.price), style: const TextStyle(fontSize: 15)),
+                const SizedBox(height: 3),
+                PnlText(
+                  coin.changePercent,
+                  suffix: '%',
+                  style: const TextStyle(fontSize: 12, height: 16 / 12),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Group the decimal string without losing precision or trailing zeroes.
+  static String _price(String value) {
+    final parts = value.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+      (m) => '${m[1]},',
+    );
+    return parts.length == 1 ? whole : '$whole.${parts[1]}';
+  }
+
+  static String _percent(double value) {
+    final fixed = value.toStringAsFixed(2);
+    return fixed.endsWith('0') ? fixed.substring(0, fixed.length - 1) : fixed;
+  }
 }
