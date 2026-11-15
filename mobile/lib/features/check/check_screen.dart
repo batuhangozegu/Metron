@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../widgets/feature_placeholder.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// TODO(screen): Replace using MobileCheck.dc.html. Own only features/check/.
-class CheckScreen extends StatelessWidget {
+import '../../data/providers.dart';
+import 'check_layout.dart';
+
+/// Pre-trade preview backed by the shared sample providers.
+class CheckScreen extends ConsumerWidget {
   const CheckScreen({super.key, this.pair});
   final String? pair;
   @override
-  Widget build(BuildContext context) =>
-      const FeaturePlaceholder(title: AppStrings.check);
+  Widget build(BuildContext context, WidgetRef ref) => CheckLayout(
+    preview: ref.watch(orderPreviewProvider),
+    requestedPair: pair,
+  );
 }

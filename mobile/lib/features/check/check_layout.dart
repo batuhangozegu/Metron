@@ -1,0 +1,436 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../data/models.dart';
+import '../../data/providers.dart';
+import '../../data/risk_level.dart';
+import '../../l10n/app_strings.dart';
+import '../../router.dart';
+import '../../theme/metron_colors.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/widgets.dart';
+import 'check_strings.dart';
+import 'order_measure.dart';
+import 'projected_limit.dart';
+
+String grouped(String value) {
+  final parts = value.split('.');
+  final whole = parts.first.replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+$)'),
+    (match) => '${match[1]},',
+  );
+  return parts.length == 1 ? whole : '$whole.${parts[1]}';
+}
+
+/// One layout for both routes; approval always comes from the preview provider.
+class CheckLayout extends ConsumerStatefulWidget {
+  const CheckLayout({super.key, required this.preview, this.requestedPair});
+  final OrderPreview preview;
+  final String? requestedPair;
+  @override
+  ConsumerState<CheckLayout> createState() => _CheckLayoutState();
+}
+
+class _CheckLayoutState extends ConsumerState<CheckLayout> {
+  String? _selection;
+  void _discard() => context.goNamed(AppRoutes.home);
+  void _feedback(String message) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = _selection ?? widget.requestedPair ?? widget.preview.pair;
+    final caution = ref.watch(orderPreviewProvider);
+    final blocked = ref.watch(blockedOrderPreviewProvider);
+    final preview = pair == widget.preview.pair
+        ? widget.preview
+        : pair == caution.pair
+        ? caution
+        : pair == blocked.pair
+        ? blocked
+        : null;
+    final account = ref.watch(accountProvider);
+    final coin = ref.watch(coinPriceProvider(pair));
+    final rule = ref
+        .watch(coinClassRulesProvider)
+        .where((rule) => rule.coinClass == coin?.coinClass)
+        .firstOrNull;
+    final time =
+        '${account.cooldownEndsAt.hour.toString().padLeft(2, '0')}:'
+        '${account.cooldownEndsAt.minute.toString().padLeft(2, '0')}';
+    final c = context.colors;
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 56,
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              _discard();
+            }
+          },
+        ),
+        titleSpacing: 0,
+        title: const Text(AppStrings.check),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              border: Border.all(color: c.line),
+              borderRadius: BorderRadius.circular(MetronRadius.tag),
+            ),
+            child: Text(
+              CheckStrings.paper,
+              style: TextStyle(
+                fontSize: 11,
+                color: c.muted,
+                letterSpacing: .66,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 14,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _Field(
+                      label: CheckStrings.pair,
+                      child: DropdownButtonFormField<String>(
+                        key: ValueKey(pair),
+                        initialValue: pair,
+                        isExpanded: true,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        items: {pair, caution.pair, blocked.pair}
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) =>
+                            setState(() => _selection = value),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _Field(
+                      label: CheckStrings.price,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(),
+                        child: Semantics(
+                          readOnly: true,
+                          child: Num(
+                            grouped(preview?.entry ?? coin?.price ?? '—'),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (coin != null && rule != null)
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 2,
+                  children: [
+                    Text(switch (coin.coinClass) {
+                      CoinClass.btcEth => 'BTC/ETH ·',
+                      CoinClass.largeCap => 'Large-cap ·',
+                      CoinClass.smallCap => 'Small-cap ·',
+                    }, style: TextStyle(fontSize: 12, color: c.subtle)),
+                    Num(
+                      'ATR ${coin.atrPercent.toStringAsFixed(1)}% / day · '
+                      'risk ${rule.riskPerTradePercent.toStringAsFixed(2)}% · '
+                      'stop ${rule.atrMultiplier} ATR',
+                      style: TextStyle(fontSize: 12, color: c.subtle),
+                    ),
+                  ],
+                ),
+              if (preview == null)
+                const MetronCard(child: Text(CheckStrings.unavailable))
+              else ...[
+                _Verdict(
+                  preview: preview,
+                  remaining: account.cooldownEndsAt
+                      .difference(account.asOf)
+                      .inMinutes,
+                ),
+                OrderMeasure(preview: preview),
+                MetronCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          CheckStrings.limits,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      for (final check in preview.checks)
+                        ProjectedLimit(check: check),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: c.surface,
+          border: Border(top: BorderSide(color: c.line)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 8,
+              children: [
+                if (preview != null) ...[
+                  if (preview.verdict == RiskLevel.limit)
+                    PrimaryButton(
+                      label: CheckStrings.reduce,
+                      onPressed: preview.largestFittingOrderValue == null
+                          ? null
+                          : () => _showReduction(preview),
+                    )
+                  else if (preview.verdict == RiskLevel.caution) ...[
+                    SizedBox(
+                      height: MetronSize.control,
+                      child: FilledButton(
+                        onPressed: () => _feedback(CheckStrings.sampleReminder),
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          children: [
+                            const Text(CheckStrings.wait),
+                            Num(
+                              time,
+                              style: TextStyle(
+                                color: c.inverse,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SecondaryButton(
+                      label: CheckStrings.anyway,
+                      onPressed: () => _feedback(CheckStrings.sampleOrder),
+                    ),
+                    Text(
+                      CheckStrings.violation,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: c.subtle),
+                    ),
+                  ] else
+                    PrimaryButton(
+                      label: CheckStrings.place,
+                      onPressed: () => _feedback(CheckStrings.sampleOrder),
+                    ),
+                ],
+                SizedBox(
+                  height: MetronSize.control,
+                  child: TextButton(
+                    onPressed: _discard,
+                    child: Text(
+                      CheckStrings.discard,
+                      style: TextStyle(color: c.muted),
+                    ),
+                  ),
+                ),
+                if (preview?.verdict == RiskLevel.limit)
+                  _ReductionCopy(preview: preview!),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReduction(OrderPreview preview) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(CheckStrings.reductionTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 12,
+          children: [
+            _ReductionCopy(preview: preview),
+            const Text(CheckStrings.reductionBody),
+          ],
+        ),
+        actions: [
+          SecondaryButton(
+            label: CheckStrings.close,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Field extends StatelessWidget {
+  const _Field({required this.label, required this.child});
+  final String label;
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: 6,
+    children: [
+      Text(label, style: TextStyle(fontSize: 12, color: context.colors.muted)),
+      child,
+    ],
+  );
+}
+
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.preview, required this.remaining});
+  final OrderPreview preview;
+  final int remaining;
+  @override
+  Widget build(BuildContext context) {
+    final level = preview.verdict;
+    final size = preview.checks
+        .where((check) => check.id == 'size')
+        .firstOrNull;
+    final body = switch (level) {
+      RiskLevel.safe => CheckStrings.safeBody,
+      RiskLevel.caution => CheckStrings.cooldown(remaining.clamp(0, 60)),
+      RiskLevel.limit => CheckStrings.blocked(
+        preview.pair.split('/').first,
+        size?.after.toStringAsFixed(2) ?? '—',
+        size?.limit.toStringAsFixed(0) ?? '—',
+      ),
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: level.tint(context.colors),
+          border: Border.all(color: level.color(context.colors)),
+          borderRadius: BorderRadius.circular(MetronRadius.card),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              level.icon,
+              size: 28,
+              color: level.color(context.colors),
+              semanticLabel: level.label,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 4,
+                children: [
+                  Text(
+                    switch (level) {
+                      RiskLevel.safe => CheckStrings.safeTitle,
+                      RiskLevel.caution => CheckStrings.cautionTitle,
+                      RiskLevel.limit => CheckStrings.blockedTitle,
+                    },
+                    style: const TextStyle(
+                      fontSize: 20,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -.2,
+                    ),
+                  ),
+                  NumericCopy(body),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mixed copy keeps numeric runs in Num and words in the body typeface.
+class NumericCopy extends StatelessWidget {
+  const NumericCopy(this.text, {super.key, this.small = false});
+  final String text;
+  final bool small;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: text,
+    excludeSemantics: true,
+    child: Wrap(
+      alignment: small ? WrapAlignment.center : WrapAlignment.start,
+      spacing: 3,
+      children: [
+        for (final word in text.split(' '))
+          if (RegExp(r'\d').hasMatch(word))
+            Num(
+              word,
+              style: TextStyle(
+                fontSize: small ? 12 : 14,
+                color: context.colors.muted,
+              ),
+            )
+          else
+            Text(
+              word,
+              style: TextStyle(
+                fontSize: small ? 12 : 14,
+                height: small ? 17 / 12 : 20 / 14,
+                color: context.colors.muted,
+              ),
+            ),
+      ],
+    ),
+  );
+}
+
+class _ReductionCopy extends StatelessWidget {
+  const _ReductionCopy({required this.preview});
+  final OrderPreview preview;
+  @override
+  Widget build(BuildContext context) => NumericCopy(
+    CheckStrings.reduction(
+      grouped(preview.largestFittingOrderValue ?? '—'),
+      grouped(preview.largestFittingRisk ?? '—'),
+    ),
+    small: true,
+  );
+}

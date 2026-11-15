@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
-import '../../widgets/feature_placeholder.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// TODO(screen): Replace using MobileCheckBlocked.dc.html.
-/// Own only features/check_blocked/. No place-order action in this state.
-class CheckBlockedScreen extends StatelessWidget {
+import '../../data/providers.dart';
+import '../check/check_layout.dart';
+
+/// Reuses the check layout with a blocked preview and no placement action.
+class CheckBlockedScreen extends ConsumerWidget {
   const CheckBlockedScreen({super.key});
   @override
-  Widget build(BuildContext context) =>
-      const FeaturePlaceholder(title: AppStrings.checkBlocked);
+  Widget build(BuildContext context, WidgetRef ref) =>
+      CheckLayout(preview: ref.watch(blockedOrderPreviewProvider));
 }
