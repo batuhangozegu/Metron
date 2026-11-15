@@ -1,14 +1,289 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../data/providers.dart';
+import '../../data/risk_level.dart';
 import '../../l10n/app_strings.dart';
-import '../../widgets/feature_placeholder.dart';
-import '../../widgets/num.dart';
+import '../../router.dart';
+import '../../theme/metron_colors.dart';
+import '../../theme/tokens.dart';
+import '../../widgets/widgets.dart';
+import 'position_format.dart';
+import 'position_strings.dart';
+import 'price_ruler.dart';
 
-/// TODO(screen): Replace using MobilePosition.dc.html. Own only features/position/.
-class PositionScreen extends StatelessWidget {
+class PositionScreen extends ConsumerWidget {
   const PositionScreen({super.key, required this.positionId});
   final String positionId;
+
   @override
-  Widget build(BuildContext context) =>
-      FeaturePlaceholder(title: AppStrings.position, detail: Num(positionId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final position = ref.watch(positionProvider(positionId));
+    final detail = position?.detail;
+    final price = position == null
+        ? null
+        : ref.watch(coinPriceProvider(position.pair));
+    final rules = ref.watch(coinClassRulesProvider);
+    final maxShare = rules
+        .where((r) => r.coinClass == position?.coinClass)
+        .firstOrNull
+        ?.maxPositionPercent;
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: AppStrings.back,
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.goNamed(AppRoutes.home);
+            }
+          },
+          icon: const Icon(Icons.chevron_left, size: 22),
+        ),
+        titleSpacing: 0,
+        title: Text(position?.pair ?? AppStrings.position),
+        actions: [
+          if (position != null)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                border: Border.all(color: context.colors.line),
+                borderRadius: BorderRadius.circular(MetronRadius.tag),
+              ),
+              child: Text(
+                PositionStrings.coinClass(position.coinClass),
+                style: TextStyle(fontSize: 12, color: context.colors.muted),
+              ),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: position == null
+              ? const Text(PositionStrings.notFound)
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 14,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 4,
+                      children: [
+                        Text(
+                          PositionStrings.unrealized,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.colors.subtle,
+                          ),
+                        ),
+                        PnlText(
+                          double.parse(position.unrealizedPnl),
+                          format: (v) => formatDecimal(v.toStringAsFixed(2)),
+                          style: MetronType.figureLarge.copyWith(
+                            fontSize: 40,
+                            height: 46 / 40,
+                            letterSpacing: -1.2,
+                          ),
+                        ),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (detail != null) ...[
+                              PnlText(detail.returnPercent, suffix: '%'),
+                              const Text('·'),
+                              PnlText(
+                                detail.returnR,
+                                decimalPlaces: 1,
+                                suffix: 'R',
+                              ),
+                              const Text('·'),
+                            ],
+                            Text(
+                              PositionStrings.price,
+                              style: TextStyle(color: context.colors.muted),
+                            ),
+                            Num(
+                              price == null ? '—' : formatDecimal(price.price),
+                              style: TextStyle(color: context.colors.muted),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (detail != null) ...[
+                      MetronCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          spacing: 14,
+                          children: [
+                            PriceRuler(detail: detail, price: price?.price),
+                            const Divider(),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                RiskBadge(
+                                  detail.stopOnExchange
+                                      ? RiskLevel.safe
+                                      : RiskLevel.limit,
+                                ),
+                                Text(
+                                  detail.stopOnExchange
+                                      ? PositionStrings.stopOnExchange
+                                      : PositionStrings.stopMissing,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: context.colors.muted,
+                                  ),
+                                ),
+                                if (detail.stopOnExchange)
+                                  Num(
+                                    '${position.distanceToStopPercent.toStringAsFixed(2)}% ${PositionStrings.away}',
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      MetronCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          spacing: 12,
+                          children: [
+                            _DetailRow(
+                              PositionStrings.quantity,
+                              '${detail.quantity} ${position.pair.split('/').first}',
+                            ),
+                            _DetailRow(
+                              PositionStrings.valueNow,
+                              '${formatDecimal(detail.valueNow)} ${position.pair.split('/').last}',
+                            ),
+                            _DetailRow(
+                              PositionStrings.moneyAtRisk,
+                              '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
+                            ),
+                            _DetailRow(
+                              PositionStrings.share,
+                              '${detail.shareOfAccountPercent.toStringAsFixed(2)}%${maxShare == null ? '' : ' of ${formatDecimal(maxShare.toString())}%'}',
+                            ),
+                            _DetailRow(
+                              PositionStrings.opened,
+                              PositionStrings.openedAt(detail.openedAt),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        PositionStrings.stopRule,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 17 / 12,
+                          color: context.colors.subtle,
+                        ),
+                      ),
+                    ] else
+                      MetronCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          spacing: 12,
+                          children: [
+                            _DetailRow(
+                              PositionStrings.moneyAtRisk,
+                              '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
+                            ),
+                            const Text(PositionStrings.detailsMissing),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ),
+      bottomNavigationBar: detail == null
+          ? null
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                border: Border(top: BorderSide(color: context.colors.line)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Row(
+                    spacing: 10,
+                    children: [
+                      Expanded(
+                        child: SecondaryButton(
+                          label: PositionStrings.tighten,
+                          onPressed: () =>
+                              _showAction(context, PositionStrings.tighten),
+                        ),
+                      ),
+                      Expanded(
+                        child: PrimaryButton(
+                          label: PositionStrings.close,
+                          onPressed: () =>
+                              _showAction(context, PositionStrings.close),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  // The foundation exposes read-only fixtures, with no order mutation API.
+  void _showAction(BuildContext context, String title) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          title == PositionStrings.tighten
+              ? '${PositionStrings.stopRule}\n\n${PositionStrings.previewOnly}'
+              : PositionStrings.previewOnly,
+        ),
+        actions: [
+          SecondaryButton(
+            label: PositionStrings.dismiss,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow(this.label, this.value);
+  final String label, value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 14, color: context.colors.muted),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Flexible(flex: 2, child: Num(value, textAlign: TextAlign.right)),
+    ],
+  );
 }
