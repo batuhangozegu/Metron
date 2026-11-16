@@ -110,7 +110,7 @@ metron/
   docs/      Planning docs
 ```
 
-These folders do not exist yet; they are created when coding starts.
+Folders are created as the roadmap reaches them.
 
 ### 6.1 Why a single repository
 

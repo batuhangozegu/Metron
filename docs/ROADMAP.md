@@ -2,7 +2,7 @@
 
 14 November 2026
 
-Note: No code has been written yet; this file orders the work for the first release defined in section 9.1 of [FEATURES.md](FEATURES.md), based on the decisions in [ARCHITECTURE.md](ARCHITECTURE.md).
+Note: This file orders the work for the first release defined in section 9.1 of [FEATURES.md](FEATURES.md), based on the decisions in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Principles
 
@@ -24,13 +24,18 @@ Note: No code has been written yet; this file orders the work for the first rele
 | 7. Mobile | Flutter app: positions, alarms, pre-trade check screen, quick order | Sign in to the same account on a phone and open an order |
 | 8. Real exchange | Connecting a Binance account, sending real orders, keeping the stop order on the exchange as well | Trade first on Binance's test environment, then on a real account with a small amount |
 
-## 3. Notes on the order
+## 3. Progress
+
+- **Interface (ahead of step 7).** Every mockup in `design/mockups` is built on the web and in the Flutter app, running on sample data. Later steps connect these screens to real data.
+- **Step 0.** Docker Compose for Postgres and Redis is in `deploy/`.
+
+## 4. Notes on the order
 
 - **Step 0 is small but the most important.** Go, Rust, gRPC and Docker are set up together for the first time here, and most surprises appear at this point. Finishing it before any feature work speeds up every later step.
 - **v1's formula becomes tests in step 3.** The inputs and outputs of v1's `risk amount / |entry − stop|` calculation are the Rust engine's first tests, so the new engine is known to be at least as correct as the old one.
 - **The product is usable at the end of step 4.** It can be shown in a portfolio from that point; steps 5 and later build on top.
 - **No time estimates.** They depend on how fast Go and Rust are learned. A realistic estimate for the rest is possible once steps 0 and 1 are done.
 
-## 4. After the first release
+## 5. After the first release
 
 The second release and the idea pool are listed in sections 9.2 and 9.3 of [FEATURES.md](FEATURES.md); nothing from them starts before step 8 is finished.

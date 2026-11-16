@@ -8,7 +8,16 @@ The design is entirely new and the scope is more detailed. The main focus is a r
 
 ## Status
 
-Planning stage, no code yet.
+The web and mobile screens are built against sample data. Backend work has started with roadmap step 0 (skeleton); see [ROADMAP.md](docs/ROADMAP.md).
+
+## Running locally
+
+Postgres and Redis run through Docker Compose:
+
+```sh
+cp deploy/.env.example deploy/.env   # then change the password
+docker compose -f deploy/compose.yaml up -d
+```
 
 ## Target technology
 
