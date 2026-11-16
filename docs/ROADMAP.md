@@ -27,7 +27,7 @@ Note: This file orders the work for the first release defined in section 9.1 of 
 ## 3. Progress
 
 - **Interface (ahead of step 7).** Every mockup in `design/mockups` is built on the web and in the Flutter app, running on sample data. Later steps connect these screens to real data.
-- **Step 0.** Docker Compose for Postgres and Redis is in `deploy/`.
+- **Step 0.** Docker Compose for Postgres and Redis is in `deploy/`; the gRPC contract (a `Ping` call to start) is in `proto/`.
 
 ## 4. Notes on the order
 

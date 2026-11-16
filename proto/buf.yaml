@@ -1,0 +1,11 @@
+# Lint and breaking-change rules for the gRPC contract.
+#   docker run --rm -v "$PWD/proto:/workspace" -w /workspace bufbuild/buf:1.47.2 lint
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
