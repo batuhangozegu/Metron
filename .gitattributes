@@ -1,0 +1,7 @@
+# Keep LF in the working copy on every OS, so gofmt, buf format, cargo fmt
+# and dart format agree locally and in CI (overrides core.autocrlf).
+* text=auto eol=lf
+
+# Windows scripts need CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
