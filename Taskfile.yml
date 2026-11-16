@@ -1,0 +1,100 @@
+# Common jobs across the four toolchains. Install Task once with
+#   go install github.com/go-task/task/v3/cmd/task@latest
+# then run `task` to list everything.
+version: "3"
+
+vars:
+  COMPOSE: docker compose -f deploy/compose.yaml
+  BUF: docker run --rm -v "{{.ROOT_DIR}}/proto:/workspace" -w /workspace bufbuild/buf:1.47.2
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    silent: true
+
+  # --- Local stack -------------------------------------------------------
+
+  up:
+    desc: Build and start Postgres, Redis, the engine and the API
+    preconditions:
+      - sh: test -f deploy/.env
+        msg: "deploy/.env is missing; copy deploy/.env.example to deploy/.env first"
+    cmds:
+      - "{{.COMPOSE}} up -d --build"
+
+  down:
+    desc: Stop the stack (data in the Postgres volume is kept)
+    cmds:
+      - "{{.COMPOSE}} down"
+
+  ps:
+    desc: Show the stack's containers
+    cmds:
+      - "{{.COMPOSE}} ps"
+
+  logs:
+    desc: Follow logs (task logs -- api engine)
+    cmds:
+      - "{{.COMPOSE}} logs -f {{.CLI_ARGS}}"
+
+  health:
+    desc: Ask the API whether it can reach the engine
+    cmds:
+      - curl -fsS http://127.0.0.1:8080/healthz
+
+  # --- Contracts ---------------------------------------------------------
+
+  generate:
+    desc: Generate code from proto/ (Go; Rust generates during cargo build)
+    dir: api
+    cmds:
+      - go generate ./...
+
+  lint:proto:
+    desc: Lint and format-check the gRPC contract with buf
+    cmds:
+      - "{{.BUF}} lint"
+      - "{{.BUF}} format -d --exit-code"
+
+  # --- Tests (same checks as CI) -----------------------------------------
+
+  test:
+    desc: Run every folder's checks
+    cmds:
+      - task: lint:proto
+      - task: test:engine
+      - task: test:api
+      - task: test:web
+      - task: test:mobile
+
+  test:engine:
+    desc: "engine: fmt, clippy, test"
+    dir: engine
+    cmds:
+      - cargo fmt --check
+      - cargo clippy --all-targets --locked -- -D warnings
+      - cargo test --locked
+
+  test:api:
+    desc: "api: generate, gofmt, vet, test"
+    dir: api
+    deps: [generate]
+    cmds:
+      - test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - go vet ./...
+      - go test ./...
+
+  test:web:
+    desc: "web: lint, build"
+    dir: web
+    cmds:
+      - npm run lint
+      - npm run build
+
+  test:mobile:
+    desc: "mobile: analyze, test"
+    dir: mobile
+    cmds:
+      - flutter analyze
+      - flutter test

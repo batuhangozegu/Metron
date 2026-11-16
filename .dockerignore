@@ -1,0 +1,10 @@
+# Only api/, engine/ and proto/ are built into images.
+.git
+web
+mobile
+design
+docs
+**/target
+**/node_modules
+api/internal/gen
+deploy/.env

@@ -12,12 +12,15 @@ The web and mobile screens are built against sample data. Backend work has start
 
 ## Running locally
 
-Postgres and Redis run through Docker Compose:
+Postgres, Redis, the Rust engine and the Go API all run through Docker Compose:
 
 ```sh
 cp deploy/.env.example deploy/.env   # then change the password
-docker compose -f deploy/compose.yaml up -d
+docker compose -f deploy/compose.yaml up -d --build
+curl http://127.0.0.1:8080/healthz   # the API answers once it can reach the engine
 ```
+
+Common jobs (start, stop, generate, test) are in `Taskfile.yml`. Install [Task](https://taskfile.dev) once with `go install github.com/go-task/task/v3/cmd/task@latest`, then run `task` to list them; `task up` and `task test` are the main ones.
 
 ## Target technology
 
