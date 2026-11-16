@@ -1,0 +1,20 @@
+# Generates Go code from ../proto into internal/gen (git-ignored).
+# Run from api/:  go generate ./...
+# The plugins run through `go tool`, so their versions are pinned in go.mod
+# and match the protobuf and gRPC runtime versions.
+version: v2
+inputs:
+  - directory: ../proto
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/batuhangozegu/metron/api/internal/gen
+plugins:
+  - local: ["go", "tool", "protoc-gen-go"]
+    out: internal/gen
+    opt: paths=source_relative
+  - local: ["go", "tool", "protoc-gen-go-grpc"]
+    out: internal/gen
+    opt: paths=source_relative
+clean: true
