@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/number_formatter.dart';
 import '../data/risk_level.dart';
 import '../l10n/app_strings.dart';
 import '../theme/metron_colors.dart';
@@ -28,8 +29,14 @@ class Measure extends StatelessWidget {
   Widget build(BuildContext context) {
     final level = RiskLevel.forUsage(value, limit);
     final colors = context.colors;
-    final valueText = '${value.toStringAsFixed(decimalPlaces)}$unit';
-    final limitText = '${limit.toStringAsFixed(decimalPlaces)}$unit';
+    final valueText = NumberFormatter.of(context).unit(
+      NumberFormatter.of(context).number(value, decimalPlaces: decimalPlaces),
+      unit,
+    );
+    final limitText = NumberFormatter.of(context).unit(
+      NumberFormatter.of(context).number(limit, decimalPlaces: decimalPlaces),
+      unit,
+    );
     return Semantics(
       label: [
         ?label,

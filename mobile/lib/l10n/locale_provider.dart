@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'catalog_scope.dart';
+import 'number_formatter.dart';
 import '../features/alerts/alerts_strings.dart';
 import '../features/check/check_strings.dart';
 import '../features/home/home_strings.dart';
@@ -61,6 +62,10 @@ final stringsProvider = Provider((ref) {
   );
 });
 
+final numberFormatterProvider = Provider(
+  (ref) => NumberFormatter(ref.watch(localeProvider).languageCode),
+);
+
 /// Allows feature widgets to depend on catalogs without changing widget types.
 class LocalizedCatalogs extends ConsumerWidget {
   const LocalizedCatalogs({super.key, required this.child});
@@ -84,7 +89,10 @@ class LocalizedCatalogs extends ConsumerWidget {
                   catalog: strings.signIn,
                   child: CatalogScope<AppStrings>(
                     catalog: strings.app,
-                    child: child,
+                    child: CatalogScope<NumberFormatter>(
+                      catalog: ref.watch(numberFormatterProvider),
+                      child: child,
+                    ),
                   ),
                 ),
               ),

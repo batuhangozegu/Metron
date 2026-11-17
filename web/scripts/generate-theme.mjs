@@ -16,6 +16,7 @@ let css = `/* Generated from design/tokens.json by scripts/generate-theme.mjs. *
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./war-room.css";
 
 @custom-variant dark (&:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *));
 

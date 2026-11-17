@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
@@ -13,15 +14,6 @@ import '../../widgets/widgets.dart';
 import 'check_strings.dart';
 import 'order_measure.dart';
 import 'projected_limit.dart';
-
-String grouped(String value) {
-  final parts = value.split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+$)'),
-    (match) => '${match[1]},',
-  );
-  return parts.length == 1 ? whole : '$whole.${parts[1]}';
-}
 
 /// One layout for both routes; approval always comes from the preview provider.
 class CheckLayout extends ConsumerStatefulWidget {
@@ -141,7 +133,8 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                         child: Semantics(
                           readOnly: true,
                           child: Num(
-                            grouped(preview?.entry ?? coin?.price ?? '—'),
+                            NumberFormatter.of(context)
+                                .decimal(preview?.entry ?? coin?.price ?? '—'),
                             style: const TextStyle(fontSize: 16),
                           ),
                         ),
@@ -161,9 +154,9 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                       CoinClass.smallCap => 'Small-cap ·',
                     }, style: TextStyle(fontSize: 12, color: c.subtle)),
                     Num(
-                      'ATR ${coin.atrPercent.toStringAsFixed(1)}% / day · '
-                      'risk ${rule.riskPerTradePercent.toStringAsFixed(2)}% · '
-                      'stop ${rule.atrMultiplier} ATR',
+                      'ATR ${NumberFormatter.of(context).percent(coin.atrPercent, decimalPlaces: 1)} / day · '
+                      'risk ${NumberFormatter.of(context).percent(rule.riskPerTradePercent)} · '
+                      'stop ${NumberFormatter.of(context).number(rule.atrMultiplier, decimalPlaces: 1)} ATR',
                       style: TextStyle(fontSize: 12, color: c.subtle),
                     ),
                   ],
@@ -334,13 +327,16 @@ class _Verdict extends StatelessWidget {
         .firstOrNull;
     final body = switch (level) {
       RiskLevel.safe => CheckStrings.of(context).safeBody,
-      RiskLevel.caution => CheckStrings.of(
-        context,
-      ).cooldown(remaining.clamp(0, 60)),
+      RiskLevel.caution => CheckStrings.of(context).cooldown(
+        NumberFormatter.of(context)
+            .number(remaining.clamp(0, 60), decimalPlaces: 0),
+      ),
       RiskLevel.limit => CheckStrings.of(context).blocked(
         preview.pair.split('/').first,
-        size?.after.toStringAsFixed(2) ?? '—',
-        size?.limit.toStringAsFixed(0) ?? '—',
+        size == null ? '—' : NumberFormatter.of(context).percent(size.after),
+        size == null
+            ? '—'
+            : NumberFormatter.of(context).percent(size.limit, decimalPlaces: 0),
       ),
     };
     return Semantics(
@@ -435,8 +431,9 @@ class _ReductionCopy extends StatelessWidget {
   @override
   Widget build(BuildContext context) => NumericCopy(
     CheckStrings.of(context).reduction(
-      grouped(preview.largestFittingOrderValue ?? '—'),
-      grouped(preview.largestFittingRisk ?? '—'),
+      NumberFormatter.of(context)
+          .decimal(preview.largestFittingOrderValue ?? '—'),
+      NumberFormatter.of(context).decimal(preview.largestFittingRisk ?? '—'),
     ),
     small: true,
   );

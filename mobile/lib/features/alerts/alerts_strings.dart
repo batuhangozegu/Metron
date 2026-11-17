@@ -143,13 +143,3 @@ final class TurkishAlertsStrings implements AlertsStrings {
           .replaceFirst('A stop is never widened', 'Stop asla uzaklaştırılmaz'),
   };
 }
-
-/// Group decimal strings without rounding or financial arithmetic.
-String formatAlarmPrice(String value) {
-  final parts = value.split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
-  return '$whole.${parts.length > 1 ? parts[1].padRight(2, '0') : '00'}';
-}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/risk_level.dart';
 import '../../theme/metron_colors.dart';
@@ -65,7 +66,9 @@ class ProjectedLimit extends StatelessWidget {
             ),
           ),
           Num(
-            CheckStrings.of(context).limitValue(check.valueLabel),
+            CheckStrings.of(context).limitValue(
+              NumberFormatter.of(context).fixtureText(check.valueLabel),
+            ),
             style: TextStyle(fontSize: 12, color: c.muted),
           ),
         ],

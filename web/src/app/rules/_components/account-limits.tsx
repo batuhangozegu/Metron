@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/metron/card";
-import { decimalProduct, formatAmount } from "@/lib/format";
+import { decimalProduct, formatAmount, reformatInput } from "@/lib/format";
 import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import type { AccountLimits as Limits } from "@/lib/sample-data";
@@ -12,14 +12,15 @@ export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
   const locale = useLocale();
   const t = getMessages("rules", locale);
 
-  const [values, setValues] = useState(() => ({
-    totalOpenRisk: formatAmount(initialLimits.totalOpenRisk),
-    dailyLoss: formatAmount(initialLimits.dailyLoss),
-    weeklyLoss: formatAmount(initialLimits.weeklyLoss),
-    maxPositions: formatAmount(String(initialLimits.maxPositions), 0),
-    targetRiskReward: formatAmount(initialLimits.targetRiskReward, 1),
-    cautionAt: formatAmount(decimalProduct(String(initialLimits.cautionAt), "100"), 0),
-  }));
+  const [inputs, setInputs] = useState(() => ({ locale, values: {
+    totalOpenRisk: formatAmount(initialLimits.totalOpenRisk, 2, locale),
+    dailyLoss: formatAmount(initialLimits.dailyLoss, 2, locale),
+    weeklyLoss: formatAmount(initialLimits.weeklyLoss, 2, locale),
+    maxPositions: formatAmount(String(initialLimits.maxPositions), 0, locale),
+    targetRiskReward: formatAmount(initialLimits.targetRiskReward, 1, locale),
+    cautionAt: formatAmount(decimalProduct(String(initialLimits.cautionAt), "100"), 0, locale),
+  } }));
+  if (inputs.locale !== locale) setInputs({ locale, values: Object.fromEntries(Object.entries(inputs.values).map(([field, value]) => [field, reformatInput(value, inputs.locale, locale)])) as typeof inputs.values });
   const [saved, setSaved] = useState(false);
   const fields = ["totalOpenRisk", "dailyLoss", "weeklyLoss", "maxPositions", "targetRiskReward", "cautionAt"] as const;
   const hints = {
@@ -49,7 +50,7 @@ export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
           const hint = field in hints ? hints[field as keyof typeof hints] : undefined;
           return <div key={field} className="flex min-w-0 flex-col gap-2">
             <label htmlFor={field} className="text-small text-muted">{t(`limits.${field}`)}</label>
-            <input id={field} name={field} inputMode={field === "maxPositions" || field === "cautionAt" ? "numeric" : "decimal"} value={values[field]} aria-describedby={hint ? `${field}-hint` : undefined} onChange={(event) => { setValues((previous) => ({ ...previous, [field]: event.target.value })); setSaved(false); }} className="num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text" />
+            <input id={field} name={field} inputMode={field === "maxPositions" || field === "cautionAt" ? "numeric" : "decimal"} value={inputs.values[field]} aria-describedby={hint ? `${field}-hint` : undefined} onChange={(event) => { setInputs((previous) => ({ locale, values: { ...previous.values, [field]: event.target.value } })); setSaved(false); }} className="num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text" />
             {hint && <span id={`${field}-hint`} className="text-xs leading-[17px] text-subtle"><NumericCopy text={hint} /></span>}
           </div>;
         })}

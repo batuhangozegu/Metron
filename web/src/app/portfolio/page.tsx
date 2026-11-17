@@ -20,11 +20,11 @@ export default async function PortfolioPage() {
       <PeriodSelector days={stats.periodDays} />
     </section>
     <section aria-label={t("summary")} className="flex flex-wrap rounded-card border border-line bg-surface py-2 [&>div]:flex-[1_1_200px] [&>div]:gap-1.5 [&>div]:px-6 [&>div]:py-4">
-      <Stat label={t("accountValue")} figure={formatAmount(stats.equity)} note={<><PnL locale={locale} value={stats.returnPercent} decimals={1} suffix={t("percent")} />{t("separator")}<PnL locale={locale} value={stats.netResult} /></>} />
-      <Stat label={t("maxDrawdown")} figure={formatPercent(stats.maxDrawdownPercent, 1)} note={<span className="num">{t("drawdownRange", { peak: formatAmount(stats.drawdownPeak, 0), trough: formatAmount(stats.drawdownTrough, 0) })}</span>} />
-      <Stat label={t("winRate")} figure={formatPercent(stats.winRate, 1)} note={<NumberText text={t("tradeCount", { wins: stats.wins, trades: stats.trades })} />} />
-      <Stat label={t("averageWinLoss")} figure={t("multiple", { value: formatAmount(stats.averageWinLoss) })} note={<><PnL locale={locale} value={stats.averageWin} />{t("slash")}<PnL locale={locale} value={stats.averageLoss} /></>} />
-      <Stat label={t("feesPaid")} figure={formatAmount(stats.feesPaid)} note={t("feesIncluded")} />
+      <Stat label={t("accountValue")} figure={formatAmount(stats.equity, 2, locale)} note={<><PnL locale={locale} value={stats.returnPercent} decimals={1} suffix={t("percent")} />{t("separator")}<PnL locale={locale} value={stats.netResult} /></>} />
+      <Stat label={t("maxDrawdown")} figure={formatPercent(stats.maxDrawdownPercent, 1, locale)} note={<span className="num">{t("drawdownRange", { peak: formatAmount(stats.drawdownPeak, 0, locale), trough: formatAmount(stats.drawdownTrough, 0, locale) })}</span>} />
+      <Stat label={t("winRate")} figure={formatPercent(stats.winRate, 1, locale)} note={<NumberText text={t("tradeCount", { wins: formatAmount(String(stats.wins), 0, locale), trades: formatAmount(String(stats.trades), 0, locale) })} />} />
+      <Stat label={t("averageWinLoss")} figure={t("multiple", { value: formatAmount(stats.averageWinLoss, 2, locale) })} note={<><PnL locale={locale} value={stats.averageWin} />{t("slash")}<PnL locale={locale} value={stats.averageLoss} /></>} />
+      <Stat label={t("feesPaid")} figure={formatAmount(stats.feesPaid, 2, locale)} note={t("feesIncluded")} />
     </section>
     <EquityChart locale={locale} />
     <section aria-label={t("breakdown")} className="flex flex-wrap items-start gap-4 [&>article]:flex-[1_1_440px]">
@@ -37,7 +37,7 @@ export default async function PortfolioPage() {
             </tr></thead>
             <tbody>{classStatistics.map(row => <tr key={row.coinClass}>
               <th scope="row" className="text-left"><ClassTag locale={locale} coinClass={row.coinClass} className="rounded-none border-0 p-0 text-sm font-medium text-text" /></th>
-              <td className="num">{formatAmount(row.trades, 0)}</td><td className="num">{formatPercent(row.win.replace("%", ""), 1)}</td><td><PnL locale={locale} value={row.netAmount} /></td>
+              <td className="num">{formatAmount(row.trades, 0, locale)}</td><td className="num">{formatPercent(row.win.replace("%", ""), 1, locale)}</td><td><PnL locale={locale} value={row.netAmount} /></td>
             </tr>)}</tbody>
           </table>
         </div>
@@ -51,7 +51,7 @@ export default async function PortfolioPage() {
               <th scope="col" className="text-left">{t("asset")}</th><th scope="col">{t("quantity")}</th><th scope="col">{t("averageCost")}</th><th scope="col">{t("fees")}</th>
             </tr></thead>
             <tbody>{holdings.map(row => <tr key={row.asset}>
-              <th scope="row" className="text-left">{row.asset}</th><td className="num">{formatPrice(row.qty)}</td><td className="num">{formatAmount(row.cost)}</td><td className="num text-muted">{formatAmount(row.fees)}</td>
+              <th scope="row" className="text-left">{row.asset}</th><td className="num">{formatPrice(row.qty, undefined, locale)}</td><td className="num">{formatAmount(row.cost, 2, locale)}</td><td className="num text-muted">{formatAmount(row.fees, 2, locale)}</td>
             </tr>)}</tbody>
           </table>
         </div>

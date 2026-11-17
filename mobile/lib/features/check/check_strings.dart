@@ -39,7 +39,7 @@ abstract interface class CheckStrings {
   String get reductionTitle;
   String get reductionBody;
   String get close;
-  String cooldown(int minutes);
+  String cooldown(String minutes);
   String blocked(String coin, String after, String cap);
   String reduction(String value, String risk);
   String limitName(LimitCheck check);
@@ -68,13 +68,13 @@ final class EnglishCheckStrings implements CheckStrings {
   @override
   String get exceeded => 'Exceeded';
   @override
-  String cooldown(int minutes) =>
+  String cooldown(String minutes) =>
       'No limit is exceeded. Your cooldown rule asks you '
       'to wait $minutes more minutes.';
   @override
   String blocked(String coin, String after, String cap) =>
-      '$coin would be $after% of the account. Your '
-      'BTC/ETH rule allows $cap%.';
+      '$coin would be $after of the account. Your '
+      'BTC/ETH rule allows $cap.';
   @override
   String reduction(String value, String risk) =>
       'The largest order that fits is $value USDT, risking '
@@ -195,11 +195,11 @@ final class TurkishCheckStrings implements CheckStrings {
   @override
   String get close => 'Kapat';
   @override
-  String cooldown(int minutes) =>
+  String cooldown(String minutes) =>
       'Hiçbir limit aşılmıyor. Bekleme kuralınıza göre $minutes dakika daha beklemelisiniz.';
   @override
   String blocked(String coin, String after, String cap) =>
-      '$coin hesabın %$after kadarını oluşturacak. BTC/ETH kuralınız en fazla %$cap paya izin veriyor.';
+      '$coin hesabın $after kadarını oluşturacak. BTC/ETH kuralınız en fazla $cap paya izin veriyor.';
   @override
   String reduction(String value, String risk) =>
       'Limite uyan en büyük emir $value USDT, riske edilen tutar $risk USDT. Engellenen emir hiçbir koşulda verilemez.';

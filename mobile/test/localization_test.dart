@@ -41,7 +41,7 @@ void main() {
       expect(Localizations.localeOf(context), const Locale('tr'));
       expect(MaterialLocalizations.of(context), isA<MaterialLocalizationTr>());
       expect(find.text('HESAP LİMİTLERİ'), findsOneWidget);
-      expect(find.text('6.00%'), findsOneWidget);
+      expect(find.text('%6,00'), findsOneWidget);
       expect(find.text('Piyasalar'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('language-selector')));
@@ -50,6 +50,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(Localizations.localeOf(context), const Locale('en'));
       expect(find.text('ACCOUNT LIMITS'), findsOneWidget);
+      expect(find.text('6.00%'), findsOneWidget);
 
       await tester.tap(find.text('Markets'));
       await tester.pumpAndSettle();
@@ -66,4 +67,24 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Turkish home renders a localized account amount', (
+    tester,
+  ) async {
+    tester.binding.platformDispatcher.localeTestValue = const Locale('tr');
+    addTearDown(tester.binding.platformDispatcher.clearLocaleTestValue);
+    final router = createRouter();
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [routerProvider.overrideWithValue(router)],
+        child: const MetronApp(),
+      ),
+    );
+    await tester.runAsync(() async => GoogleFonts.pendingFonts());
+    await tester.pumpAndSettle();
+    expect(find.text('25.000,00'), findsOneWidget);
+    expect(find.text('%2,75'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

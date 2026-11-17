@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_strings.dart';
@@ -146,9 +147,21 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                       TextSpan(
                         children: [
                           TextSpan(text: MarketsStrings.of(context).barStart),
-                          WidgetSpan(child: Num('0', style: note)),
+                          WidgetSpan(
+                            child: Num(
+                              NumberFormatter.of(context)
+                                  .number(0, decimalPlaces: 0),
+                              style: note,
+                            ),
+                          ),
                           TextSpan(text: MarketsStrings.of(context).barTo),
-                          WidgetSpan(child: Num('10%', style: note)),
+                          WidgetSpan(
+                            child: Num(
+                              NumberFormatter.of(context)
+                                  .percent(10, decimalPlaces: 0),
+                              style: note,
+                            ),
+                          ),
                           TextSpan(text: MarketsStrings.of(context).barEnd),
                         ],
                       ),
@@ -236,7 +249,10 @@ class _PriceRow extends StatelessWidget {
                         style: subtle,
                       ),
                       Num(
-                        '${_percent(coin.suggestedStopPercent)}%',
+                        NumberFormatter.of(context).percent(
+                          coin.suggestedStopPercent,
+                          minimumDecimals: 1,
+                        ),
                         style: subtle,
                       ),
                     ],
@@ -258,12 +274,13 @@ class _PriceRow extends StatelessWidget {
                       color: context.colors.muted,
                       backgroundColor: context.colors.raised,
                       semanticsLabel: MarketsStrings.of(context).atr,
-                      semanticsValue: '${coin.atrPercent.toStringAsFixed(1)}%',
+                      semanticsValue: NumberFormatter.of(context)
+                          .percent(coin.atrPercent, decimalPlaces: 1),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Num(
-                    '${MarketsStrings.of(context).atr} ${coin.atrPercent.toStringAsFixed(1)}%',
+                    '${MarketsStrings.of(context).atr} ${NumberFormatter.of(context).percent(coin.atrPercent, decimalPlaces: 1)}',
                     style: subtle.copyWith(fontSize: 11),
                   ),
                 ],
@@ -273,7 +290,10 @@ class _PriceRow extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Num(_price(coin.price), style: const TextStyle(fontSize: 15)),
+                Num(
+                  NumberFormatter.of(context).decimal(coin.price),
+                  style: const TextStyle(fontSize: 15),
+                ),
                 const SizedBox(height: 3),
                 PnlText(
                   coin.changePercent,
@@ -286,20 +306,5 @@ class _PriceRow extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  // Group the decimal string without losing precision or trailing zeroes.
-  static String _price(String value) {
-    final parts = value.split('.');
-    final whole = parts.first.replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+$)'),
-      (m) => '${m[1]},',
-    );
-    return parts.length == 1 ? whole : '$whole.${parts[1]}';
-  }
-
-  static String _percent(double value) {
-    final fixed = value.toStringAsFixed(2);
-    return fixed.endsWith('0') ? fixed.substring(0, fixed.length - 1) : fixed;
   }
 }

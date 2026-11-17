@@ -13,8 +13,8 @@ export function PriceMeasure({ check, locale = "en" }: { check: Omit<PreTradeChe
     <div className="flex flex-wrap justify-between gap-4">
       {(["stop", "entry", "target"] as const).map(kind => <div key={kind} className={`flex min-w-0 flex-[1_1_190px] flex-col gap-1 ${kind === "target" ? "text-right" : ""}`}>
         <span className={`text-label uppercase ${kind === "stop" ? "text-loss" : kind === "target" ? "text-profit" : "text-subtle"}`}>{t(kind)}</span>
-        <span className="num text-[32px] leading-[38px] font-medium tracking-[-0.02em]">{formatPrice(check[kind])}</span>
-        <span className="text-small text-muted">{kind === "entry" ? t(check.orderType) : <><PnL locale={locale} value={kind === "stop" ? check.stopPercent : check.targetPercent} decimals={1} suffix="%" /> <span className="num">{t("atrDistance", { value: kind === "stop" ? check.stopAtr : check.targetAtr })}</span></>}</span>
+        <span className="num text-[32px] leading-[38px] font-bold tracking-[-0.04em]">{formatPrice(check[kind], undefined, locale)}</span>
+        <span className="text-small text-muted">{kind === "entry" ? t(check.orderType) : <><PnL locale={locale} value={kind === "stop" ? check.stopPercent : check.targetPercent} decimals={1} suffix="%" /> <span className="num">{t("atrDistance", { value: formatPrice(kind === "stop" ? check.stopAtr : check.targetAtr, undefined, locale) })}</span></>}</span>
       </div>)}
     </div>
     <div aria-hidden="true" className="flex flex-col gap-1.5">
@@ -23,7 +23,7 @@ export function PriceMeasure({ check, locale = "en" }: { check: Omit<PreTradeChe
         <span className="border-r-2 border-text bg-loss-tint" style={{ width: `${position(0)}%` }} /><span className="flex-1 bg-profit-tint" />
         <span className="absolute inset-y-0 left-0 w-1 bg-loss" /><span className="absolute inset-y-0 right-0 w-1 bg-profit" />
       </div>
-      <div className="num relative h-4 text-[11px] text-subtle">{ticks.map(tick => <span key={tick} className={`absolute ${tick === stop ? "left-0" : tick === target ? "right-0" : "-translate-x-1/2"}`} style={tick !== stop && tick !== target ? { left: `${position(tick)}%` } : undefined}>{t(tick > 0 ? "positiveTick" : "tick", { value: formatAmount(String(tick), Number.isInteger(tick) ? 0 : 1) })}{tick === target ? t("atrUnit") : ""}</span>)}</div>
+      <div className="num relative h-4 text-[11px] text-subtle">{ticks.map(tick => <span key={tick} className={`absolute ${tick === stop ? "left-0" : tick === target ? "right-0" : "-translate-x-1/2"}`} style={tick !== stop && tick !== target ? { left: `${position(tick)}%` } : undefined}>{t(tick > 0 ? "positiveTick" : "tick", { value: formatAmount(String(tick), Number.isInteger(tick) ? 0 : 1, locale) })}{tick === target ? t("atrUnit") : ""}</span>)}</div>
     </div>
   </>;
 }

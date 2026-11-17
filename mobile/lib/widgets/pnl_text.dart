@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/number_formatter.dart';
 import '../l10n/app_strings.dart';
 import '../theme/metron_colors.dart';
 import 'num.dart';
@@ -33,11 +34,14 @@ class PnlText extends StatelessWidget {
         ? ('▼ −', AppStrings.of(context).loss, c.loss)
         : ('— ±', AppStrings.of(context).unchanged, c.muted);
     final magnitude =
-        format?.call(value.abs()) ?? value.abs().toStringAsFixed(decimalPlaces);
+        format?.call(value.abs()) ??
+        NumberFormatter.of(context)
+            .number(value.abs(), decimalPlaces: decimalPlaces);
     return Num(
-      '$prefix$magnitude$suffix',
+      '$prefix${NumberFormatter.of(context).unit(magnitude, suffix)}',
       style: (style ?? const TextStyle()).copyWith(color: color),
-      semanticsLabel: '$word $magnitude$suffix',
+      semanticsLabel:
+          '$word ${NumberFormatter.of(context).unit(magnitude, suffix)}',
     );
   }
 }

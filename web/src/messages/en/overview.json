@@ -1,6 +1,8 @@
 {
   "status": "Risk status ·",
   "headline": "Within your limits",
+  "headline.caution": "Discipline alert: stand by",
+  "headline.limit": "Risk limit breached",
   "summary": "If every stop triggered right now you would lose {amount} {currency}, which is {percent} of the account. One discipline rule is counting down.",
   "realized": "Realized today",
   "unrealized": "Unrealized",

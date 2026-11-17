@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Card } from "@/components/metron/card";
 import type { CoinClass } from "@/components/metron/class-tag";
+import { formatAmount } from "@/lib/format";
 import { getMessages } from "@/lib/messages";
 import { useLocale } from "@/components/metron/locale-provider";
 
@@ -15,7 +16,8 @@ const classes = ["all", "core", "large", "small", "stable"] as const;
 type ClassFilter = (typeof classes)[number];
 
 export function FilteredMarkets({ rows }: { rows: FilterableRow[] }) {
-  const t = getMessages("markets", useLocale());
+  const locale = useLocale();
+  const t = getMessages("markets", locale);
   const [coinClass, setCoinClass] = useState<ClassFilter>("all");
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
@@ -62,7 +64,7 @@ export function FilteredMarkets({ rows }: { rows: FilterableRow[] }) {
           </tbody>
         </table>
       </div>
-      <p role="status" aria-live="polite" className="sr-only num">{t("results", { count: visibleRows.length })}</p>
+      <p role="status" aria-live="polite" className="sr-only num">{t("results", { count: formatAmount(String(visibleRows.length), 0, locale) })}</p>
       <p className="border-t border-line px-6 py-3.5 text-small text-subtle">
         {t("note.start")}<span className="num">{t("note.minimum")}</span>{t("note.to")}<span className="num">{t("note.maximum")}</span>{t("note.end")}
       </p>

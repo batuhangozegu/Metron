@@ -11,7 +11,7 @@ const colors = { safe: "text-safe bg-safe-tint", caution: "text-caution bg-cauti
 /** Risk is always conveyed together by an icon, a translated word, and a semantic color. */
 export function RiskBadge({ state, className, locale = "en" }: RiskBadgeProps) {
   const Icon = icons[state];
-  return <span className={cn("inline-flex items-center gap-1.5 rounded-tag px-2 py-1 text-xs font-medium", colors[state], className)}>
+  return <span data-risk={state} className={cn("risk-badge inline-flex items-center gap-1.5 rounded-tag px-2 py-1 text-xs font-semibold", colors[state], className)}>
     <Icon aria-hidden="true" className="size-4 shrink-0" />{getMessages("common", locale)(`risk.${state}`)}
   </span>;
 }

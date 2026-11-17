@@ -11,7 +11,8 @@ export interface MeasureProps { locale?: Locale;
 }
 
 /** Ten-division ruler: current exposure is solid, proposed exposure hatched; state uses their total. */
-export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md", showMarks = true, className, label, formatValue = formatAmount, locale = "en" }: MeasureProps) {
+export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md", showMarks = true, className, label, formatValue: customFormat, locale = "en" }: MeasureProps) {
+  const formatValue = customFormat ?? ((amount: string) => formatAmount(amount, 2, locale));
   const t = getMessages("common", locale);
   const safeValue = Number.isFinite(value) && value >= 0 ? value : 0;
   const safeAdded = Number.isFinite(added) && added >= 0 ? added : 0;
@@ -26,7 +27,7 @@ export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md"
   return <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
     <div role="meter" aria-label={label ?? t("measure.label")} aria-valuemin={0} aria-valuemax={limit > 0 ? limit : 1}
       aria-valuenow={Math.min(Math.max(total, 0), limit > 0 ? limit : 1)} aria-valuetext={valueText}
-      className={cn("measure", colors[state])} data-size={size}>
+      className={cn("measure", colors[state])} data-size={size} data-risk={state}>
       <div className="measure-ticks" aria-hidden="true" />
       <div className="measure-track" aria-hidden="true">
         <span className="measure-solid" style={{ width: `${width}%` }} />

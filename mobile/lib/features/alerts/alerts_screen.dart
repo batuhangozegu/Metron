@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
@@ -226,10 +227,11 @@ class _NumberedCopy extends StatelessWidget {
   final String? pnl;
   @override
   Widget build(BuildContext context) {
+    final localized = NumberFormatter.of(context).fixtureText(text);
     final spans = <InlineSpan>[];
     var end = 0;
-    for (final match in RegExp(r'\d+(?:[,:.]\d+)*').allMatches(text)) {
-      spans.add(TextSpan(text: text.substring(end, match.start)));
+    for (final match in RegExp(r'\d+(?:[,:.]\d+)*').allMatches(localized)) {
+      spans.add(TextSpan(text: localized.substring(end, match.start)));
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.baseline,
@@ -239,7 +241,7 @@ class _NumberedCopy extends StatelessWidget {
       );
       end = match.end;
     }
-    spans.add(TextSpan(text: text.substring(end)));
+    spans.add(TextSpan(text: localized.substring(end)));
     if (pnl != null) {
       spans.add(const TextSpan(text: ' '));
       spans.add(
@@ -290,7 +292,8 @@ class _AlarmRow extends ConsumerWidget {
                         child: Num(
                           price == null
                               ? AlertsStrings.of(context).unavailable
-                              : formatAlarmPrice(price.price),
+                              : NumberFormatter.of(context)
+                                    .decimal(price.price, minimumDecimals: 2),
                           style: TextStyle(
                             fontSize: 12,
                             color: context.colors.subtle,
@@ -306,7 +309,8 @@ class _AlarmRow extends ConsumerWidget {
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: constraints.maxWidth / 2),
               child: Num(
-                formatAlarmPrice(alarm.targetPrice),
+                NumberFormatter.of(context)
+                    .decimal(alarm.targetPrice, minimumDecimals: 2),
                 textAlign: TextAlign.end,
                 style: const TextStyle(fontSize: 15),
               ),

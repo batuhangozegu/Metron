@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:metron/data/risk_level.dart';
+import 'package:metron/l10n/locale_provider.dart';
 import 'package:metron/theme/metron_colors.dart';
 import 'package:metron/widgets/measure.dart';
 import 'package:metron/widgets/risk_badge.dart';
@@ -8,6 +10,32 @@ import 'package:metron/widgets/risk_badge.dart';
 import 'test_app.dart';
 
 void main() {
+  testWidgets('Measure follows the selected Turkish locale and semantics', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(localeProvider.notifier).select(const Locale('tr'));
+    await pumpTestApp(
+      tester,
+      UncontrolledProviderScope(
+        container: container,
+        child: const LocalizedCatalogs(
+          child: Measure(value: 2.75, limit: 6, unit: '%'),
+        ),
+      ),
+    );
+    expect(find.text('%2,75'), findsOneWidget);
+    expect(find.text('%6,00'), findsOneWidget);
+    expect(find.bySemanticsLabel('%2,75 / %6,00, Güvenli'), findsOneWidget);
+    container.read(localeProvider.notifier).select(const Locale('en'));
+    await tester.pumpAndSettle();
+    expect(find.text('2.75%'), findsOneWidget);
+    expect(find.text('6.00%'), findsOneWidget);
+    semantics.dispose();
+  });
+
   for (final light in [false, true]) {
     testWidgets(
       'Measure labels quantity, limit and risk (${light ? 'light' : 'dark'})',

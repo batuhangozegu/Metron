@@ -15,8 +15,8 @@ export function EquityChart({ locale = "en" }: { locale?: Locale }) {
   }
   const last = series.account[series.account.length - 1];
   const description = t("chartDescription", {
-    initial: formatAmount(stats.initialEquity, 0), equity: formatAmount(stats.equity, 0), currency: account.currency,
-    days: stats.periodDays, drawdown: formatAmount(stats.maxDrawdownPercent.replace("-", ""), 1), benchmark: formatAmount(stats.benchmarkEndEquity, 0),
+    initial: formatAmount(stats.initialEquity, 0, locale), equity: formatAmount(stats.equity, 0, locale), currency: account.currency,
+    days: formatAmount(String(stats.periodDays), 0, locale), drawdown: formatAmount(stats.maxDrawdownPercent.replace("-", ""), 1, locale), benchmark: formatAmount(stats.benchmarkEndEquity, 0, locale),
   });
   return <Card className="p-card flex flex-col gap-4">
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
@@ -36,7 +36,7 @@ export function EquityChart({ locale = "en" }: { locale?: Locale }) {
       <polyline points={series.benchmark.map(point => `${point.x},${point.y}`).join(" ")} fill="none" strokeWidth={2} strokeDasharray="6 5" className="stroke-subtle" />
       <polyline points={series.account.map(point => `${point.x},${point.y}`).join(" ")} fill="none" strokeWidth={2.5} strokeLinejoin="round" className="stroke-text" />
       <circle cx={last.x} cy={last.y} r={4.5} className="fill-text" />
-      <text x={span.start + 8} y={38} className="fill-loss text-[13px] font-medium">{t("drawdownLabel")}<tspan className="num">{formatPercent(stats.maxDrawdownPercent, 1)}</tspan></text>
+      <text x={span.start + 8} y={38} className="fill-loss text-[13px] font-medium">{t("drawdownLabel")}<tspan className="num">{formatPercent(stats.maxDrawdownPercent, 1, locale)}</tspan></text>
       {series.valueTicks.map(tick => <text key={tick.y} x={last.x + 12} y={tick.y} className="num fill-subtle text-xs">{tick.label}</text>)}
       {series.dates.map((date, index) => <text key={date.x} x={date.x} y={288} textAnchor={index === 0 ? "start" : index === series.dates.length - 1 ? "end" : "middle"} className="num fill-subtle text-xs">{date.label}</text>)}
     </svg>

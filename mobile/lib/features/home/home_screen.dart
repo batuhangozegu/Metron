@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
@@ -63,7 +64,10 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Num(_money(account.equity)),
+                  Num(
+                    NumberFormatter.of(context)
+                        .decimal(account.equity, minimumDecimals: 2),
+                  ),
                 ],
               ),
               Column(
@@ -108,7 +112,7 @@ class HomeScreen extends ConsumerWidget {
                   spacing: 4,
                   children: [
                     Num(
-                      '${_money(account.moneyAtRisk)} USDT',
+                      '${NumberFormatter.of(context).decimal(account.moneyAtRisk, minimumDecimals: 2)} USDT',
                       style: const TextStyle(fontSize: 13),
                     ),
                     Text(
@@ -237,7 +241,7 @@ class _RiskCard extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Num(
-                '${value.toStringAsFixed(2)}%',
+                NumberFormatter.of(context).percent(value),
                 style: large
                     ? MetronType.figureLarge
                     : const TextStyle(
@@ -257,7 +261,8 @@ class _RiskCard extends StatelessWidget {
                     ),
                   ),
                   Num(
-                    '${limit.toStringAsFixed(large ? 2 : 0)}%',
+                    NumberFormatter.of(context)
+                        .percent(limit, decimalPlaces: large ? 2 : 0),
                     style: TextStyle(
                       fontSize: large ? 14 : 12,
                       color: c.subtle,
@@ -269,7 +274,7 @@ class _RiskCard extends StatelessWidget {
           ),
           Semantics(
             label:
-                '$title, ${value.toStringAsFixed(2)}% ${AppStrings.of(context).outOf} $limit%, ${level.label(context)}',
+                '$title, ${NumberFormatter.of(context).percent(value)} ${AppStrings.of(context).outOf} ${NumberFormatter.of(context).percent(limit, decimalPlaces: large ? 2 : 0)}, ${level.label(context)}',
             child: SizedBox(
               height: 30,
               child: CustomPaint(
@@ -299,7 +304,7 @@ class _Remaining extends StatelessWidget {
     spacing: 4,
     children: [
       Num(
-        _money(amount),
+        NumberFormatter.of(context).decimal(amount, minimumDecimals: 2),
         style: TextStyle(fontSize: 12, color: context.colors.subtle),
       ),
       Text(
@@ -348,7 +353,12 @@ class _Cooldown extends StatelessWidget {
                     alignment: PlaceholderAlignment.baseline,
                     baseline: TextBaseline.alphabetic,
                     child: Num(
-                      '${account.cooldownEndsAt.difference(account.asOf).inMinutes}',
+                      NumberFormatter.of(context).number(
+                        account.cooldownEndsAt
+                            .difference(account.asOf)
+                            .inMinutes,
+                        decimalPlaces: 0,
+                      ),
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
@@ -406,7 +416,8 @@ class _PositionRow extends StatelessWidget {
                         ),
                       ),
                       Num(
-                        '${position.distanceToStopPercent.toStringAsFixed(2)}%',
+                        NumberFormatter.of(context)
+                            .percent(position.distanceToStopPercent),
                         style: TextStyle(
                           fontSize: 12,
                           color: context.colors.subtle,
@@ -434,7 +445,7 @@ class _PositionRow extends StatelessWidget {
                   style: const TextStyle(fontSize: 15),
                 ),
                 Num(
-                  '${_money(position.moneyAtRisk)} ${HomeStrings.of(context).atRisk}',
+                  '${NumberFormatter.of(context).decimal(position.moneyAtRisk, minimumDecimals: 2)} ${HomeStrings.of(context).atRisk}',
                   style: TextStyle(fontSize: 12, color: context.colors.subtle),
                 ),
               ],
@@ -449,14 +460,4 @@ class _PositionRow extends StatelessWidget {
 String _time(DateTime date) {
   final utc = date.toUtc();
   return '${utc.hour.toString().padLeft(2, '0')}:${utc.minute.toString().padLeft(2, '0')}';
-}
-
-// Group decimal strings without performing money arithmetic.
-String _money(String value) {
-  final parts = value.split('.');
-  final grouped = parts.first.replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-    (match) => '${match[1]},',
-  );
-  return '$grouped.${(parts.length > 1 ? parts[1] : '').padRight(2, '0')}';
 }

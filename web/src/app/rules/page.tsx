@@ -1,3 +1,4 @@
+import { formatAmount, formatPercent, formatPrice } from "@/lib/format";
 import { getLocale } from "@/lib/locale-server";
 import { Card, CardHeader } from "@/components/metron/card";
 import { ClassTag } from "@/components/metron/class-tag";
@@ -31,13 +32,13 @@ export default async function RulesPage() {
               <th scope="row" className="border-t border-line px-6 py-1.5 text-left font-normal">
                 <div className="flex flex-col items-start gap-0.5">
                   <ClassTag locale={locale} coinClass={rule.coinClass} className="rounded-none border-0 p-0 text-sm font-semibold text-text" />
-                  <span className="text-xs text-subtle"><NumericCopy text={t(`classes.${rule.coinClass}.who`, { count: rule.who.match(/\d+/)?.[0] ?? "" })} /></span>
+                  <span className="text-xs text-subtle"><NumericCopy text={t(`classes.${rule.coinClass}.who`, { count: formatAmount(rule.who.match(/\d+/)?.[0] ?? "0", 0, locale) })} /></span>
                 </div>
               </th>
-              <td><NumericCopy text={rule.coinClass === "stable" ? t("none") : rule.mult} /></td>
-              <td><NumericCopy text={rule.coinClass === "stable" ? t("none") : rule.risk} /></td>
-              <td><NumericCopy text={rule.coinClass === "stable" ? t("noCap") : rule.maxPos} /></td>
-              <td><NumericCopy text={rule.coinClass === "stable" || rule.coinClass === "core" ? t("noCap") : rule.total} /></td>
+              <td><NumericCopy text={rule.coinClass === "stable" ? t("none") : `${formatPrice(rule.mult.replace(/[^0-9.]/g, ""), undefined, locale)}×`} /></td>
+              <td><NumericCopy text={rule.coinClass === "stable" ? t("none") : formatPercent(rule.risk.replace("%", ""), 2, locale)} /></td>
+              <td><NumericCopy text={rule.coinClass === "stable" ? t("noCap") : formatPercent(rule.maxPos.replace("%", ""), 0, locale)} /></td>
+              <td><NumericCopy text={rule.coinClass === "stable" || rule.coinClass === "core" ? t("noCap") : formatPercent(rule.total.replace("%", ""), 0, locale)} /></td>
               <td className="text-left text-small text-muted">{t(`classes.${rule.coinClass}.source`)}</td>
               <td className="!pr-6"><button type="button" className="min-h-control px-3.5 text-small font-medium underline" aria-label={t("classes.editLabel", { name: getMessages("common", locale)(`class.${rule.coinClass}`) })}>{t("edit")}</button></td>
             </tr>)}
@@ -66,6 +67,6 @@ export default async function RulesPage() {
 /** Numeric values stay in the shared fixtures; sentence templates belong to this screen. */
 function disciplineCopy(locale: import("@/lib/messages").Locale, index: number, field: "name" | "detail" | "history", source: string) {
   const keys = ["cooldown", "hours", "stop"] as const;
-  const values = Object.fromEntries((source.match(/\d+(?::\d+)*/g) ?? []).map((number, position) => [`n${position}`, number]));
+  const values = Object.fromEntries((source.match(/\d+(?::\d+)*/g) ?? []).map((number, position) => [`n${position}`, number.includes(":") ? number : formatAmount(number, 0, locale)]));
   return getMessages("rules", locale)(`discipline.${keys[index]}.${field}`, values);
 }

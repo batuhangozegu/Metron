@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
@@ -59,23 +60,40 @@ class RulesScreen extends ConsumerWidget {
                     children: [
                       _ValueRow(
                         RulesStrings.of(context).openRisk,
-                        Num(_percent(limits.openRiskPercent)),
+                        Num(
+                          NumberFormatter.of(context)
+                              .percent(limits.openRiskPercent),
+                        ),
                       ),
                       _ValueRow(
                         RulesStrings.of(context).dailyCap,
-                        Num(_percent(limits.dailyLossPercent)),
+                        Num(
+                          NumberFormatter.of(context)
+                              .percent(limits.dailyLossPercent),
+                        ),
                       ),
                       _ValueRow(
                         RulesStrings.of(context).weeklyCap,
-                        Num(_percent(limits.weeklyLossPercent)),
+                        Num(
+                          NumberFormatter.of(context)
+                              .percent(limits.weeklyLossPercent),
+                        ),
                       ),
                       _ValueRow(
                         RulesStrings.of(context).positions,
-                        Num('${limits.maxOpenPositions}'),
+                        Num(
+                          NumberFormatter.of(
+                            context,
+                          ).number(limits.maxOpenPositions, decimalPlaces: 0),
+                        ),
                       ),
                       _ValueRow(
                         RulesStrings.of(context).riskReward,
-                        Num(limits.targetRiskReward.toStringAsFixed(1)),
+                        Num(
+                          NumberFormatter.of(
+                            context,
+                          ).number(limits.targetRiskReward, decimalPlaces: 1),
+                        ),
                       ),
                     ],
                   ),
@@ -120,7 +138,9 @@ class RulesScreen extends ConsumerWidget {
                           spacing: 4,
                           children: [
                             Text(RulesStrings.of(context).paper),
-                            Num('${_groupDecimal(account.equity)} USDT'),
+                            Num(
+                              '${NumberFormatter.of(context).decimal(account.equity)} USDT',
+                            ),
                           ],
                         ),
                       ),
@@ -186,18 +206,6 @@ class RulesScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-String _percent(double value) => '${value.toStringAsFixed(2)}%';
-
-// Preserve decimal money strings rather than converting to floating point.
-String _groupDecimal(String value) {
-  final parts = value.split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+$)'),
-    (match) => '${match[1]},',
-  );
-  return [whole, ...parts.skip(1)].join('.');
 }
 
 class _Section extends StatelessWidget {
@@ -271,15 +279,16 @@ class _ClassRow extends StatelessWidget {
           children: [
             _ClassValue(
               RulesStrings.of(context).stop,
-              '${rule.atrMultiplier.toStringAsFixed(1)} ATR',
+              '${NumberFormatter.of(context).number(rule.atrMultiplier, decimalPlaces: 1)} ATR',
             ),
             _ClassValue(
               RulesStrings.of(context).riskPerTrade,
-              _percent(rule.riskPerTradePercent),
+              NumberFormatter.of(context).percent(rule.riskPerTradePercent),
             ),
             _ClassValue(
               RulesStrings.of(context).largestPosition,
-              '${rule.maxPositionPercent.toStringAsFixed(0)}%',
+              NumberFormatter.of(context)
+                  .percent(rule.maxPositionPercent, decimalPlaces: 0),
             ),
           ],
         ),
@@ -386,10 +395,11 @@ class _NumberedCopy extends StatelessWidget {
   final TextStyle style;
   @override
   Widget build(BuildContext context) {
+    final localized = NumberFormatter.of(context).fixtureText(copy);
     final spans = <InlineSpan>[];
     var end = 0;
-    for (final match in RegExp(r'\d+(?::\d+)?').allMatches(copy)) {
-      spans.add(TextSpan(text: copy.substring(end, match.start)));
+    for (final match in RegExp(r'\d+(?:[,:.]\d+)*').allMatches(localized)) {
+      spans.add(TextSpan(text: localized.substring(end, match.start)));
       spans.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.baseline,
@@ -399,9 +409,9 @@ class _NumberedCopy extends StatelessWidget {
       );
       end = match.end;
     }
-    spans.add(TextSpan(text: copy.substring(end)));
+    spans.add(TextSpan(text: localized.substring(end)));
     return Semantics(
-      label: copy,
+      label: localized,
       excludeSemantics: true,
       child: Text.rich(TextSpan(children: spans), style: style),
     );

@@ -1,0 +1,83 @@
+/* Risk drives the room's intensity; quiet surfaces stay neutral. */
+.metron-card {
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--line) 30%, transparent);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.metron-card:hover { border-color: var(--subtle); }
+.micro-label, .risk-label {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.language-switch button { color: var(--muted); border-radius: var(--radius-control); }
+.language-switch button + button { border-left: 1px solid var(--line); }
+.language-switch button[aria-pressed="true"] { background: var(--raised); color: var(--text); }
+.language-switch button:hover, .theme-toggle:hover { background: var(--raised); }
+.language-switch button:focus-visible { position: relative; z-index: 1; }
+.language-switch[aria-busy="true"] { opacity: 0.6; }
+
+.risk-panel[data-risk="caution"] {
+  border-color: var(--caution);
+  box-shadow: inset 3px 0 0 var(--caution), 0 0 24px var(--caution-tint);
+}
+.risk-panel[data-risk="limit"] {
+  border-color: var(--limit-edge);
+  background: linear-gradient(115deg, var(--limit-tint), transparent 85%), var(--surface);
+  box-shadow: inset 3px 0 0 var(--limit-edge), 0 0 32px var(--limit-tint);
+}
+.overview-command { border-left: 3px solid var(--safe); padding: 8px 0 8px 20px; }
+.overview-command[data-risk="caution"] { border-color: var(--caution); }
+.overview-command[data-risk="limit"] { border-color: var(--limit-edge); }
+.overview-command[data-risk="limit"] h1 { color: var(--limit); }
+.risk-banner h2 { font-weight: 800; letter-spacing: -0.035em; }
+.risk-banner[data-risk="limit"] > svg { filter: drop-shadow(0 0 10px var(--limit-tint)); }
+.risk-badge { white-space: nowrap; }
+
+.measure-solid, .measure-added, .stop-fill {
+  transform-origin: left;
+  animation: meter-fill 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.measure[data-risk="limit"] .measure-track,
+.risk-badge[data-risk="limit"] { animation: risk-heartbeat 2.8s ease-in-out infinite; }
+.live-dot { animation: live-beacon 2s ease-in-out infinite; }
+@keyframes meter-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes risk-heartbeat {
+  0%, 38%, 66%, 100% { opacity: 1; filter: brightness(1); }
+  48%, 58% { opacity: 0.8; filter: brightness(1.3); }
+}
+@keyframes live-beacon { 50% { opacity: 0.45; box-shadow: 0 0 0 5px var(--safe-tint); } }
+.price-tick { display: inline-flex; align-items: center; gap: 4px; border-radius: 2px; padding: 3px 4px; }
+.price-tick[data-direction="up"] { animation: price-up 1100ms ease-out both; }
+.price-tick[data-direction="down"] { animation: price-down 1100ms ease-out both; }
+@keyframes price-up { from { background: var(--profit-tint); color: var(--profit); } to { background: transparent; color: var(--text); } }
+@keyframes price-down { from { background: var(--loss-tint); color: var(--loss); } to { background: transparent; color: var(--text); } }
+.price-direction { animation: tick-direction 1100ms step-end both; }
+@keyframes tick-direction { to { visibility: hidden; } }
+
+table { font-variant-numeric: tabular-nums; }
+thead th { white-space: nowrap; }
+tbody tr { transition: background-color 160ms ease; }
+tbody tr:hover, tbody tr:focus-within { background: var(--raised); }
+.positions-table { min-width: 710px; font-size: 13px; }
+.positions-table thead th { padding-inline: 10px; }
+.positions-table tbody td { white-space: nowrap; padding-inline: 10px; }
+.positions-table th:first-child { padding-left: 20px; }
+.positions-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+.positions-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.market-movement { width: clamp(64px, 8vw, 112px); }
+@media (min-width: 1400px) {
+  .positions-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .positions-aside { display: flex; }
+}
+@media (max-width: 700px) {
+  .positions-aside { display: flex; }
+  .overview-command { padding-left: 12px; }
+  .overview-command h1 { font-size: 32px; line-height: 1.1; }
+  main#main-content { padding: 20px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .price-direction { display: none; }
+}

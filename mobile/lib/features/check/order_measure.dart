@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../theme/metron_colors.dart';
 import '../../widgets/widgets.dart';
-import 'check_layout.dart' show grouped;
 import 'check_strings.dart';
 
 /// A price interval, distinct from the shared usage-versus-limit Measure.
@@ -39,7 +39,7 @@ class OrderMeasure extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: right ? Alignment.centerRight : Alignment.centerLeft,
             child: Num(
-              grouped(value),
+              NumberFormatter.of(context).decimal(value),
               style: TextStyle(
                 fontSize: large ? 22 : 16,
                 height: 1.4,
@@ -111,8 +111,8 @@ class OrderMeasure extends StatelessWidget {
             children: [
               Semantics(
                 label:
-                    'Stop ${preview.stop}, entry ${preview.entry}, '
-                    'target ${preview.target}',
+                    'Stop ${NumberFormatter.of(context).decimal(preview.stop)}, entry ${NumberFormatter.of(context).decimal(preview.entry)}, '
+                    'target ${NumberFormatter.of(context).decimal(preview.target)}',
                 child: SizedBox(
                   height: 41,
                   width: double.infinity,
@@ -133,11 +133,11 @@ class OrderMeasure extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Num(
-                    '−1.5 ATR',
+                    '${NumberFormatter.of(context).number(-1.5, decimalPlaces: 1)} ATR',
                     style: TextStyle(fontSize: 11, color: c.subtle),
                   ),
                   Num(
-                    '+3 ATR',
+                    '+${NumberFormatter.of(context).number(3, decimalPlaces: 0)} ATR',
                     style: TextStyle(fontSize: 11, color: c.subtle),
                   ),
                 ],
@@ -173,7 +173,10 @@ class OrderMeasure extends StatelessWidget {
                 Wrap(
                   spacing: 4,
                   children: [
-                    Num(preview.quantity, style: const TextStyle(fontSize: 16)),
+                    Num(
+                      NumberFormatter.of(context).decimal(preview.quantity),
+                      style: const TextStyle(fontSize: 16),
+                    ),
                     Text(
                       preview.pair.split('/').first,
                       style: TextStyle(fontSize: 12, color: c.subtle),
@@ -188,7 +191,7 @@ class OrderMeasure extends StatelessWidget {
                   spacing: 4,
                   children: [
                     Num(
-                      grouped(preview.orderValue),
+                      NumberFormatter.of(context).decimal(preview.orderValue),
                       style: const TextStyle(fontSize: 16),
                     ),
                     Text(

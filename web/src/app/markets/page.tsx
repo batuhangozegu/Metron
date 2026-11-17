@@ -1,13 +1,14 @@
 import { Suspense } from "react";
 import { ClassTag } from "@/components/metron/class-tag";
 import { PnL } from "@/components/metron/pnl";
-import { formatPrice } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
 import { getLocale } from "@/lib/locale-server";
 import { getMessages, type Locale } from "@/lib/messages";
 import { AutoRefresh } from "./_components/auto-refresh";
 import { fetchMarkets, formatVolume } from "./_lib/market-data";
 import { FilteredMarkets } from "./_components/filtered-markets";
 import { MovementMeasure } from "./_components/movement-measure";
+import { LivePrice } from "./_components/live-price";
 
 async function LiveMarkets({ locale }: { locale: Locale }) {
   const t = getMessages("markets", locale);
@@ -24,15 +25,15 @@ async function LiveMarkets({ locale }: { locale: Locale }) {
         <tr key={market.symbol} className="text-right">
           <th scope="row" className={`${cell} whitespace-nowrap px-6 text-left font-semibold`}>{pair}</th>
           <td className={`${cell} text-left`}><ClassTag coinClass={market.coin_class} locale={locale} /></td>
-          <td className={`${cell} num`}>{market.price === null ? t("missing") : formatPrice(market.price)}</td>
+          <td className={`${cell} num whitespace-nowrap`}><LivePrice value={market.price} /></td>
           <td className={cell}>{market.change_24h_percent === null ? t("missing") : <PnL value={market.change_24h_percent} suffix={t("percentSuffix")} locale={locale} />}</td>
           <td className={`${cell} text-left`}>{market.atr_percent === null ? t("missing") : <MovementMeasure locale={locale} market={{
             pair, atr: `${market.atr_percent}%`, atrFill: `${Number(market.atr_percent) * 10}%`,
           }} />}</td>
           <td className={`${cell} ${market.coin_class === "stable" ? "" : "num"}`}>
-            {market.coin_class === "stable" ? t("stop.none") : market.suggested_stop_percent === null ? t("missing") : `${market.suggested_stop_percent}%`}
+            {market.coin_class === "stable" ? t("stop.none") : market.suggested_stop_percent === null ? t("missing") : formatPercent(market.suggested_stop_percent, 2, locale)}
           </td>
-          <td className={`${cell} num text-muted`}>{market.quote_volume_24h === null ? t("missing") : formatVolume(market.quote_volume_24h)}</td>
+          <td className={`${cell} num text-muted`}>{market.quote_volume_24h === null ? t("missing") : formatVolume(market.quote_volume_24h, locale)}</td>
           <td className={`${cell} pr-6`}>
             <a href="/check" aria-label={t("checkPair", { pair })}
               className="inline-flex min-h-control items-center whitespace-nowrap rounded-control px-3.5 py-3 text-small font-medium underline hover:bg-raised">
@@ -45,7 +46,7 @@ async function LiveMarkets({ locale }: { locale: Locale }) {
   });
   return <>
     <div className="flex items-center gap-2 text-small text-muted">
-      <span aria-hidden="true" className={`size-2 rounded-full ${markets.some((market) => market.price !== null) ? "bg-safe" : "bg-muted"}`} />
+      <span aria-hidden="true" className={`size-2 rounded-full ${markets.some((market) => market.price !== null) ? "live-dot bg-safe" : "bg-muted"}`} />
       {t("live")}
     </div>
     <FilteredMarkets rows={rows} />

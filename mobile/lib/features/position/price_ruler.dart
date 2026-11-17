@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/models.dart';
 import '../../theme/metron_colors.dart';
 import '../../widgets/num.dart';
-import 'position_format.dart';
 import 'position_strings.dart';
 
 /// A price range rather than the shared Measure's risk usage against a limit.
@@ -26,10 +26,8 @@ class PriceRuler extends StatelessWidget {
     String rLabel(double value) {
       if (risk == 0) return '—';
       final r = (value - entry) / risk;
-      final magnitude = r
-          .abs()
-          .toStringAsFixed(1)
-          .replaceFirst(RegExp(r'\.0$'), '');
+      final magnitude = NumberFormatter.of(context)
+          .number(r.abs(), decimalPlaces: 1, minimumDecimals: 0);
       return '${r < 0 ? '−' : '+'}${magnitude}R';
     }
 
@@ -76,7 +74,8 @@ class PriceRuler extends StatelessWidget {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Num(
-                        formatDecimal(value),
+                        NumberFormatter.of(context)
+                            .decimal(value, trimZero: true),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -91,10 +90,10 @@ class PriceRuler extends StatelessWidget {
         const SizedBox(height: 14),
         Semantics(
           label:
-              '${PositionStrings.of(context).stop} ${formatDecimal(detail.stop)}, '
-              '${PositionStrings.of(context).entry} ${formatDecimal(detail.entry)}, '
-              '${PositionStrings.of(context).target} ${formatDecimal(detail.target)}, '
-              '${current == null ? PositionStrings.of(context).priceMissing : '${PositionStrings.of(context).now} ${formatDecimal(price!)}'}',
+              '${PositionStrings.of(context).stop} ${NumberFormatter.of(context).decimal(detail.stop)}, '
+              '${PositionStrings.of(context).entry} ${NumberFormatter.of(context).decimal(detail.entry)}, '
+              '${PositionStrings.of(context).target} ${NumberFormatter.of(context).decimal(detail.target)}, '
+              '${current == null ? PositionStrings.of(context).priceMissing : '${PositionStrings.of(context).now} ${NumberFormatter.of(context).decimal(price!)}'}',
           child: ExcludeSemantics(
             child: Column(
               children: [

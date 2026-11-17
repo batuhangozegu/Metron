@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/number_formatter.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
 import '../../l10n/app_strings.dart';
@@ -9,7 +10,6 @@ import '../../router.dart';
 import '../../theme/metron_colors.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/widgets.dart';
-import 'position_format.dart';
 import 'position_strings.dart';
 import 'price_ruler.dart';
 
@@ -82,7 +82,6 @@ class PositionScreen extends ConsumerWidget {
                         ),
                         PnlText(
                           double.parse(position.unrealizedPnl),
-                          format: (v) => formatDecimal(v.toStringAsFixed(2)),
                           style: MetronType.figureLarge.copyWith(
                             fontSize: 40,
                             height: 46 / 40,
@@ -109,7 +108,10 @@ class PositionScreen extends ConsumerWidget {
                               style: TextStyle(color: context.colors.muted),
                             ),
                             Num(
-                              price == null ? '—' : formatDecimal(price.price),
+                              price == null
+                                  ? '—'
+                                  : NumberFormatter.of(context)
+                                        .decimal(price.price),
                               style: TextStyle(color: context.colors.muted),
                             ),
                           ],
@@ -150,7 +152,7 @@ class PositionScreen extends ConsumerWidget {
                                 ),
                                 if (detail.stopOnExchange)
                                   Num(
-                                    '${position.distanceToStopPercent.toStringAsFixed(2)}% ${PositionStrings.of(context).away}',
+                                    '${NumberFormatter.of(context).percent(position.distanceToStopPercent)} ${PositionStrings.of(context).away}',
                                   ),
                               ],
                             ),
@@ -164,19 +166,19 @@ class PositionScreen extends ConsumerWidget {
                           children: [
                             _DetailRow(
                               PositionStrings.of(context).quantity,
-                              '${detail.quantity} ${position.pair.split('/').first}',
+                              '${NumberFormatter.of(context).decimal(detail.quantity)} ${position.pair.split('/').first}',
                             ),
                             _DetailRow(
                               PositionStrings.of(context).valueNow,
-                              '${formatDecimal(detail.valueNow)} ${position.pair.split('/').last}',
+                              '${NumberFormatter.of(context).decimal(detail.valueNow)} ${position.pair.split('/').last}',
                             ),
                             _DetailRow(
                               PositionStrings.of(context).moneyAtRisk,
-                              '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
+                              '${NumberFormatter.of(context).decimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
                             ),
                             _DetailRow(
                               PositionStrings.of(context).share,
-                              '${detail.shareOfAccountPercent.toStringAsFixed(2)}%${maxShare == null ? '' : ' of ${formatDecimal(maxShare.toString())}%'}',
+                              '${NumberFormatter.of(context).percent(detail.shareOfAccountPercent)}${maxShare == null ? '' : ' ${AppStrings.of(context).outOf} ${NumberFormatter.of(context).unit(NumberFormatter.of(context).decimal(maxShare.toString(), trimZero: true), '%')}'}',
                             ),
                             _DetailRow(
                               PositionStrings.of(context).opened,
@@ -202,7 +204,7 @@ class PositionScreen extends ConsumerWidget {
                           children: [
                             _DetailRow(
                               PositionStrings.of(context).moneyAtRisk,
-                              '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
+                              '${NumberFormatter.of(context).decimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
                             ),
                             Text(PositionStrings.of(context).detailsMissing),
                           ],

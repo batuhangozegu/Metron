@@ -22,7 +22,7 @@ export function AppShell({ children, locale = "en" }: AppShellProps) {
       <Navigation />
       <div className="flex flex-wrap items-center gap-4">
         <span className="rounded-tag border border-line px-2 py-1 text-xs font-medium tracking-[0.06em] text-muted uppercase">{t("account.paper")}</span>
-        <span className="num text-sm">{formatAmount(account.equity)} <span className="text-subtle">{t("account.currency")}</span></span>
+        <span className="num text-sm">{formatAmount(account.equity, 2, locale)} <span className="text-subtle">{t("account.currency")}</span></span>
         <Link href="/check" className="inline-flex min-h-control items-center rounded-control bg-text px-[18px] py-3 text-sm leading-5 font-semibold text-inverse">{t("order.new")}</Link>
         <LanguageSwitch />
         <ThemeToggle />

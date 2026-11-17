@@ -1,4 +1,6 @@
 /** Decimal strings (optionally grouped) and bigint preserve money without Number conversion. */
+import type { Locale } from "./messages";
+
 export type Decimal = string | bigint;
 
 function parts(value: Decimal) {
@@ -36,24 +38,31 @@ export function decimalSum(left: Decimal, right: Decimal): string {
 }
 
 /** Format a decimal with exact half-up rounding, grouping, and a real minus sign. */
-export function formatAmount(value: Decimal, decimals = 2): string {
+export function formatAmount(value: Decimal, decimals = 2, locale: Locale = "en"): string {
   if (!Number.isInteger(decimals) || decimals < 0 || decimals > 100) throw new RangeError("Invalid decimal places");
   const { negative, whole, fraction } = parts(value);
   let digits = BigInt(whole + fraction.padEnd(decimals, "0").slice(0, decimals));
   if ((fraction[decimals] ?? "0") >= "5") digits += BigInt(1);
   const result = String(digits).padStart(decimals + 1, "0");
-  const integer = (decimals ? result.slice(0, -decimals) : result).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `${negative && digits !== BigInt(0) ? "−" : ""}${integer}${decimals ? `.${result.slice(-decimals)}` : ""}`;
+  const integer = (decimals ? result.slice(0, -decimals) : result).replace(/\B(?=(\d{3})+(?!\d))/g, locale === "tr" ? "." : ",");
+  return `${negative && digits !== BigInt(0) ? "−" : ""}${integer}${decimals ? `${locale === "tr" ? "," : "."}${result.slice(-decimals)}` : ""}`;
 }
 
 /** Input is percentage points: "2.75" becomes "2.75%", never a fraction. */
-export function formatPercent(value: Decimal, decimals = 2): string {
-  return `${formatAmount(value, decimals)}%`;
+export function formatPercent(value: Decimal, decimals = 2, locale: Locale = "en"): string {
+  const amount = formatAmount(value, decimals, locale);
+  return locale === "tr" ? amount.startsWith("−") ? `−%${amount.slice(1)}` : `%${amount}` : `${amount}%`;
 }
 
 /** Preserve the source price precision unless a fixed precision is supplied. */
-export function formatPrice(value: Decimal, decimals?: number): string {
-  return formatAmount(value, decimals ?? parts(value).fraction.length);
+export function formatPrice(value: Decimal, decimals?: number, locale: Locale = "en"): string {
+  return formatAmount(value, decimals ?? parts(value).fraction.length, locale);
+}
+
+/** Keep editable decimal drafts and their precision when the interface language changes. */
+export function reformatInput(value: string, from: Locale, to: Locale): string {
+  const canonical = from === "tr" ? value.replaceAll(".", "").replace(",", ".") : value.replaceAll(",", "");
+  return /^[+−-]?\d+(?:\.\d+)?$/.test(canonical) ? formatPrice(canonical, undefined, to) : value;
 }
 
 /** Exact decimal multiplication for display labels; geometry may still use number ratios. */

@@ -1,5 +1,6 @@
 import type { CoinClass } from "@/components/metron/class-tag";
 import { compareDecimals, decimalProduct, formatAmount } from "@/lib/format";
+import type { Locale } from "@/lib/messages";
 
 export interface Market {
   symbol: string;
@@ -43,9 +44,9 @@ export async function fetchMarkets(): Promise<Market[] | null> {
 }
 
 /** Compact decimal strings exactly; money never passes through a JS Number. */
-export function formatVolume(value: string): string {
-  if (compareDecimals(value, "1000000000") >= 0) return `${formatAmount(decimalProduct(value, "0.000000001"), 1).replace(/\.0$/, "")}B`;
-  if (compareDecimals(value, "1000000") >= 0) return `${formatAmount(decimalProduct(value, "0.000001"), 0)}M`;
-  if (compareDecimals(value, "1000") >= 0) return `${formatAmount(decimalProduct(value, "0.001"), 1).replace(/\.0$/, "")}K`;
-  return formatAmount(value, 0);
+export function formatVolume(value: string, locale: Locale = "en"): string {
+  if (compareDecimals(value, "1000000000") >= 0) return `${formatAmount(decimalProduct(value, "0.000000001"), 1, locale).replace(/[.,]0$/, "")}B`;
+  if (compareDecimals(value, "1000000") >= 0) return `${formatAmount(decimalProduct(value, "0.000001"), 0, locale)}M`;
+  if (compareDecimals(value, "1000") >= 0) return `${formatAmount(decimalProduct(value, "0.001"), 1, locale).replace(/[.,]0$/, "")}K`;
+  return formatAmount(value, 0, locale);
 }
