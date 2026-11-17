@@ -39,9 +39,9 @@ class _SignInScreenState extends State<SignInScreen> {
       if (!_codeStep) {
         if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
             .hasMatch(_email.text.trim())) {
-          _error = SignInStrings.emailError;
+          _error = SignInStrings.of(context).emailError;
         } else if (_password.text.isEmpty) {
-          _error = SignInStrings.passwordError;
+          _error = SignInStrings.of(context).passwordError;
         } else {
           _error = null;
           _password.clear();
@@ -51,8 +51,8 @@ class _SignInScreenState extends State<SignInScreen> {
           ? _code.text.trim().isEmpty
           : !RegExp(r'^\d{6}$').hasMatch(_code.text)) {
         _error = _recovery
-            ? SignInStrings.recoveryError
-            : SignInStrings.codeError;
+            ? SignInStrings.of(context).recoveryError
+            : SignInStrings.of(context).codeError;
       } else {
         _error = null;
         _verified = true;
@@ -104,7 +104,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    AppStrings.appName,
+                    AppStrings.of(context).appName,
                     style: MetronType.title.copyWith(
                       color: colors.text,
                       letterSpacing: -.56,
@@ -112,14 +112,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    SignInStrings.tagline,
+                    SignInStrings.of(context).tagline,
                     style: MetronType.body.copyWith(color: colors.muted),
                   ),
                   const SizedBox(height: 40),
                   Semantics(
                     label: _codeStep
-                        ? SignInStrings.twoFactor
-                        : AppStrings.signIn,
+                        ? SignInStrings.of(context).twoFactor
+                        : AppStrings.of(context).signIn,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: _codeStep
@@ -139,7 +139,7 @@ class _SignInScreenState extends State<SignInScreen> {
   List<Widget> _signInForm(BuildContext context) => [
     _field(
       context,
-      label: SignInStrings.email,
+      label: SignInStrings.of(context).email,
       controller: _email,
       keyboard: TextInputType.emailAddress,
       autofill: const [AutofillHints.email],
@@ -148,26 +148,26 @@ class _SignInScreenState extends State<SignInScreen> {
     const SizedBox(height: 16),
     _field(
       context,
-      label: SignInStrings.password,
+      label: SignInStrings.of(context).password,
       controller: _password,
       obscure: true,
       autofill: const [AutofillHints.password],
     ),
     ..._feedback(context),
     const SizedBox(height: 24),
-    PrimaryButton(label: AppStrings.signIn, onPressed: _submit),
+    PrimaryButton(label: AppStrings.of(context).signIn, onPressed: _submit),
     const SizedBox(height: 16),
     SecondaryButton(
-      label: SignInStrings.createAccount,
+      label: SignInStrings.of(context).createAccount,
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(SignInStrings.accountUnavailable)),
+          SnackBar(content: Text(SignInStrings.of(context).accountUnavailable)),
         );
       },
     ),
     const SizedBox(height: 16),
     Text(
-      SignInStrings.paperNotice,
+      SignInStrings.of(context).paperNotice,
       textAlign: TextAlign.center,
       style: MetronType.small.copyWith(color: context.colors.subtle),
     ),
@@ -175,7 +175,9 @@ class _SignInScreenState extends State<SignInScreen> {
 
   List<Widget> _codeForm(BuildContext context) => [
     Text(
-      _recovery ? SignInStrings.recovery : SignInStrings.twoFactor,
+      _recovery
+          ? SignInStrings.of(context).recovery
+          : SignInStrings.of(context).twoFactor,
       style: MetronType.heading.copyWith(
         fontSize: 20,
         height: 26 / 20,
@@ -184,7 +186,9 @@ class _SignInScreenState extends State<SignInScreen> {
     ),
     const SizedBox(height: 6),
     Text(
-      _recovery ? SignInStrings.recoveryHelp : SignInStrings.codeHelp,
+      _recovery
+          ? SignInStrings.of(context).recoveryHelp
+          : SignInStrings.of(context).codeHelp,
       style: MetronType.body.copyWith(
         fontSize: 14,
         height: 20 / 14,
@@ -194,7 +198,9 @@ class _SignInScreenState extends State<SignInScreen> {
     const SizedBox(height: 16),
     _field(
       context,
-      label: _recovery ? SignInStrings.recovery : SignInStrings.code,
+      label: _recovery
+          ? SignInStrings.of(context).recovery
+          : SignInStrings.of(context).code,
       controller: _code,
       numeric: !_recovery,
       keyboard: _recovery ? TextInputType.text : TextInputType.number,
@@ -202,7 +208,7 @@ class _SignInScreenState extends State<SignInScreen> {
     ),
     ..._feedback(context),
     const SizedBox(height: 24),
-    PrimaryButton(label: SignInStrings.verify, onPressed: _submit),
+    PrimaryButton(label: SignInStrings.of(context).verify, onPressed: _submit),
     const SizedBox(height: 16),
     SizedBox(
       height: MetronSize.control,
@@ -225,8 +231,8 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         child: Text(
           _recovery
-              ? SignInStrings.useAuthenticator
-              : SignInStrings.useRecovery,
+              ? SignInStrings.of(context).useAuthenticator
+              : SignInStrings.of(context).useRecovery,
         ),
       ),
     ),
@@ -238,7 +244,7 @@ class _SignInScreenState extends State<SignInScreen> {
       Semantics(
         liveRegion: true,
         child: Text(
-          _error ?? SignInStrings.verified,
+          _error ?? SignInStrings.of(context).verified,
           style: MetronType.small.copyWith(color: context.colors.muted),
         ),
       ),

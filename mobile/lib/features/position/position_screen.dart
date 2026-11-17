@@ -32,7 +32,7 @@ class PositionScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: AppStrings.back,
+          tooltip: AppStrings.of(context).back,
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               context.pop();
@@ -43,7 +43,7 @@ class PositionScreen extends ConsumerWidget {
           icon: const Icon(Icons.chevron_left, size: 22),
         ),
         titleSpacing: 0,
-        title: Text(position?.pair ?? AppStrings.position),
+        title: Text(position?.pair ?? AppStrings.of(context).position),
         actions: [
           if (position != null)
             Container(
@@ -54,7 +54,7 @@ class PositionScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(MetronRadius.tag),
               ),
               child: Text(
-                PositionStrings.coinClass(position.coinClass),
+                PositionStrings.of(context).coinClass(position.coinClass),
                 style: TextStyle(fontSize: 12, color: context.colors.muted),
               ),
             ),
@@ -64,7 +64,7 @@ class PositionScreen extends ConsumerWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
           child: position == null
-              ? const Text(PositionStrings.notFound)
+              ? Text(PositionStrings.of(context).notFound)
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: 14,
@@ -74,7 +74,7 @@ class PositionScreen extends ConsumerWidget {
                       spacing: 4,
                       children: [
                         Text(
-                          PositionStrings.unrealized,
+                          PositionStrings.of(context).unrealized,
                           style: TextStyle(
                             fontSize: 12,
                             color: context.colors.subtle,
@@ -105,7 +105,7 @@ class PositionScreen extends ConsumerWidget {
                               const Text('·'),
                             ],
                             Text(
-                              PositionStrings.price,
+                              PositionStrings.of(context).price,
                               style: TextStyle(color: context.colors.muted),
                             ),
                             Num(
@@ -140,8 +140,9 @@ class PositionScreen extends ConsumerWidget {
                                 ),
                                 Text(
                                   detail.stopOnExchange
-                                      ? PositionStrings.stopOnExchange
-                                      : PositionStrings.stopMissing,
+                                      ? PositionStrings.of(context)
+                                            .stopOnExchange
+                                      : PositionStrings.of(context).stopMissing,
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: context.colors.muted,
@@ -149,7 +150,7 @@ class PositionScreen extends ConsumerWidget {
                                 ),
                                 if (detail.stopOnExchange)
                                   Num(
-                                    '${position.distanceToStopPercent.toStringAsFixed(2)}% ${PositionStrings.away}',
+                                    '${position.distanceToStopPercent.toStringAsFixed(2)}% ${PositionStrings.of(context).away}',
                                   ),
                               ],
                             ),
@@ -162,30 +163,31 @@ class PositionScreen extends ConsumerWidget {
                           spacing: 12,
                           children: [
                             _DetailRow(
-                              PositionStrings.quantity,
+                              PositionStrings.of(context).quantity,
                               '${detail.quantity} ${position.pair.split('/').first}',
                             ),
                             _DetailRow(
-                              PositionStrings.valueNow,
+                              PositionStrings.of(context).valueNow,
                               '${formatDecimal(detail.valueNow)} ${position.pair.split('/').last}',
                             ),
                             _DetailRow(
-                              PositionStrings.moneyAtRisk,
+                              PositionStrings.of(context).moneyAtRisk,
                               '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
                             ),
                             _DetailRow(
-                              PositionStrings.share,
+                              PositionStrings.of(context).share,
                               '${detail.shareOfAccountPercent.toStringAsFixed(2)}%${maxShare == null ? '' : ' of ${formatDecimal(maxShare.toString())}%'}',
                             ),
                             _DetailRow(
-                              PositionStrings.opened,
-                              PositionStrings.openedAt(detail.openedAt),
+                              PositionStrings.of(context).opened,
+                              PositionStrings.of(context)
+                                  .openedAt(detail.openedAt),
                             ),
                           ],
                         ),
                       ),
                       Text(
-                        PositionStrings.stopRule,
+                        PositionStrings.of(context).stopRule,
                         style: TextStyle(
                           fontSize: 12,
                           height: 17 / 12,
@@ -199,10 +201,10 @@ class PositionScreen extends ConsumerWidget {
                           spacing: 12,
                           children: [
                             _DetailRow(
-                              PositionStrings.moneyAtRisk,
+                              PositionStrings.of(context).moneyAtRisk,
                               '${formatDecimal(position.moneyAtRisk)} ${position.pair.split('/').last}',
                             ),
-                            const Text(PositionStrings.detailsMissing),
+                            Text(PositionStrings.of(context).detailsMissing),
                           ],
                         ),
                       ),
@@ -226,16 +228,20 @@ class PositionScreen extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: SecondaryButton(
-                          label: PositionStrings.tighten,
-                          onPressed: () =>
-                              _showAction(context, PositionStrings.tighten),
+                          label: PositionStrings.of(context).tighten,
+                          onPressed: () => _showAction(
+                            context,
+                            PositionStrings.of(context).tighten,
+                          ),
                         ),
                       ),
                       Expanded(
                         child: PrimaryButton(
-                          label: PositionStrings.close,
-                          onPressed: () =>
-                              _showAction(context, PositionStrings.close),
+                          label: PositionStrings.of(context).close,
+                          onPressed: () => _showAction(
+                            context,
+                            PositionStrings.of(context).close,
+                          ),
                         ),
                       ),
                     ],
@@ -253,13 +259,13 @@ class PositionScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(
-          title == PositionStrings.tighten
-              ? '${PositionStrings.stopRule}\n\n${PositionStrings.previewOnly}'
-              : PositionStrings.previewOnly,
+          title == PositionStrings.of(context).tighten
+              ? '${PositionStrings.of(context).stopRule}\n\n${PositionStrings.of(context).previewOnly}'
+              : PositionStrings.of(context).previewOnly,
         ),
         actions: [
           SecondaryButton(
-            label: PositionStrings.dismiss,
+            label: PositionStrings.of(context).dismiss,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

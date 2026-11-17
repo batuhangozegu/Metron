@@ -94,7 +94,7 @@ void main() {
     expect(find.byType(PnlText), findsNWidgets(2));
     await tester.enterText(find.byType(TextField), '  sol  ');
     await tester.pumpAndSettle();
-    expect(find.text(MarketsStrings.noResults), findsOneWidget);
+    expect(find.text(const EnglishMarketsStrings().noResults), findsOneWidget);
     await tester.tap(filter('Large-cap'));
     await tester.pumpAndSettle();
     expect(find.text('SOL/USDT'), findsOneWidget);
@@ -136,7 +136,7 @@ void main() {
 
   testWidgets('Empty provider shows useful empty state', (tester) async {
     await boot(tester, empty: true);
-    expect(find.text(MarketsStrings.noResults), findsOneWidget);
+    expect(find.text(const EnglishMarketsStrings().noResults), findsOneWidget);
     expect(find.byType(PnlText), findsNothing);
     expect(tester.takeException(), isNull);
   });

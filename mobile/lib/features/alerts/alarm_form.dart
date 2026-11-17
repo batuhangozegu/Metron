@@ -45,7 +45,7 @@ class _AlarmFormState extends State<AlarmForm> {
       borderRadius: BorderRadius.circular(MetronRadius.card),
       side: BorderSide(color: context.colors.line),
     ),
-    title: const Text(AlertsStrings.addAlarm),
+    title: Text(AlertsStrings.of(context).addAlarm),
     content: SingleChildScrollView(
       child: Form(
         key: _form,
@@ -54,18 +54,18 @@ class _AlarmFormState extends State<AlarmForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              AlertsStrings.sampleOnly,
+              AlertsStrings.of(context).sampleOnly,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
             if (widget.prices.isEmpty)
-              const Text(AlertsStrings.noPrices)
+              Text(AlertsStrings.of(context).noPrices)
             else
               DropdownButtonFormField<String>(
                 initialValue: _pair,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: AlertsStrings.pair,
+                decoration: InputDecoration(
+                  labelText: AlertsStrings.of(context).pair,
                 ),
                 items: [
                   for (final price in widget.prices)
@@ -80,14 +80,14 @@ class _AlarmFormState extends State<AlarmForm> {
             DropdownButtonFormField<AlarmDirection>(
               initialValue: _direction,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: AlertsStrings.condition,
+              decoration: InputDecoration(
+                labelText: AlertsStrings.of(context).condition,
               ),
               items: [
                 for (final direction in AlarmDirection.values)
                   DropdownMenuItem(
                     value: direction,
-                    child: Text(AlertsStrings.direction(direction)),
+                    child: Text(AlertsStrings.of(context).direction(direction)),
                   ),
               ],
               onChanged: (value) => setState(() => _direction = value!),
@@ -99,8 +99,8 @@ class _AlarmFormState extends State<AlarmForm> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
-                labelText: AlertsStrings.targetPrice,
+              decoration: InputDecoration(
+                labelText: AlertsStrings.of(context).targetPrice,
               ),
               validator: (value) {
                 final text = value?.trim() ?? '';
@@ -110,7 +110,7 @@ class _AlarmFormState extends State<AlarmForm> {
                         number.isFinite &&
                         number > 0
                     ? null
-                    : AlertsStrings.invalidPrice;
+                    : AlertsStrings.of(context).invalidPrice;
               },
             ),
           ],
@@ -119,11 +119,11 @@ class _AlarmFormState extends State<AlarmForm> {
     ),
     actions: [
       SecondaryButton(
-        label: AlertsStrings.cancel,
+        label: AlertsStrings.of(context).cancel,
         onPressed: () => Navigator.of(context).pop(),
       ),
       PrimaryButton(
-        label: AlertsStrings.addAlarm,
+        label: AlertsStrings.of(context).addAlarm,
         onPressed: _pair == null ? null : _save,
       ),
     ],

@@ -1,3 +1,4 @@
+import { getLocale } from "@/lib/locale-server";
 import { CircleCheck, TriangleAlert } from "lucide-react";
 import { Card, ClassTag, Measure, PnL, RiskBadge, Stat, riskState } from "@/components/metron";
 import { formatAmount, formatPercent, formatPrice } from "@/lib/format";
@@ -5,12 +6,13 @@ import { getMessages } from "@/lib/messages";
 import { account, gauges, limits, openPositions } from "@/lib/sample-data";
 import { NumberText } from "./_components/number-text";
 
-const t = getMessages("overview");
 const gaugeKeys = ["open", "daily", "weekly"] as const;
 const columns = ["pair", "entry", "price", "stop", "toStop", "atRisk", "unrealized"] as const;
 const checks = ["run", "placed", "blocked", "abandoned"] as const;
 
-export default function Page() {
+export default async function Page() {
+  const locale = await getLocale();
+  const t = getMessages("overview", locale);
   const cooldown = account.cooldown;
   return <>
     <section aria-labelledby="overview-title" className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
@@ -23,8 +25,8 @@ export default function Page() {
         <p className="max-w-[640px] text-body text-muted"><NumberText text={t("summary", { amount: formatAmount(account.totalOpenRisk), currency: account.currency, percent: gauges[0].value })} /></p>
       </div>
       <div className="flex flex-wrap gap-8 [&_.text-figure-medium]:text-xl [&_.text-small]:text-xs">
-        <Stat label={t("realized")} figure={<PnL value={account.realizedToday} />} />
-        <Stat label={t("unrealized")} figure={<PnL value={account.unrealized} />} />
+        <Stat label={t("realized")} figure={<PnL locale={locale} value={account.realizedToday} />} />
+        <Stat label={t("unrealized")} figure={<PnL locale={locale} value={account.unrealized} />} />
         <Stat label={t("positions")} figure={<>{formatAmount(String(account.openPositions), 0)} <span className="text-subtle"><NumberText text={t("of", { limit: formatAmount(String(limits.maxPositions), 0) })} /></span></>} />
       </div>
     </section>
@@ -33,12 +35,12 @@ export default function Page() {
         const value = parseFloat(gauge.value), limit = parseFloat(gauge.limit);
         const label = t(`gauge.${gaugeKeys[index]}.label`);
         return <Card key={gaugeKeys[index]} className="flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-card">
-          <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-muted">{label}</h2><RiskBadge state={riskState(value, limit, limits.cautionAt)} /></div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-muted">{label}</h2><RiskBadge locale={locale} state={riskState(value, limit, limits.cautionAt)} /></div>
           <div className="flex flex-wrap items-baseline gap-2.5">
             <span className="num text-figure-large">{formatPercent(gauge.value.replace("%", ""))}</span>
             <span className="text-body text-subtle"><NumberText text={t("of", { limit: formatPercent(gauge.limit.replace("%", "")) })} /></span>
           </div>
-          <Measure value={value} limit={limit} cautionAt={limits.cautionAt} label={label} formatValue={(amount) => amount === "0" ? formatAmount(amount, 0) : formatPercent(amount)} />
+          <Measure locale={locale} value={value} limit={limit} cautionAt={limits.cautionAt} label={label} formatValue={(amount) => amount === "0" ? formatAmount(amount, 0) : formatPercent(amount)} />
           <p className="text-small leading-5 text-muted"><span className="num text-text">{gauge.amount}</span> {t(`gauge.${gaugeKeys[index]}.note`)}</p>
         </Card>;
       })}
@@ -52,13 +54,13 @@ export default function Page() {
             <tbody>{openPositions.map((position) => <tr key={position.pair} className="[&>td]:border-t [&>td]:border-line [&>td]:px-3 [&>td]:py-3.5">
               <th scope="row" className="border-t border-line px-6 py-3.5 text-left font-normal"><div className="flex flex-col gap-0.5">
                 <span className="font-semibold">{position.pair}</span>
-                <div className="flex items-center gap-1 text-xs text-subtle"><ClassTag coinClass={position.coinClass} className="rounded-none border-0 p-0 text-subtle" /><span aria-hidden="true">{t("separator")}</span><span className="num whitespace-nowrap">{position.qty}</span></div>
+                <div className="flex items-center gap-1 text-xs text-subtle"><ClassTag locale={locale} coinClass={position.coinClass} className="rounded-none border-0 p-0 text-subtle" /><span aria-hidden="true">{t("separator")}</span><span className="num whitespace-nowrap">{position.qty}</span></div>
               </div></th>
               <td className="num text-muted">{formatPrice(position.entry)}</td><td className="num">{formatPrice(position.price)}</td><td className="num text-muted">{formatPrice(position.stop)}</td>
               <td className="text-left"><div className="flex items-center gap-2.5"><div aria-hidden="true" className="relative h-1.5 w-[72px] shrink-0 rounded-[2px] bg-raised"><span className="absolute inset-y-0 left-0 rounded-[2px] bg-safe" style={{ width: position.stopFill }} /></div><span className="num text-small">{formatPercent(position.toStop.replace("%", ""))}</span></div></td>
-              <td className="num">{formatAmount(position.risk)}</td><td className="num !pr-6"><PnL value={position.plAmount} /></td>
+              <td className="num">{formatAmount(position.risk)}</td><td className="num !pr-6"><PnL locale={locale} value={position.plAmount} /></td>
             </tr>)}</tbody>
-            <tfoot><tr className="font-medium [&>*]:border-t [&>*]:border-line"><th scope="row" colSpan={5} className="px-6 py-3.5 text-left font-medium text-muted">{t("totalRisk")}</th><td className="num px-3 py-3.5">{formatAmount(account.totalOpenRisk)}</td><td className="num py-3.5 pr-6 pl-3"><PnL value={account.unrealized} /></td></tr></tfoot>
+            <tfoot><tr className="font-medium [&>*]:border-t [&>*]:border-line"><th scope="row" colSpan={5} className="px-6 py-3.5 text-left font-medium text-muted">{t("totalRisk")}</th><td className="num px-3 py-3.5">{formatAmount(account.totalOpenRisk)}</td><td className="num py-3.5 pr-6 pl-3"><PnL locale={locale} value={account.unrealized} /></td></tr></tfoot>
           </table>
         </div>
         <p className="border-t border-line px-6 py-3.5 text-small text-subtle">{t("stopsNote")}</p>

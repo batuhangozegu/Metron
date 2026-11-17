@@ -33,8 +33,8 @@ class Measure extends StatelessWidget {
     return Semantics(
       label: [
         ?label,
-        '$valueText ${AppStrings.of} $limitText',
-        level.label,
+        '$valueText ${AppStrings.of(context).outOf} $limitText',
+        level.label(context),
       ].join(', '),
       excludeSemantics: true,
       child: Column(
@@ -58,7 +58,7 @@ class Measure extends StatelessWidget {
             spacing: MetronSpace.sm,
             children: [
               Num(valueText),
-              Text(AppStrings.of),
+              Text(AppStrings.of(context).outOf),
               Num(limitText, style: TextStyle(color: colors.subtle)),
             ],
           ),

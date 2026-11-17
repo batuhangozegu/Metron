@@ -10,19 +10,25 @@ class SectionHeader extends StatelessWidget {
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: Text(
-          title.toUpperCase(),
-          style: Theme.of(context).textTheme.labelSmall!
-              .copyWith(color: context.colors.subtle),
+  Widget build(BuildContext context) {
+    // Dart's Unicode casing is locale-independent; Turkish distinguishes i/ı.
+    final uppercase = Localizations.localeOf(context).languageCode == 'tr'
+        ? title.replaceAll('i', 'İ').replaceAll('ı', 'I').toUpperCase()
+        : title.toUpperCase();
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            uppercase,
+            style: Theme.of(context).textTheme.labelSmall!
+                .copyWith(color: context.colors.subtle),
+          ),
         ),
-      ),
-      if (trailing != null) ...[
-        const SizedBox(width: MetronSpace.sm),
-        trailing!,
+        if (trailing != null) ...[
+          const SizedBox(width: MetronSpace.sm),
+          trailing!,
+        ],
       ],
-    ],
-  );
+    );
+  }
 }

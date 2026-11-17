@@ -27,7 +27,7 @@ class ProjectedLimit extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  check.name,
+                  CheckStrings.of(context).limitName(check),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -43,8 +43,8 @@ class ProjectedLimit extends StatelessWidget {
                     const SizedBox(width: 5),
                     Text(
                       check.brokenRule
-                          ? CheckStrings.broken
-                          : CheckStrings.exceeded,
+                          ? CheckStrings.of(context).broken
+                          : CheckStrings.of(context).exceeded,
                       style: TextStyle(fontSize: 12, color: color),
                     ),
                   ],
@@ -64,7 +64,10 @@ class ProjectedLimit extends StatelessWidget {
               ),
             ),
           ),
-          Num(check.valueLabel, style: TextStyle(fontSize: 12, color: c.muted)),
+          Num(
+            CheckStrings.of(context).limitValue(check.valueLabel),
+            style: TextStyle(fontSize: 12, color: c.muted),
+          ),
         ],
       ),
     );

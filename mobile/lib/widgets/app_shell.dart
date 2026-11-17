@@ -19,7 +19,7 @@ class AppShell extends StatelessWidget {
       children: [
         if (shell.currentIndex == 0)
           FixedMainAction(
-            label: AppStrings.checkNewOrder,
+            label: AppStrings.of(context).checkNewOrder,
             onPressed: () => context.pushNamed(AppRoutes.check),
           ),
         DecoratedBox(
@@ -35,22 +35,22 @@ class AppShell extends StatelessWidget {
               index,
               initialLocation: index == shell.currentIndex,
             ),
-            items: const [
+            items: [
               BottomNavigationBarItem(
                 icon: Icon(Icons.speed_outlined),
-                label: AppStrings.risk,
+                label: AppStrings.of(context).risk,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.format_list_bulleted),
-                label: AppStrings.markets,
+                label: AppStrings.of(context).markets,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.notifications_none),
-                label: AppStrings.alerts,
+                label: AppStrings.of(context).alerts,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.tune),
-                label: AppStrings.rules,
+                label: AppStrings.of(context).rules,
               ),
             ],
           ),

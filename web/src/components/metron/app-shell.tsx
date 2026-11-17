@@ -1,16 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { getMessages } from "@/lib/messages";
+import { getMessages, type Locale } from "@/lib/messages";
 import { formatAmount } from "@/lib/format";
 import { account } from "@/lib/sample-data";
 import { Navigation } from "./navigation";
+import { LanguageSwitch } from "./language-switch";
 import { ThemeToggle } from "./theme-toggle";
 
-export interface AppShellProps { children: ReactNode }
+export interface AppShellProps { locale?: Locale; children: ReactNode }
 
 /** Shared wrapping header and constrained page canvas; rendered once by the root layout. */
-export function AppShell({ children }: AppShellProps) {
-  const t = getMessages("common");
+export function AppShell({ children, locale = "en" }: AppShellProps) {
+  const t = getMessages("common", locale);
   return <>
     <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-control focus:bg-text focus:p-3 focus:text-inverse">{t("skip")}</a>
     <header className="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-line bg-surface px-page py-2.5">
@@ -23,6 +24,7 @@ export function AppShell({ children }: AppShellProps) {
         <span className="rounded-tag border border-line px-2 py-1 text-xs font-medium tracking-[0.06em] text-muted uppercase">{t("account.paper")}</span>
         <span className="num text-sm">{formatAmount(account.equity)} <span className="text-subtle">{t("account.currency")}</span></span>
         <Link href="/check" className="inline-flex min-h-control items-center rounded-control bg-text px-[18px] py-3 text-sm leading-5 font-semibold text-inverse">{t("order.new")}</Link>
+        <LanguageSwitch />
         <ThemeToggle />
       </div>
     </header>

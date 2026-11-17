@@ -40,7 +40,7 @@ GoRouter createRouter({String initialLocation = '/'}) {
     navigatorKey: root,
     initialLocation: initialLocation,
     errorBuilder: (context, state) =>
-        const FeaturePlaceholder(title: AppStrings.notFound),
+        FeaturePlaceholder(title: AppStrings.of(context).notFound),
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),

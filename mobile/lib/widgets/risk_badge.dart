@@ -7,10 +7,10 @@ import '../theme/metron_colors.dart';
 import '../theme/tokens.dart';
 
 extension RiskLevelPresentation on RiskLevel {
-  String get label => switch (this) {
-    RiskLevel.safe => AppStrings.safe,
-    RiskLevel.caution => AppStrings.caution,
-    RiskLevel.limit => AppStrings.limit,
+  String label(BuildContext context) => switch (this) {
+    RiskLevel.safe => AppStrings.of(context).safe,
+    RiskLevel.caution => AppStrings.of(context).caution,
+    RiskLevel.limit => AppStrings.of(context).limit,
   };
   IconData get icon => switch (this) {
     RiskLevel.safe => Icons.check_circle_outline,
@@ -38,7 +38,7 @@ class RiskBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = level.color(context.colors);
     return Semantics(
-      label: level.label,
+      label: level.label(context),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -56,7 +56,7 @@ class RiskBadge extends StatelessWidget {
             const SizedBox(width: MetronSpace.xs),
             Flexible(
               child: Text(
-                level.label,
+                level.label(context),
                 style: GoogleFonts.inter(
                   textStyle: Theme.of(context).textTheme.bodySmall,
                   color: color,

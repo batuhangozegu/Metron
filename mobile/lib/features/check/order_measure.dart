@@ -71,7 +71,7 @@ class OrderMeasure extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               price(
-                CheckStrings.stop,
+                CheckStrings.of(context).stop,
                 preview.stop,
                 PnlText(
                   (stop / entry - 1) * 100,
@@ -83,17 +83,17 @@ class OrderMeasure extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               price(
-                CheckStrings.entry,
+                CheckStrings.of(context).entry,
                 preview.entry,
                 Text(
-                  CheckStrings.limit,
+                  CheckStrings.of(context).limit,
                   style: TextStyle(fontSize: 12, color: c.muted),
                 ),
                 c.subtle,
               ),
               const SizedBox(width: 8),
               price(
-                CheckStrings.target,
+                CheckStrings.of(context).target,
                 preview.target,
                 PnlText(
                   (target / entry - 1) * 100,
@@ -149,7 +149,7 @@ class OrderMeasure extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               detail(
-                CheckStrings.stopResult,
+                CheckStrings.of(context).stopResult,
                 PnlText(
                   double.parse(preview.lossAtStop),
                   style: const TextStyle(fontSize: 16),
@@ -157,7 +157,7 @@ class OrderMeasure extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               detail(
-                CheckStrings.targetResult,
+                CheckStrings.of(context).targetResult,
                 PnlText(
                   double.parse(preview.profitAtTarget),
                   style: const TextStyle(fontSize: 16),
@@ -169,7 +169,7 @@ class OrderMeasure extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               detail(
-                CheckStrings.size,
+                CheckStrings.of(context).size,
                 Wrap(
                   spacing: 4,
                   children: [
@@ -183,7 +183,7 @@ class OrderMeasure extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               detail(
-                CheckStrings.value,
+                CheckStrings.of(context).value,
                 Wrap(
                   spacing: 4,
                   children: [

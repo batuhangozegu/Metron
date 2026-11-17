@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -21,8 +22,10 @@ function subscribe(update: () => void) {
 
 /** Persistent theme control; CSS selects the correct icon even before hydration. */
 export function ThemeToggle() {
+  const locale = useLocale();
+  const t = getMessages("common", locale);
   const theme = useSyncExternalStore(subscribe, () => document.documentElement.dataset.theme ?? "dark", () => "dark");
-  const t = getMessages("common");
+
   return <button type="button" className="theme-toggle inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-line text-muted hover:bg-raised"
     aria-label={t("theme.toggle")} aria-pressed={theme === "light"}
     onClick={() => {

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import { NumberText } from "./number-text";
 
-const t = getMessages("portfolio");
-
 export function PeriodSelector({ days }: { days: number }) {
+  const locale = useLocale();
+  const t = getMessages("portfolio", locale);
   const [selected, setSelected] = useState("available");
   const options = [
     { id: "month", label: t("month") },

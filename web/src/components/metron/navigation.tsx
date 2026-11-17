@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -12,8 +13,10 @@ const routes = [
 
 /** Wrapping app navigation with an accessible active-route indicator. */
 export function Navigation() {
+  const locale = useLocale();
+  const t = getMessages("common", locale);
   const pathname = usePathname();
-  const t = getMessages("common");
+
   return <nav aria-label={t("nav.label")} className="flex flex-auto flex-wrap gap-1">
     {routes.map(([href, key]) => {
       const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));

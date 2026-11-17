@@ -40,7 +40,7 @@ class HomeScreen extends ConsumerWidget {
                   const Icon(Icons.stacked_bar_chart, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    AppStrings.appName,
+                    AppStrings.of(context).appName,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const Spacer(),
@@ -54,7 +54,7 @@ class HomeScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(MetronRadius.tag),
                     ),
                     child: Text(
-                      HomeStrings.paper,
+                      HomeStrings.of(context).paper,
                       style: TextStyle(
                         fontSize: 11,
                         color: c.muted,
@@ -71,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
                 spacing: 8,
                 children: [
                   SectionHeader(
-                    HomeStrings.riskStatus,
+                    HomeStrings.of(context).riskStatus,
                     trailing: Num(
                       '${_time(account.asOf)} UTC',
                       style: TextStyle(fontSize: 11, color: c.subtle),
@@ -81,7 +81,7 @@ class HomeScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Semantics(
-                        label: level.label,
+                        label: level.label(context),
                         child: Icon(
                           level.icon,
                           color: level.color(c),
@@ -91,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          HomeStrings.headline(level),
+                          HomeStrings.of(context).headline(level),
                           style: Theme.of(context).textTheme.headlineLarge,
                         ),
                       ),
@@ -100,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
               _RiskCard(
-                title: HomeStrings.openRisk,
+                title: HomeStrings.of(context).openRisk,
                 value: account.openRiskPercent,
                 limit: limits.openRiskPercent,
                 large: true,
@@ -112,7 +112,7 @@ class HomeScreen extends ConsumerWidget {
                       style: const TextStyle(fontSize: 13),
                     ),
                     Text(
-                      HomeStrings.stopsTrigger,
+                      HomeStrings.of(context).stopsTrigger,
                       style: TextStyle(fontSize: 13, color: c.muted),
                     ),
                   ],
@@ -123,24 +123,24 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _RiskCard(
-                      title: HomeStrings.dailyCap,
+                      title: HomeStrings.of(context).dailyCap,
                       value: account.dailyLossPercent,
                       limit: limits.dailyLossPercent,
                       footer: _Remaining(
                         account.dailyRemaining,
-                        HomeStrings.today,
+                        HomeStrings.of(context).today,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _RiskCard(
-                      title: HomeStrings.weeklyCap,
+                      title: HomeStrings.of(context).weeklyCap,
                       value: account.weeklyLossPercent,
                       limit: limits.weeklyLossPercent,
                       footer: _Remaining(
                         account.weeklyRemaining,
-                        HomeStrings.thisWeek,
+                        HomeStrings.of(context).thisWeek,
                       ),
                     ),
                   ),
@@ -156,7 +156,7 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          HomeStrings.positions,
+                          HomeStrings.of(context).positions,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
@@ -169,9 +169,9 @@ class HomeScreen extends ConsumerWidget {
                   MetronCard(
                     padding: EdgeInsets.zero,
                     child: positions.isEmpty
-                        ? const Padding(
+                        ? Padding(
                             padding: EdgeInsets.all(16),
-                            child: Text(HomeStrings.noPositions),
+                            child: Text(HomeStrings.of(context).noPositions),
                           )
                         : Column(
                             children: [
@@ -250,7 +250,7 @@ class _RiskCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${AppStrings.of} ',
+                    '${AppStrings.of(context).outOf} ',
                     style: TextStyle(
                       fontSize: large ? 14 : 12,
                       color: c.subtle,
@@ -269,7 +269,7 @@ class _RiskCard extends StatelessWidget {
           ),
           Semantics(
             label:
-                '$title, ${value.toStringAsFixed(2)}% ${AppStrings.of} $limit%, ${level.label}',
+                '$title, ${value.toStringAsFixed(2)}% ${AppStrings.of(context).outOf} $limit%, ${level.label(context)}',
             child: SizedBox(
               height: 30,
               child: CustomPaint(
@@ -328,13 +328,13 @@ class _Cooldown extends StatelessWidget {
           children: [
             const RiskBadge(RiskLevel.caution),
             Text(
-              HomeStrings.cooldown,
+              HomeStrings.of(context).cooldown,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             Text.rich(
               TextSpan(
                 children: [
-                  const TextSpan(text: HomeStrings.waitUntil),
+                  TextSpan(text: HomeStrings.of(context).waitUntil),
                   WidgetSpan(
                     alignment: PlaceholderAlignment.baseline,
                     baseline: TextBaseline.alphabetic,
@@ -352,7 +352,7 @@ class _Cooldown extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
-                  const TextSpan(text: HomeStrings.minutesFromNow),
+                  TextSpan(text: HomeStrings.of(context).minutesFromNow),
                 ],
               ),
               style: TextStyle(
@@ -399,7 +399,7 @@ class _PositionRow extends StatelessWidget {
                     spacing: 4,
                     children: [
                       Text(
-                        '${HomeStrings.coinClass(position.coinClass)} ·',
+                        '${HomeStrings.of(context).coinClass(position.coinClass)} ·',
                         style: TextStyle(
                           fontSize: 12,
                           color: context.colors.subtle,
@@ -413,7 +413,7 @@ class _PositionRow extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        HomeStrings.toStop,
+                        HomeStrings.of(context).toStop,
                         style: TextStyle(
                           fontSize: 12,
                           color: context.colors.subtle,
@@ -434,7 +434,7 @@ class _PositionRow extends StatelessWidget {
                   style: const TextStyle(fontSize: 15),
                 ),
                 Num(
-                  '${_money(position.moneyAtRisk)} ${HomeStrings.atRisk}',
+                  '${_money(position.moneyAtRisk)} ${HomeStrings.of(context).atRisk}',
                   style: TextStyle(fontSize: 12, color: context.colors.subtle),
                 ),
               ],

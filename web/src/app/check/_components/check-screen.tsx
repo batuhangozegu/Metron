@@ -4,13 +4,15 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ClassTag } from "@/components/metron";
 import { formatPercent, formatPrice } from "@/lib/format";
+import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import { account, preTradeCaution, preTradeBlocked } from "@/lib/sample-data";
 
-const t = getMessages("check");
 const control = "min-h-control w-full rounded-control border border-line bg-raised px-3 text-text";
 
 export function CheckScreen({ caution, blocked }: { caution: ReactNode; blocked: ReactNode }) {
+  const locale = useLocale();
+  const t = getMessages("check", locale);
   const [pair, setPair] = useState(preTradeCaution.pair);
   const [orderType, setOrderType] = useState<"limit" | "market">("limit");
   const [price, setPrice] = useState(formatPrice(preTradeCaution.entry));
@@ -27,7 +29,7 @@ export function CheckScreen({ caution, blocked }: { caution: ReactNode; blocked:
           <option>{preTradeCaution.pair}</option><option>{preTradeBlocked.pair}</option>
         </select>
         <div className="flex flex-wrap gap-2 text-xs text-muted">
-          <ClassTag coinClass={check.coinClass} />
+          <ClassTag locale={locale} coinClass={check.coinClass} />
           <span className="rounded-tag border border-line px-2 py-[3px]">{t("atrPrefix")} <span className="num">{formatPercent(check.atr, 1)}</span> {t("perDay")}</span>
           <span className="rounded-tag border border-line px-2 py-[3px]">{t("last")} <span className="num">{formatPrice(check.last)}</span></span>
         </div>

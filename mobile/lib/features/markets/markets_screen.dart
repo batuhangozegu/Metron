@@ -43,7 +43,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AppStrings.markets,
+                    AppStrings.of(context).markets,
                     style: MetronType.heading.copyWith(
                       fontSize: 22,
                       height: 28 / 22,
@@ -63,7 +63,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        MarketsStrings.live,
+                        MarketsStrings.of(context).live,
                         style: TextStyle(fontSize: 12, color: c.muted),
                       ),
                     ],
@@ -80,12 +80,12 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Semantics(
-                      label: MarketsStrings.search,
+                      label: MarketsStrings.of(context).search,
                       child: TextField(
                         onChanged: (value) => setState(() => _query = value),
                         textInputAction: TextInputAction.search,
-                        decoration: const InputDecoration(
-                          hintText: MarketsStrings.search,
+                        decoration: InputDecoration(
+                          hintText: MarketsStrings.of(context).search,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 14,
@@ -95,7 +95,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Semantics(
-                      label: MarketsStrings.coinClass,
+                      label: MarketsStrings.of(context).coinClass,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -107,8 +107,9 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                               if (value != null) const SizedBox(width: 6),
                               _ClassFilter(
                                 label: value == null
-                                    ? MarketsStrings.all
-                                    : MarketsStrings.className(value),
+                                    ? MarketsStrings.of(context).all
+                                    : MarketsStrings.of(context)
+                                          .className(value),
                                 selected: value == _class,
                                 onPressed: () => setState(() => _class = value),
                               ),
@@ -126,7 +127,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                             ? Padding(
                                 padding: const EdgeInsets.all(24),
                                 child: Text(
-                                  MarketsStrings.noResults,
+                                  MarketsStrings.of(context).noResults,
                                   style: note,
                                 ),
                               )
@@ -144,11 +145,11 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
                     Text.rich(
                       TextSpan(
                         children: [
-                          const TextSpan(text: MarketsStrings.barStart),
+                          TextSpan(text: MarketsStrings.of(context).barStart),
                           WidgetSpan(child: Num('0', style: note)),
-                          const TextSpan(text: MarketsStrings.barTo),
+                          TextSpan(text: MarketsStrings.of(context).barTo),
                           WidgetSpan(child: Num('10%', style: note)),
-                          const TextSpan(text: MarketsStrings.barEnd),
+                          TextSpan(text: MarketsStrings.of(context).barEnd),
                         ],
                       ),
                       style: note,
@@ -231,7 +232,7 @@ class _PriceRow extends StatelessWidget {
                   Wrap(
                     children: [
                       Text(
-                        '${MarketsStrings.className(coin.coinClass)} · ${MarketsStrings.stop} ',
+                        '${MarketsStrings.of(context).className(coin.coinClass)} · ${MarketsStrings.of(context).stop} ',
                         style: subtle,
                       ),
                       Num(
@@ -256,13 +257,13 @@ class _PriceRow extends StatelessWidget {
                       minHeight: 5,
                       color: context.colors.muted,
                       backgroundColor: context.colors.raised,
-                      semanticsLabel: MarketsStrings.atr,
+                      semanticsLabel: MarketsStrings.of(context).atr,
                       semanticsValue: '${coin.atrPercent.toStringAsFixed(1)}%',
                     ),
                   ),
                   const SizedBox(height: 4),
                   Num(
-                    '${MarketsStrings.atr} ${coin.atrPercent.toStringAsFixed(1)}%',
+                    '${MarketsStrings.of(context).atr} ${coin.atrPercent.toStringAsFixed(1)}%',
                     style: subtle.copyWith(fontSize: 11),
                   ),
                 ],

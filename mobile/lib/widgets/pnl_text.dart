@@ -28,10 +28,10 @@ class PnlText extends StatelessWidget {
     }
     final c = context.colors;
     final (prefix, word, color) = value > 0
-        ? ('▲ +', AppStrings.profit, c.profit)
+        ? ('▲ +', AppStrings.of(context).profit, c.profit)
         : value < 0
-        ? ('▼ −', AppStrings.loss, c.loss)
-        : ('— ±', AppStrings.unchanged, c.muted);
+        ? ('▼ −', AppStrings.of(context).loss, c.loss)
+        : ('— ±', AppStrings.of(context).unchanged, c.muted);
     final magnitude =
         format?.call(value.abs()) ?? value.abs().toStringAsFixed(decimalPlaces);
     return Num(

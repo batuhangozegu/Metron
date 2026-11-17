@@ -42,19 +42,19 @@ class PriceRuler extends StatelessWidget {
           children: [
             for (final (label, value, color, alignment) in [
               (
-                PositionStrings.stop,
+                PositionStrings.of(context).stop,
                 detail.stop,
                 c.loss,
                 CrossAxisAlignment.start,
               ),
               (
-                PositionStrings.entry,
+                PositionStrings.of(context).entry,
                 detail.entry,
                 c.subtle,
                 CrossAxisAlignment.center,
               ),
               (
-                PositionStrings.target,
+                PositionStrings.of(context).target,
                 detail.target,
                 c.profit,
                 CrossAxisAlignment.end,
@@ -91,10 +91,10 @@ class PriceRuler extends StatelessWidget {
         const SizedBox(height: 14),
         Semantics(
           label:
-              '${PositionStrings.stop} ${formatDecimal(detail.stop)}, '
-              '${PositionStrings.entry} ${formatDecimal(detail.entry)}, '
-              '${PositionStrings.target} ${formatDecimal(detail.target)}, '
-              '${current == null ? PositionStrings.priceMissing : '${PositionStrings.now} ${formatDecimal(price!)}'}',
+              '${PositionStrings.of(context).stop} ${formatDecimal(detail.stop)}, '
+              '${PositionStrings.of(context).entry} ${formatDecimal(detail.entry)}, '
+              '${PositionStrings.of(context).target} ${formatDecimal(detail.target)}, '
+              '${current == null ? PositionStrings.of(context).priceMissing : '${PositionStrings.of(context).now} ${formatDecimal(price!)}'}',
           child: ExcludeSemantics(
             child: Column(
               children: [
@@ -124,8 +124,8 @@ class PriceRuler extends StatelessWidget {
                       if (now != null)
                         Align(
                           alignment: Alignment(now * 2 - 1, 0),
-                          child: const Text(
-                            PositionStrings.now,
+                          child: Text(
+                            PositionStrings.of(context).now,
                             style: TextStyle(fontSize: 11),
                           ),
                         ),
@@ -145,7 +145,7 @@ class PriceRuler extends StatelessWidget {
         ),
         if (current == null)
           Text(
-            PositionStrings.priceMissing,
+            PositionStrings.of(context).priceMissing,
             style: TextStyle(fontSize: 12, color: c.muted),
           ),
       ],

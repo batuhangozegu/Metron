@@ -31,8 +31,11 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         await pumpTestApp(tester, const SignInScreen(), light: light);
         expect(find.text('Metron'), findsOneWidget);
-        expect(find.text(SignInStrings.tagline), findsOneWidget);
-        expect(find.text(SignInStrings.paperNotice), findsOneWidget);
+        expect(find.text(const EnglishSignInStrings().tagline), findsOneWidget);
+        expect(
+          find.text(const EnglishSignInStrings().paperNotice),
+          findsOneWidget,
+        );
         expect(find.byType(BottomNavigationBar), findsNothing);
         expect(
           tester
@@ -44,8 +47,14 @@ void main() {
         expect(tester.getTopLeft(find.byType(TextField).first).dx, 24);
         expect(tester.takeException(), isNull);
         await enterCredentials(tester);
-        expect(find.text(SignInStrings.twoFactor), findsOneWidget);
-        expect(find.text(SignInStrings.codeHelp), findsOneWidget);
+        expect(
+          find.text(const EnglishSignInStrings().twoFactor),
+          findsOneWidget,
+        );
+        expect(
+          find.text(const EnglishSignInStrings().codeHelp),
+          findsOneWidget,
+        );
         expect(find.byKey(const ValueKey('Email')), findsNothing);
         expect(find.byType(Num), findsOneWidget);
         final field = tester.widget<TextField>(
@@ -64,7 +73,10 @@ void main() {
         expect(field.controller!.text, '123456');
         await tester.tap(find.text('Verify'));
         await tester.pumpAndSettle();
-        expect(find.text(SignInStrings.verified), findsOneWidget);
+        expect(
+          find.text(const EnglishSignInStrings().verified),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
       },
     );
@@ -76,32 +88,38 @@ void main() {
     await pumpTestApp(tester, const SignInScreen());
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.emailError), findsOneWidget);
+    expect(find.text(const EnglishSignInStrings().emailError), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('Email')),
       'trader@example.com',
     );
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.passwordError), findsOneWidget);
+    expect(
+      find.text(const EnglishSignInStrings().passwordError),
+      findsOneWidget,
+    );
     await enterCredentials(tester);
     await tester.enterText(find.byKey(const ValueKey('Code')), '123');
     await tester.tap(find.text('Verify'));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.codeError), findsOneWidget);
-    await tester.tap(find.text(SignInStrings.useRecovery));
+    expect(find.text(const EnglishSignInStrings().codeError), findsOneWidget);
+    await tester.tap(find.text(const EnglishSignInStrings().useRecovery));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.recoveryHelp), findsOneWidget);
+    expect(
+      find.text(const EnglishSignInStrings().recoveryHelp),
+      findsOneWidget,
+    );
     await tester.enterText(
       find.byKey(const ValueKey('Recovery code')),
       'backup-code',
     );
     await tester.tap(find.text('Verify'));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.verified), findsOneWidget);
-    await tester.tap(find.text(SignInStrings.useAuthenticator));
+    expect(find.text(const EnglishSignInStrings().verified), findsOneWidget);
+    await tester.tap(find.text(const EnglishSignInStrings().useAuthenticator));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.codeHelp), findsOneWidget);
+    expect(find.text(const EnglishSignInStrings().codeHelp), findsOneWidget);
     expect(
       tester
           .widget<TextField>(find.byKey(const ValueKey('Code')))
@@ -146,10 +164,15 @@ void main() {
         child: SignInScreen(),
       ),
     );
-    await tester.ensureVisible(find.text(SignInStrings.createAccount));
-    await tester.tap(find.text(SignInStrings.createAccount));
+    await tester.ensureVisible(
+      find.text(const EnglishSignInStrings().createAccount),
+    );
+    await tester.tap(find.text(const EnglishSignInStrings().createAccount));
     await tester.pumpAndSettle();
-    expect(find.text(SignInStrings.accountUnavailable), findsOneWidget);
+    expect(
+      find.text(const EnglishSignInStrings().accountUnavailable),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,11 +1,11 @@
 import { Card, PnL } from "@/components/metron";
 import { formatAmount, formatPercent } from "@/lib/format";
-import { getMessages } from "@/lib/messages";
-import { account, equitySeries as series, portfolioStatistics as stats } from "@/lib/sample-data";
+import { getMessages, type Locale } from "@/lib/messages";
+import { account, getSampleData, portfolioStatistics as stats } from "@/lib/sample-data";
 
-const t = getMessages("portfolio");
-
-export function EquityChart() {
+export function EquityChart({ locale = "en" }: { locale?: Locale }) {
+  const t = getMessages("portfolio", locale);
+  const { equitySeries: series } = getSampleData(locale);
   // The fixtures contain screen coordinates: smaller y means greater equity.
   let peak = series.account[0];
   let span = { start: peak.x, end: peak.x, fall: 0 };
@@ -22,8 +22,8 @@ export function EquityChart() {
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
       <h2 className="text-heading">{t("chartTitle")}</h2>
       <div className="flex flex-wrap gap-5 text-small text-muted">
-        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5 bg-text" />{t("yourAccount")}<PnL value={stats.returnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
-        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed border-subtle" />{t("benchmark")}<PnL value={stats.benchmarkReturnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
+        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5 bg-text" />{t("yourAccount")}<PnL locale={locale} value={stats.returnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
+        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed border-subtle" />{t("benchmark")}<PnL locale={locale} value={stats.benchmarkReturnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
       </div>
     </div>
     <svg role="img" aria-labelledby="portfolio-equity-title portfolio-equity-description" viewBox={series.viewBox} className="block h-auto w-full">

@@ -74,7 +74,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
           },
         ),
         titleSpacing: 0,
-        title: const Text(AppStrings.check),
+        title: Text(AppStrings.of(context).check),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -84,7 +84,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
               borderRadius: BorderRadius.circular(MetronRadius.tag),
             ),
             child: Text(
-              CheckStrings.paper,
+              CheckStrings.of(context).paper,
               style: TextStyle(
                 fontSize: 11,
                 color: c.muted,
@@ -107,7 +107,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                 children: [
                   Expanded(
                     child: _Field(
-                      label: CheckStrings.pair,
+                      label: CheckStrings.of(context).pair,
                       child: DropdownButtonFormField<String>(
                         key: ValueKey(pair),
                         initialValue: pair,
@@ -135,7 +135,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _Field(
-                      label: CheckStrings.price,
+                      label: CheckStrings.of(context).price,
                       child: InputDecorator(
                         decoration: const InputDecoration(),
                         child: Semantics(
@@ -169,7 +169,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                   ],
                 ),
               if (preview == null)
-                const MetronCard(child: Text(CheckStrings.unavailable))
+                MetronCard(child: Text(CheckStrings.of(context).unavailable))
               else ...[
                 _Verdict(
                   preview: preview,
@@ -183,10 +183,10 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          CheckStrings.limits,
+                          CheckStrings.of(context).limits,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -220,7 +220,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                 if (preview != null) ...[
                   if (preview.verdict == RiskLevel.limit)
                     PrimaryButton(
-                      label: CheckStrings.reduce,
+                      label: CheckStrings.of(context).reduce,
                       onPressed: preview.largestFittingOrderValue == null
                           ? null
                           : () => _showReduction(preview),
@@ -229,11 +229,12 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                     SizedBox(
                       height: MetronSize.control,
                       child: FilledButton(
-                        onPressed: () => _feedback(CheckStrings.sampleReminder),
+                        onPressed: () =>
+                            _feedback(CheckStrings.of(context).sampleReminder),
                         child: Wrap(
                           alignment: WrapAlignment.center,
                           children: [
-                            const Text(CheckStrings.wait),
+                            Text(CheckStrings.of(context).wait),
                             Num(
                               time,
                               style: TextStyle(
@@ -246,18 +247,20 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                       ),
                     ),
                     SecondaryButton(
-                      label: CheckStrings.anyway,
-                      onPressed: () => _feedback(CheckStrings.sampleOrder),
+                      label: CheckStrings.of(context).anyway,
+                      onPressed: () =>
+                          _feedback(CheckStrings.of(context).sampleOrder),
                     ),
                     Text(
-                      CheckStrings.violation,
+                      CheckStrings.of(context).violation,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: c.subtle),
                     ),
                   ] else
                     PrimaryButton(
-                      label: CheckStrings.place,
-                      onPressed: () => _feedback(CheckStrings.sampleOrder),
+                      label: CheckStrings.of(context).place,
+                      onPressed: () =>
+                          _feedback(CheckStrings.of(context).sampleOrder),
                     ),
                 ],
                 SizedBox(
@@ -265,7 +268,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                   child: TextButton(
                     onPressed: _discard,
                     child: Text(
-                      CheckStrings.discard,
+                      CheckStrings.of(context).discard,
                       style: TextStyle(color: c.muted),
                     ),
                   ),
@@ -284,18 +287,18 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(CheckStrings.reductionTitle),
+        title: Text(CheckStrings.of(context).reductionTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           spacing: 12,
           children: [
             _ReductionCopy(preview: preview),
-            const Text(CheckStrings.reductionBody),
+            Text(CheckStrings.of(context).reductionBody),
           ],
         ),
         actions: [
           SecondaryButton(
-            label: CheckStrings.close,
+            label: CheckStrings.of(context).close,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -330,9 +333,11 @@ class _Verdict extends StatelessWidget {
         .where((check) => check.id == 'size')
         .firstOrNull;
     final body = switch (level) {
-      RiskLevel.safe => CheckStrings.safeBody,
-      RiskLevel.caution => CheckStrings.cooldown(remaining.clamp(0, 60)),
-      RiskLevel.limit => CheckStrings.blocked(
+      RiskLevel.safe => CheckStrings.of(context).safeBody,
+      RiskLevel.caution => CheckStrings.of(
+        context,
+      ).cooldown(remaining.clamp(0, 60)),
+      RiskLevel.limit => CheckStrings.of(context).blocked(
         preview.pair.split('/').first,
         size?.after.toStringAsFixed(2) ?? '—',
         size?.limit.toStringAsFixed(0) ?? '—',
@@ -354,7 +359,7 @@ class _Verdict extends StatelessWidget {
               level.icon,
               size: 28,
               color: level.color(context.colors),
-              semanticLabel: level.label,
+              semanticLabel: level.label(context),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -364,9 +369,11 @@ class _Verdict extends StatelessWidget {
                 children: [
                   Text(
                     switch (level) {
-                      RiskLevel.safe => CheckStrings.safeTitle,
-                      RiskLevel.caution => CheckStrings.cautionTitle,
-                      RiskLevel.limit => CheckStrings.blockedTitle,
+                      RiskLevel.safe => CheckStrings.of(context).safeTitle,
+                      RiskLevel.caution => CheckStrings.of(
+                        context,
+                      ).cautionTitle,
+                      RiskLevel.limit => CheckStrings.of(context).blockedTitle,
                     },
                     style: const TextStyle(
                       fontSize: 20,
@@ -427,7 +434,7 @@ class _ReductionCopy extends StatelessWidget {
   final OrderPreview preview;
   @override
   Widget build(BuildContext context) => NumericCopy(
-    CheckStrings.reduction(
+    CheckStrings.of(context).reduction(
       grouped(preview.largestFittingOrderValue ?? '—'),
       grouped(preview.largestFittingRisk ?? '—'),
     ),

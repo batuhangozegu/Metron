@@ -1,12 +1,11 @@
 import { PnL } from "@/components/metron";
 import { formatAmount, formatPrice } from "@/lib/format";
-import { getMessages } from "@/lib/messages";
+import { getMessages, type Locale } from "@/lib/messages";
 import type { PreTradeCheck } from "@/lib/sample-data";
 
-const t = getMessages("check");
-
 /** The domain is stop to target; integer ATR offsets form the intervening ticks. */
-export function PriceMeasure({ check }: { check: Omit<PreTradeCheck, "verdict"> }) {
+export function PriceMeasure({ check, locale = "en" }: { check: Omit<PreTradeCheck, "verdict">; locale?: Locale }) {
+  const t = getMessages("check", locale);
   const stop = -Number(check.stopAtr), target = Number(check.targetAtr);
   const position = (atr: number) => (atr - stop) / (target - stop) * 100;
   const ticks = [stop, ...Array.from({ length: Math.ceil(target) - Math.ceil(stop) }, (_, i) => Math.ceil(stop) + i).filter(n => n > stop && n < target), target];
@@ -15,7 +14,7 @@ export function PriceMeasure({ check }: { check: Omit<PreTradeCheck, "verdict"> 
       {(["stop", "entry", "target"] as const).map(kind => <div key={kind} className={`flex min-w-0 flex-[1_1_190px] flex-col gap-1 ${kind === "target" ? "text-right" : ""}`}>
         <span className={`text-label uppercase ${kind === "stop" ? "text-loss" : kind === "target" ? "text-profit" : "text-subtle"}`}>{t(kind)}</span>
         <span className="num text-[32px] leading-[38px] font-medium tracking-[-0.02em]">{formatPrice(check[kind])}</span>
-        <span className="text-small text-muted">{kind === "entry" ? t(check.orderType) : <><PnL value={kind === "stop" ? check.stopPercent : check.targetPercent} decimals={1} suffix="%" /> <span className="num">{t("atrDistance", { value: kind === "stop" ? check.stopAtr : check.targetAtr })}</span></>}</span>
+        <span className="text-small text-muted">{kind === "entry" ? t(check.orderType) : <><PnL locale={locale} value={kind === "stop" ? check.stopPercent : check.targetPercent} decimals={1} suffix="%" /> <span className="num">{t("atrDistance", { value: kind === "stop" ? check.stopAtr : check.targetAtr })}</span></>}</span>
       </div>)}
     </div>
     <div aria-hidden="true" className="flex flex-col gap-1.5">

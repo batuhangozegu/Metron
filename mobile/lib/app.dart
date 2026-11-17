@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'l10n/app_strings.dart';
+import 'l10n/locale_provider.dart';
 import 'router.dart';
 import 'theme/metron_theme.dart';
 
@@ -15,7 +16,11 @@ class MetronApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     GoogleFonts.config.allowRuntimeFetching = false;
     return MaterialApp.router(
-      title: AppStrings.appName,
+      title: ref.watch(stringsProvider).app.appName,
+      locale: ref.watch(localeProvider),
+      supportedLocales: supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      builder: (context, child) => LocalizedCatalogs(child: child!),
       debugShowCheckedModeBanner: false,
       theme: MetronTheme.light,
       darkTheme: MetronTheme.dark,

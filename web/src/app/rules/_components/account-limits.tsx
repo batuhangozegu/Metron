@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { Card } from "@/components/metron/card";
 import { decimalProduct, formatAmount } from "@/lib/format";
+import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
 import type { AccountLimits as Limits } from "@/lib/sample-data";
 import { NumericCopy } from "./numeric-copy";
 
 export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
-  const t = getMessages("rules");
+  const locale = useLocale();
+  const t = getMessages("rules", locale);
+
   const [values, setValues] = useState(() => ({
     totalOpenRisk: formatAmount(initialLimits.totalOpenRisk),
     dailyLoss: formatAmount(initialLimits.dailyLoss),

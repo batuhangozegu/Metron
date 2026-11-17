@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/risk_level.dart';
 import '../../l10n/app_strings.dart';
+import '../../l10n/language_selector.dart';
 import '../../router.dart';
 import '../../theme/metron_colors.dart';
 import '../../theme/tokens.dart';
@@ -30,8 +31,12 @@ class RulesScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: LanguageSelector(),
+              ),
               Text(
-                AppStrings.rules,
+                AppStrings.of(context).rules,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   fontSize: 22,
                   height: 28 / 22,
@@ -40,36 +45,36 @@ class RulesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                RulesStrings.introduction,
+                RulesStrings.of(context).introduction,
                 style: Theme.of(context).textTheme.bodySmall!
                     .copyWith(color: context.colors.muted),
               ),
               const SizedBox(height: 20),
               _Section(
-                title: RulesStrings.accountLimits,
+                title: RulesStrings.of(context).accountLimits,
                 child: MetronCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     spacing: 12,
                     children: [
                       _ValueRow(
-                        RulesStrings.openRisk,
+                        RulesStrings.of(context).openRisk,
                         Num(_percent(limits.openRiskPercent)),
                       ),
                       _ValueRow(
-                        RulesStrings.dailyCap,
+                        RulesStrings.of(context).dailyCap,
                         Num(_percent(limits.dailyLossPercent)),
                       ),
                       _ValueRow(
-                        RulesStrings.weeklyCap,
+                        RulesStrings.of(context).weeklyCap,
                         Num(_percent(limits.weeklyLossPercent)),
                       ),
                       _ValueRow(
-                        RulesStrings.positions,
+                        RulesStrings.of(context).positions,
                         Num('${limits.maxOpenPositions}'),
                       ),
                       _ValueRow(
-                        RulesStrings.riskReward,
+                        RulesStrings.of(context).riskReward,
                         Num(limits.targetRiskReward.toStringAsFixed(1)),
                       ),
                     ],
@@ -78,29 +83,29 @@ class RulesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               _Section(
-                title: RulesStrings.coinClasses,
+                title: RulesStrings.of(context).coinClasses,
                 child: _RowsCard(
                   children: [
                     for (final rule in classes) _ClassRow(rule),
                     if (classes.isEmpty)
-                      const _EmptyRow(RulesStrings.noClasses),
+                      _EmptyRow(RulesStrings.of(context).noClasses),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
               _Section(
-                title: RulesStrings.discipline,
+                title: RulesStrings.of(context).discipline,
                 child: _RowsCard(
                   children: [
                     for (final rule in discipline) _DisciplineRow(rule),
                     if (discipline.isEmpty)
-                      const _EmptyRow(RulesStrings.noDiscipline),
+                      _EmptyRow(RulesStrings.of(context).noDiscipline),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
               _Section(
-                title: RulesStrings.account,
+                title: RulesStrings.of(context).account,
                 child: _RowsCard(
                   children: [
                     Padding(
@@ -109,12 +114,12 @@ class RulesScreen extends ConsumerWidget {
                         vertical: 14,
                       ),
                       child: _ValueRow(
-                        RulesStrings.tradingAccount,
+                        RulesStrings.of(context).tradingAccount,
                         Wrap(
                           alignment: WrapAlignment.end,
                           spacing: 4,
                           children: [
-                            const Text(RulesStrings.paper),
+                            Text(RulesStrings.of(context).paper),
                             Num('${_groupDecimal(account.equity)} USDT'),
                           ],
                         ),
@@ -126,7 +131,7 @@ class RulesScreen extends ConsumerWidget {
                         vertical: 14,
                       ),
                       child: _ValueRow(
-                        RulesStrings.twoFactor,
+                        RulesStrings.of(context).twoFactor,
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -142,8 +147,8 @@ class RulesScreen extends ConsumerWidget {
                             const SizedBox(width: 4),
                             Text(
                               account.twoFactorEnabled
-                                  ? RulesStrings.on
-                                  : RulesStrings.off,
+                                  ? RulesStrings.of(context).on
+                                  : RulesStrings.of(context).off,
                               style: TextStyle(
                                 color: account.twoFactorEnabled
                                     ? context.colors.safe
@@ -169,7 +174,7 @@ class RulesScreen extends ConsumerWidget {
                               ),
                         ),
                         onPressed: () => context.goNamed(AppRoutes.signIn),
-                        child: const Text(RulesStrings.signOut),
+                        child: Text(RulesStrings.of(context).signOut),
                       ),
                     ),
                   ],
@@ -255,7 +260,7 @@ class _ClassRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          RulesStrings.coinClass(rule.coinClass),
+          RulesStrings.of(context).coinClass(rule.coinClass),
           style: Theme.of(context).textTheme.bodyMedium!
               .copyWith(fontWeight: FontWeight.w600),
         ),
@@ -265,15 +270,15 @@ class _ClassRow extends StatelessWidget {
           spacing: 8,
           children: [
             _ClassValue(
-              RulesStrings.stop,
+              RulesStrings.of(context).stop,
               '${rule.atrMultiplier.toStringAsFixed(1)} ATR',
             ),
             _ClassValue(
-              RulesStrings.riskPerTrade,
+              RulesStrings.of(context).riskPerTrade,
               _percent(rule.riskPerTradePercent),
             ),
             _ClassValue(
-              RulesStrings.largestPosition,
+              RulesStrings.of(context).largestPosition,
               '${rule.maxPositionPercent.toStringAsFixed(0)}%',
             ),
           ],
@@ -323,7 +328,7 @@ class _DisciplineRow extends StatelessWidget {
             children: [
               Expanded(
                 child: _NumberedCopy(
-                  rule.name,
+                  RulesStrings.of(context).ruleName(rule),
                   style: Theme.of(context).textTheme.bodyMedium!
                       .copyWith(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
@@ -346,7 +351,7 @@ class _DisciplineRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      RulesStrings.mode(rule.mode),
+                      RulesStrings.of(context).mode(rule.mode),
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -359,12 +364,12 @@ class _DisciplineRow extends StatelessWidget {
             ],
           ),
           _NumberedCopy(
-            rule.description,
+            RulesStrings.of(context).ruleDescription(rule),
             style: Theme.of(context).textTheme.bodySmall!
                 .copyWith(color: context.colors.muted),
           ),
           _NumberedCopy(
-            rule.history,
+            RulesStrings.of(context).ruleHistory(rule),
             style: Theme.of(context).textTheme.bodySmall!
                 .copyWith(fontSize: 12, color: context.colors.subtle),
           ),

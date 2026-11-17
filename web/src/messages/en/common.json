@@ -136,5 +136,8 @@
   "sample.preTradeBlocked.checks.3.state": "Safe",
   "sample.preTradeBlocked.checks.4.name": "Cooldown after a loss",
   "sample.preTradeBlocked.checks.4.detail": "Your rule: wait 60 minutes · warn and record",
-  "sample.preTradeBlocked.checks.4.state": "Broken"
+  "sample.preTradeBlocked.checks.4.state": "Broken",
+  "language.label": "Language",
+  "language.english": "English",
+  "language.turkish": "Türkçe"
 }

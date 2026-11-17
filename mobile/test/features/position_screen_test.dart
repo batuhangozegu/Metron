@@ -124,7 +124,10 @@ void main() {
     expect(find.text('▼ −125.01'), findsOneWidget);
     expect(find.text('Limit exceeded'), findsOneWidget);
     expect(find.byIcon(Icons.report_outlined), findsOneWidget);
-    expect(find.text(PositionStrings.stopMissing), findsOneWidget);
+    expect(
+      find.text(const EnglishPositionStrings().stopMissing),
+      findsOneWidget,
+    );
     expect(find.text('Safe'), findsNothing);
     expect(find.text('4.43% away.'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -134,11 +137,14 @@ void main() {
     tester,
   ) async {
     await pumpPosition(tester, id: 'unknown');
-    expect(find.text(PositionStrings.notFound), findsOneWidget);
+    expect(find.text(const EnglishPositionStrings().notFound), findsOneWidget);
     expect(find.byType(PrimaryButton), findsNothing);
     await pumpPosition(tester, id: 'sol');
     expect(find.text('SOL/USDT'), findsOneWidget);
-    expect(find.text(PositionStrings.detailsMissing), findsOneWidget);
+    expect(
+      find.text(const EnglishPositionStrings().detailsMissing),
+      findsOneWidget,
+    );
     expect(find.byType(PriceRuler), findsNothing);
     expect(find.byType(PrimaryButton), findsNothing);
     expect(tester.takeException(), isNull);
@@ -148,7 +154,10 @@ void main() {
     tester,
   ) async {
     await pumpPosition(tester, prices: []);
-    expect(find.text(PositionStrings.priceMissing), findsOneWidget);
+    expect(
+      find.text(const EnglishPositionStrings().priceMissing),
+      findsOneWidget,
+    );
     expect(find.text('Now'), findsNothing);
     const price = CoinPrice(
       pair: 'BTC/USDT',
@@ -175,12 +184,18 @@ void main() {
     tester,
   ) async {
     await pumpPosition(tester);
-    for (final label in [PositionStrings.tighten, PositionStrings.close]) {
+    for (final label in [
+      const EnglishPositionStrings().tighten,
+      const EnglishPositionStrings().close,
+    ]) {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.textContaining(PositionStrings.previewOnly), findsOneWidget);
-      await tester.tap(find.text(PositionStrings.dismiss));
+      expect(
+        find.textContaining(const EnglishPositionStrings().previewOnly),
+        findsOneWidget,
+      );
+      await tester.tap(find.text(const EnglishPositionStrings().dismiss));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
     }
@@ -196,8 +211,14 @@ void main() {
       const Offset(0, -600),
     );
     await tester.pumpAndSettle();
-    expect(find.text(PositionStrings.stopRule).hitTestable(), findsOneWidget);
-    expect(find.text(PositionStrings.close).hitTestable(), findsOneWidget);
+    expect(
+      find.text(const EnglishPositionStrings().stopRule).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.text(const EnglishPositionStrings().close).hitTestable(),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

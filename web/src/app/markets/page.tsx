@@ -2,14 +2,15 @@ import { Suspense } from "react";
 import { ClassTag } from "@/components/metron/class-tag";
 import { PnL } from "@/components/metron/pnl";
 import { formatPrice } from "@/lib/format";
-import { getMessages } from "@/lib/messages";
+import { getLocale } from "@/lib/locale-server";
+import { getMessages, type Locale } from "@/lib/messages";
 import { AutoRefresh } from "./_components/auto-refresh";
 import { fetchMarkets, formatVolume } from "./_lib/market-data";
 import { FilteredMarkets } from "./_components/filtered-markets";
 import { MovementMeasure } from "./_components/movement-measure";
 
-async function LiveMarkets() {
-  const t = getMessages("markets");
+async function LiveMarkets({ locale }: { locale: Locale }) {
+  const t = getMessages("markets", locale);
   const markets = await fetchMarkets();
   if (markets === null) return <p role="status" className="rounded-card border border-line bg-surface p-6 text-muted">{t("unavailable")}</p>;
   if (markets.length === 0) return <p role="status" className="rounded-card border border-line bg-surface p-6 text-muted">{t("waiting")}</p>;
@@ -22,10 +23,10 @@ async function LiveMarkets() {
       content: (
         <tr key={market.symbol} className="text-right">
           <th scope="row" className={`${cell} whitespace-nowrap px-6 text-left font-semibold`}>{pair}</th>
-          <td className={`${cell} text-left`}><ClassTag coinClass={market.coin_class} /></td>
+          <td className={`${cell} text-left`}><ClassTag coinClass={market.coin_class} locale={locale} /></td>
           <td className={`${cell} num`}>{market.price === null ? t("missing") : formatPrice(market.price)}</td>
-          <td className={cell}>{market.change_24h_percent === null ? t("missing") : <PnL value={market.change_24h_percent} suffix={t("percentSuffix")} />}</td>
-          <td className={`${cell} text-left`}>{market.atr_percent === null ? t("missing") : <MovementMeasure market={{
+          <td className={cell}>{market.change_24h_percent === null ? t("missing") : <PnL value={market.change_24h_percent} suffix={t("percentSuffix")} locale={locale} />}</td>
+          <td className={`${cell} text-left`}>{market.atr_percent === null ? t("missing") : <MovementMeasure locale={locale} market={{
             pair, atr: `${market.atr_percent}%`, atrFill: `${Number(market.atr_percent) * 10}%`,
           }} />}</td>
           <td className={`${cell} ${market.coin_class === "stable" ? "" : "num"}`}>
@@ -51,8 +52,9 @@ async function LiveMarkets() {
   </>;
 }
 
-export default function MarketsPage() {
-  const t = getMessages("markets");
+export default async function MarketsPage() {
+  const locale = await getLocale();
+  const t = getMessages("markets", locale);
   return <>
     <AutoRefresh />
     <section className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
@@ -62,7 +64,7 @@ export default function MarketsPage() {
       </div>
     </section>
     <Suspense fallback={<p role="status" className="text-muted">{t("loading")}</p>}>
-      <LiveMarkets />
+      <LiveMarkets locale={locale} />
     </Suspense>
   </>;
 }

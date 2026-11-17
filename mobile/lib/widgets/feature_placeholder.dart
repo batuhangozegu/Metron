@@ -18,7 +18,7 @@ class FeaturePlaceholder extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(AppStrings.todo),
+            Text(AppStrings.of(context).todo),
             if (detail != null) ...[
               const SizedBox(height: MetronSpace.lg),
               detail!,

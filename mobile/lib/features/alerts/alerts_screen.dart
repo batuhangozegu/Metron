@@ -46,7 +46,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AppStrings.alerts,
+                    AppStrings.of(context).alerts,
                     style: MetronType.heading.copyWith(
                       fontSize: 22,
                       height: 28 / 22,
@@ -63,7 +63,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                       borderRadius: BorderRadius.circular(MetronRadius.tag),
                     ),
                     child: Text(
-                      AlertsStrings.paper,
+                      AlertsStrings.of(context).paper,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -81,18 +81,18 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SectionHeader(AlertsStrings.today),
+                    SectionHeader(AlertsStrings.of(context).today),
                     const SizedBox(height: 8),
                     _Rows(
                       children: [
                         if (events.isEmpty)
-                          const _Empty(AlertsStrings.noEvents),
+                          _Empty(AlertsStrings.of(context).noEvents),
                         for (final event in events) _EventRow(event),
                       ],
                     ),
                     const SizedBox(height: 20),
                     SectionHeader(
-                      AlertsStrings.priceAlarms,
+                      AlertsStrings.of(context).priceAlarms,
                       trailing: TextButton(
                         onPressed: _addAlarm,
                         style: TextButton.styleFrom(
@@ -105,14 +105,14 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                             decoration: TextDecoration.underline,
                           ),
                         ),
-                        child: const Text(AlertsStrings.addAlarm),
+                        child: Text(AlertsStrings.of(context).addAlarm),
                       ),
                     ),
                     const SizedBox(height: 8),
                     _Rows(
                       children: [
                         if (alarms.isEmpty)
-                          const _Empty(AlertsStrings.noAlarms),
+                          _Empty(AlertsStrings.of(context).noAlarms),
                         for (final alarm in alarms) _AlarmRow(alarm),
                       ],
                     ),
@@ -181,7 +181,7 @@ class _EventRow extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _NumberedCopy(
-                        event.title,
+                        AlertsStrings.of(context).eventTitle(event),
                         style: const TextStyle(
                           fontSize: 14,
                           height: 20 / 14,
@@ -201,7 +201,7 @@ class _EventRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 _NumberedCopy(
-                  event.body,
+                  AlertsStrings.of(context).eventBody(event),
                   style: MetronType.small.copyWith(color: context.colors.muted),
                   pnl: event.pnl,
                 ),
@@ -270,7 +270,7 @@ class _AlarmRow extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${alarm.pair} ${AlertsStrings.direction(alarm.direction)}',
+                    '${alarm.pair} ${AlertsStrings.of(context).direction(alarm.direction)}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -280,7 +280,7 @@ class _AlarmRow extends ConsumerWidget {
                   Row(
                     children: [
                       Text(
-                        AlertsStrings.now,
+                        AlertsStrings.of(context).now,
                         style: TextStyle(
                           fontSize: 12,
                           color: context.colors.subtle,
@@ -289,7 +289,7 @@ class _AlarmRow extends ConsumerWidget {
                       Flexible(
                         child: Num(
                           price == null
-                              ? AlertsStrings.unavailable
+                              ? AlertsStrings.of(context).unavailable
                               : formatAlarmPrice(price.price),
                           style: TextStyle(
                             fontSize: 12,

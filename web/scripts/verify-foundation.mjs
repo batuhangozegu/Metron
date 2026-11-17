@@ -53,7 +53,28 @@ assert.equal(riskState(NaN, 100), "limit");
 assert.equal(riskState(50, 100, 0.5), "caution");
 assert.equal(riskState(0.075, 0.1), "caution");
 
-const { getMessages } = lib("messages");
+// Compare the complete catalogs, including placeholder multiplicity, before rendering.
+const messageRoot = resolve(root, "src/messages");
+const englishFiles = readdirSync(join(messageRoot, "en")).sort();
+assert.deepEqual(readdirSync(join(messageRoot, "tr")).sort(), englishFiles, "Locale namespace files match");
+const placeholders = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
+for (const file of englishFiles) {
+  const en = JSON.parse(readFileSync(join(messageRoot, "en", file), "utf8"));
+  const tr = JSON.parse(readFileSync(join(messageRoot, "tr", file), "utf8"));
+  assert.deepEqual(Object.keys(tr).sort(), Object.keys(en).sort(), `${file}: English/Turkish keys match`);
+  for (const key of Object.keys(en)) {
+    assert.equal(typeof tr[key], "string", `${file}.${key}: Turkish message is text`);
+    assert.ok(tr[key].trim().length, `${file}.${key}: Turkish message is not empty`);
+    assert.deepEqual(placeholders(tr[key]), placeholders(en[key]), `${file}.${key}: placeholders match`);
+  }
+}
+const { getMessages, parseLocale } = lib("messages");
+assert.equal(parseLocale(undefined), "en");
+assert.equal(parseLocale("invalid"), "en");
+assert.equal(parseLocale("tr"), "tr");
+assert.equal(getMessages("common", "tr")("nav.check"), "İşlem öncesi kontrol");
+assert.equal(getMessages("common", "tr")("measure.value", { value: "1", limit: "2", state: "Uygun" }), "1 / 2 · Uygun");
+assert.throws(() => getMessages("common", "tr")("measure.value"), /Missing interpolation/);
 assert.equal(getMessages("common")("measure.value", { value: "1", limit: "2", state: "Safe" }), "1 of 2 · Safe");
 assert.throws(() => getMessages("common")("measure.value"), /Missing interpolation/);
 const { PnL } = component("pnl");
@@ -63,6 +84,7 @@ const zero = renderToStaticMarkup(createElement(PnL, { value: "-0.004" }));
 assert.match(zero, /text-muted.*0\.00/);
 assert.doesNotMatch(zero, /[▲▼−]/);
 const { Measure } = component("measure");
+assert.match(renderToStaticMarkup(createElement(Measure, { value: 70, limit: 100, locale: "tr" })), /70\.00 \/ 100\.00 · Uygun/);
 const ruler = renderToStaticMarkup(createElement(Measure, { value: 70, added: 40, limit: 100 }));
 assert.match(ruler, /role="meter"/);
 assert.match(ruler, /aria-valuenow="100"/);
@@ -76,6 +98,9 @@ assert.match(fractionalRuler, /aria-valuenow="0.3"/);
 assert.doesNotMatch(fractionalRuler, /Limit exceeded/);
 
 const data = lib("sample-data");
+assert.equal(data.getSampleData("tr").journal[0].how, "Stop tetiklendi");
+assert.equal(data.getSampleData("tr").equitySeries.dates[0].label, "16 Ağu");
+assert.equal(data.getSampleData("tr").account.equity, data.account.equity);
 function mockup(name) {
   const body = readFileSync(resolve(root, `../design/mockups/${name}.dc.html`), "utf8").replaceAll("\r", "").split("renderVals() {")[1].split("\n}\n}")[0];
   return new Function(body).call({ props: {} });

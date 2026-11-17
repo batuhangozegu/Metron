@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Card } from "@/components/metron/card";
 import type { CoinClass } from "@/components/metron/class-tag";
 import { getMessages } from "@/lib/messages";
+import { useLocale } from "@/components/metron/locale-provider";
 
 interface FilterableRow {
   pair: string;
@@ -14,7 +15,7 @@ const classes = ["all", "core", "large", "small", "stable"] as const;
 type ClassFilter = (typeof classes)[number];
 
 export function FilteredMarkets({ rows }: { rows: FilterableRow[] }) {
-  const t = getMessages("markets");
+  const t = getMessages("markets", useLocale());
   const [coinClass, setCoinClass] = useState<ClassFilter>("all");
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
