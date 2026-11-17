@@ -32,7 +32,7 @@
     "banner.caution":  "One rule would be broken",
     "banner.limit":  "Blocked: the position would be too large",
     "description.safe":  "Size, limits and discipline checks pass.",
-    "description.caution":  "Size and limits pass. Your cooldown rule asks you to wait {minutes} more minutes.",
+    "description.caution":  "No limit is exceeded, and this would be your fourth of five positions. Your cooldown rule asks you to wait {minutes} more minutes.",
     "description.limit":  "With this order BTC would be {position}% of the account. Your BTC/ETH rule allows {limit}%.",
     "summary":  "{passed} passed · {cautions} caution · {blocked} blocked",
     "measureTitle":  "Buy {pair} · the measure",

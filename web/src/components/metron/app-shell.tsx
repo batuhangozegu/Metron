@@ -26,6 +26,6 @@ export function AppShell({ children }: AppShellProps) {
         <ThemeToggle />
       </div>
     </header>
-    <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-page flex-col gap-6 p-page outline-none">{children}</main>
+    <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-canvas flex-col gap-6 p-page outline-none">{children}</main>
   </>;
 }

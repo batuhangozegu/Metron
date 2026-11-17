@@ -123,8 +123,11 @@ function checkColors(dir) {
 checkColors(resolve(root, "src"));
 const { compile } = require("@tailwindcss/node");
 const compiler = await compile(css, { base: resolve(root, "src/app"), from: resolve(root, "src/app/globals.css"), onDependency() {} });
-const utilities = ["bg-surface", "text-muted", "border-line", "text-profit", "bg-caution-tint", "num", "p-card", "p-page", "max-w-page", "rounded-card", "text-title", "dark:bg-raised"];
+const utilities = ["bg-surface", "text-muted", "border-line", "text-profit", "bg-caution-tint", "num", "p-card", "p-page", "max-w-canvas", "rounded-card", "text-title", "dark:bg-raised"];
 const compiled = compiler.build(utilities);
 for (const utility of utilities.filter((name) => !name.includes(":"))) assert.ok(compiled.includes(`.${utility} {`), `Tailwind emits ${utility}`);
+// Tailwind resolves a named max-w-* against --spacing-* before --container-*,
+// so a shared name would cap the page at the padding width.
+assert.match(compiled, new RegExp(`\\.max-w-canvas \\{\\s*max-width: ${tokens.size.pageMaxWidth}px;`), "max-w-canvas uses the page width, not the page padding");
 assert.ok(compiled.includes(":root:not([data-theme=\"light\"])"));
 console.log("Passed decimal precision, risk boundaries, messages, component rendering, source fixtures, theme bootstrap, tokens, color isolation, and Tailwind compilation checks.");

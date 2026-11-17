@@ -118,7 +118,7 @@
   "sample.preTradeCaution.checks.3.state": "Safe",
   "sample.preTradeCaution.checks.4.name": "Open positions",
   "sample.preTradeCaution.checks.4.detail": "Positions held at the same time",
-  "sample.preTradeCaution.checks.4.state": "Safe",
+  "sample.preTradeCaution.checks.4.state": "Caution",
   "sample.preTradeCaution.checks.5.name": "Cooldown after a loss",
   "sample.preTradeCaution.checks.5.detail": "Your rule: wait 60 minutes · warn and record",
   "sample.preTradeCaution.checks.5.state": "Broken",

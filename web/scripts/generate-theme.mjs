@@ -37,7 +37,7 @@ css += `
   --spacing-control: ${tokens.size.control}px;
   --spacing-card: ${tokens.size.cardPadding}px;
   --spacing-page: ${tokens.size.pagePadding}px;
-  --container-page: ${tokens.size.pageMaxWidth}px;
+  --container-canvas: ${tokens.size.pageMaxWidth}px;
 `;
 for (const [name, value] of Object.entries(tokens.radius)) css += `  --radius-${name}: ${value}px;\n`;
 css += `  --radius-sm: ${tokens.radius.tag}px;
