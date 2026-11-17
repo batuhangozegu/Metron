@@ -26,8 +26,9 @@ Note: This file orders the work for the first release defined in section 9.1 of 
 
 ## 3. Progress
 
-- **Interface (ahead of step 7).** Every mockup in `design/mockups` is built on the web and in the Flutter app, running on sample data. Later steps connect these screens to real data.
+- **Interface (ahead of step 7).** Every mockup in `design/mockups` is built on the web and in the Flutter app. The web Markets page uses live data; other screens still use sample data until their roadmap steps connect them.
 - **Step 0 (done).** Docker Compose in `deploy/` starts Postgres, Redis, the engine and the API with one command; the gRPC contract (a `Ping` call to start) is in `proto/`; the Rust engine in `engine/` answers it, and the Go API in `api/` calls it from `GET /healthz`. GitHub Actions runs each folder's checks only when that folder (or `proto/`) changes.
+- **Step 1 (done).** The engine stores hourly/daily Binance candles, computes Wilder ATR(14), classifies watched USDT pairs by volume and caches live mini tickers in Redis. `GET /v1/markets` combines prices and daily statistics using decimal strings; the web Markets page refreshes every five seconds while visible. `task up` runs migrations and starts the full stack including the web app.
 
 ## 4. Notes on the order
 

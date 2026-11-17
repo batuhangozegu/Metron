@@ -1,4 +1,4 @@
-# Only api/, engine/ and proto/ are built into images.
+# Only api/, engine/, proto/ and db/ are built into images.
 .git
 web
 mobile

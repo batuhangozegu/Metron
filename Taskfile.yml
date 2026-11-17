@@ -16,7 +16,7 @@ tasks:
   # --- Local stack -------------------------------------------------------
 
   up:
-    desc: Build and start Postgres, Redis, the engine and the API
+    desc: Build and start Postgres, Redis, migrations, the engine, API and web
     preconditions:
       - sh: test -f deploy/.env
         msg: "deploy/.env is missing; copy deploy/.env.example to deploy/.env first"
@@ -42,6 +42,17 @@ tasks:
     desc: Ask the API whether it can reach the engine
     cmds:
       - curl -fsS http://127.0.0.1:8080/healthz
+
+  web:
+    desc: Run the web development server (stop the Compose web service first)
+    dir: web
+    cmds:
+      - npm run dev
+
+  migrate:
+    desc: Apply all database migrations using the Compose one-shot service
+    cmds:
+      - "{{.COMPOSE}} run --build --rm migrate"
 
   # --- Contracts ---------------------------------------------------------
 

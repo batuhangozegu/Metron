@@ -2,6 +2,10 @@
   "title": "Markets",
   "description": "Each coin is measured by how far it moves in a day. The wider it moves, the wider its stop and the smaller the position.",
   "live": "Live · USDT spot pairs",
+  "loading": "Loading live markets…",
+  "waiting": "Waiting for the first candle sync. Watched pairs will appear here automatically.",
+  "unavailable": "Market data is unavailable. Check that the API and database are running. This page retries automatically.",
+  "missing": "—",
   "filters": "Filter markets",
   "coinClass": "Coin class",
   "class.all": "All",
@@ -36,5 +40,5 @@
   "note.minimum": "0",
   "note.to": " to ",
   "note.maximum": "10%",
-  "note.end": " a day. Suggested stop is the class multiplier times ATR. Classes are assigned by trading volume and can be changed per coin in Rules."
+  "note.end": " a day. Suggested stops use the system default of 1.5 times daily ATR; stablecoins have no stop. Classes are assigned by trading volume. Per-class rules arrive with risk calculation."
 }

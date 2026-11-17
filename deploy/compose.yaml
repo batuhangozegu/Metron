@@ -43,6 +43,16 @@ services:
       timeout: 3s
       retries: 10
 
+  migrate:
+    build:
+      context: ..
+      dockerfile: db/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-metron}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:-metron}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # Rust risk engine. Inside the network the API reaches it as engine:9090.
   engine:
     build:
@@ -51,8 +61,20 @@ services:
     restart: unless-stopped
     environment:
       RUST_LOG: ${RUST_LOG:-info}
+      DATABASE_URL: postgres://${POSTGRES_USER:-metron}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:-metron}?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      MARKET_SYMBOLS: ${MARKET_SYMBOLS:-}
+      MARKET_SYNC_SECONDS: ${MARKET_SYNC_SECONDS:-900}
+      LARGE_CAP_MIN_DAILY_VOLUME: ${LARGE_CAP_MIN_DAILY_VOLUME:-10000000}
+      BINANCE_REST_URL: ${BINANCE_REST_URL:-https://data-api.binance.vision}
+      BINANCE_WS_URL: ${BINANCE_WS_URL:-wss://data-stream.binance.vision}
     ports:
       - "127.0.0.1:${ENGINE_PORT:-9090}:9090"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
   # Go API gateway; GET /healthz shows whether it can reach the engine.
   api:
@@ -62,10 +84,30 @@ services:
     restart: unless-stopped
     environment:
       ENGINE_ADDR: engine:9090
+      DATABASE_URL: postgres://${POSTGRES_USER:-metron}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:-metron}?sslmode=disable
+      REDIS_URL: redis://redis:6379
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:
-      - engine
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      engine:
+        condition: service_started
+
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      METRON_API_URL: http://api:8080
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
 
 volumes:
   postgres-data:

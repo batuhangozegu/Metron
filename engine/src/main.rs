@@ -1,4 +1,6 @@
-//! Metron risk engine. For now it only answers the `Ping` health check.
+//! Metron risk engine: market data ingestion and gRPC risk services.
+
+mod market;
 
 use std::net::SocketAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -49,17 +51,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| DEFAULT_ADDR.to_string())
         .parse()?;
 
+    let config = market::Config::from_env()?;
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&config.database_url)
+        .await?;
+    let redis = redis::Client::open(config.redis_url.as_str())?
+        .get_connection_manager()
+        .await?;
+    let rest = market::binance::Rest::new(&config.rest_url)?;
+    let sync = tokio::spawn(market::sync::run(config.clone(), rest, pool.clone()));
+    let ticker = tokio::spawn(market::ticker::run(config, redis));
+
     info!(%addr, version = env!("CARGO_PKG_VERSION"), "engine listening");
 
-    Server::builder()
+    let result = Server::builder()
         .add_service(EngineServiceServer::new(Engine))
-        .serve_with_shutdown(addr, async {
-            let _ = tokio::signal::ctrl_c().await;
-            info!("shutting down");
-        })
-        .await?;
+        .serve_with_shutdown(addr, shutdown_signal())
+        .await;
+
+    sync.abort();
+    ticker.abort();
+    let _ = tokio::join!(sync, ticker);
+    pool.close().await;
+    result?;
 
     Ok(())
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = terminate.recv() => {},
+        }
+    }
+    #[cfg(not(unix))]
+    let _ = tokio::signal::ctrl_c().await;
+    info!("shutting down");
 }
 
 #[cfg(test)]
