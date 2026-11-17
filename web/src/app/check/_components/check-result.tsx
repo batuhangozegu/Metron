@@ -30,9 +30,10 @@ export function CheckResult({ check, locale = "en" }: { check: CheckData; locale
   const Icon = { safe: CircleCheck, caution: TriangleAlert, limit: OctagonMinus }[state];
   const theme = { safe: "border-safe bg-safe-tint text-safe", caution: "border-caution bg-caution-tint text-caution", limit: "border-limit bg-limit-tint text-limit" }[state];
   const source = check.coinClass === "core" ? "blocked" : "caution";
-  return <>
+  return <div className="check-result flex min-w-0 flex-col gap-4" data-verdict={state}>
     <div role={state === "limit" ? "alert" : "status"} data-risk={state} className={`risk-banner risk-panel flex flex-wrap items-center gap-x-5 gap-y-4 rounded-card border px-6 py-5 ${theme}`}>
       <Icon className="size-9 shrink-0" aria-hidden="true" />
+      {state === "limit" && <span className="blocked-stamp">{t("blockedStamp")}</span>}
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1 text-text">
         <h2 className="text-[26px] leading-8 font-semibold tracking-[-0.01em]">{t(`banner.${state}`)}</h2>
         <p className="text-body text-muted"><NumberCopy text={t(`description.${state}`, { minutes: formatAmount(String(account.cooldown.minutesRemaining), 0, locale), position: formatPercent(check.proposedPositionPercent ?? "0", 1, locale), limit: formatPercent(check.positionLimitPercent ?? "0", 0, locale) })} /></p>
@@ -71,11 +72,11 @@ export function CheckResult({ check, locale = "en" }: { check: CheckData; locale
               <div aria-hidden="true" className="measure-ticks" /><div aria-hidden="true" className="measure-track"><span className="measure-solid" style={{ width: `${Math.min(100, values.before / values.limit * 100)}%` }} /></div>
             </div> : <Measure locale={locale} value={values.before} added={values.added} limit={values.limit} formatValue={value => values.percent ? formatPercent(value, 2, locale) : formatAmount(value, 0, locale)} showMarks={false} className="min-w-0 flex-[1_1_200px]" label={t(`${key}.name` as Parameters<typeof t>[0])} />}
             <span className="num min-w-0 flex-[0_1_150px] text-right text-sm">{values.value}</span>
-            <div className="flex flex-[0_0_110px] justify-end">{row.over || row.warn ? <span data-risk={row.over ? "limit" : "caution"} className={`risk-badge inline-flex items-center gap-1.5 text-[13px] font-medium ${row.over ? "text-limit" : "text-caution"}`}>{row.over ? <OctagonMinus aria-hidden="true" className="size-4" /> : <TriangleAlert aria-hidden="true" className="size-4" />}{row.over ? t("exceeded") : row.state}</span> : <RiskBadge locale={locale} state="safe" className="bg-transparent px-0" />}</div>
+            <div className="flex flex-[0_0_110px] justify-end">{row.over || row.warn ? <span data-risk={row.over ? "limit" : "caution"} className={`risk-badge inline-flex items-center gap-1.5 text-[13px] font-medium ${row.over ? "text-limit" : "text-caution"}`}>{row.over ? <OctagonMinus aria-hidden="true" className="size-4" /> : <TriangleAlert aria-hidden="true" className="size-4" />}{t(row.over ? "exceeded" : values.isCooldown ? "broken" : "caution")}</span> : <RiskBadge locale={locale} state="safe" className="bg-transparent px-0" />}</div>
           </li>;
         })}
       </ul>
     </Card>
     <CheckActions state={state} stop={check.stop} reducedValue={check.reducedOrderValue} reducedRisk={check.reducedRisk} />
-  </>;
+  </div>;
 }

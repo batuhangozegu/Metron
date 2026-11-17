@@ -17,7 +17,7 @@ export function Navigation() {
   const t = getMessages("common", locale);
   const pathname = usePathname();
 
-  return <nav aria-label={t("nav.label")} className="flex flex-auto flex-wrap gap-1">
+  return <nav aria-label={t("nav.label")} className="command-nav flex flex-auto flex-wrap gap-1">
     {routes.map(([href, key]) => {
       const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
       return <Link key={href} href={href} aria-current={active ? "page" : undefined}

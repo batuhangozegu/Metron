@@ -10,7 +10,7 @@ export function PnL({ value, decimals = 2, suffix = "", className, locale = "en"
   const negative = formatted.startsWith("−");
   const amount = negative ? formatted.slice(1) : formatted;
   const state = !/[1-9]/.test(amount) ? "zero" : negative ? "negative" : "positive";
-  return <span className={cn("num whitespace-nowrap", { positive: "text-profit", negative: "text-loss", zero: "text-muted" }[state], className)}>
+  return <span key={formatted} data-pnl={state} className={cn("pnl num whitespace-nowrap", { positive: "text-profit", negative: "text-loss", zero: "text-muted" }[state], className)}>
     {getMessages("common", locale)(`pnl.${state}`, { amount, suffix: suffix === "%" ? "" : suffix })}
   </span>;
 }

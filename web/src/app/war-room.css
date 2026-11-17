@@ -1,9 +1,71 @@
-/* Risk drives the room's intensity; quiet surfaces stay neutral. */
+/* The room stays armed at rest; semantic words and icons still carry risk. */
+body {
+  position: relative;
+  isolation: isolate;
+  background: var(--bg);
+}
+/* The vignette lives on a viewport-fixed layer, so it never ends in a hard line where the
+   page content stops, and it fades into the base color along the bottom edge. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 55%, var(--bg) 100%),
+    radial-gradient(ellipse 60% 75% at 0 30%, color-mix(in srgb, var(--limit-edge) 23%, transparent), transparent 70%),
+    radial-gradient(ellipse 55% 70% at 100% 70%, color-mix(in srgb, var(--limit-edge) 18%, transparent), transparent 70%);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background: repeating-linear-gradient(0deg, var(--text) 0 1px, transparent 1px 4px);
+}
+.command-header {
+  position: relative;
+  border-bottom-color: var(--limit-edge);
+  box-shadow: 0 1px 20px var(--limit-tint);
+}
+.command-nav a { position: relative; overflow: hidden; border-radius: 2px; }
+.command-nav a::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--limit);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 160ms ease;
+}
+.command-nav a:hover::after, .command-nav a:focus-visible::after,
+.command-nav a[aria-current="page"]::after { transform: scaleX(1); }
+main h1, .gauge-figure.num {
+  font-family: var(--font-display), var(--font-inter), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+main h1 { font-size: clamp(30px, 3vw, 44px); line-height: 1.12; }
+.gauge-figure.num { font-size: 56px; line-height: 1.1; }
+main :is(button, input, select, [data-slot="button"]), .command-header :is(button, a) { border-radius: 3px; }
+:is(button, [data-slot="button"]):not(:disabled):hover, .command-header > div > a:hover {
+  box-shadow: inset 0 -2px 0 var(--limit-edge), 0 0 16px var(--limit-tint);
+}
 .metron-card {
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--line) 30%, transparent);
+  border-radius: 3px;
+  border-top-color: color-mix(in srgb, var(--limit-edge) 65%, var(--line));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--line) 30%, transparent);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
-.metron-card:hover { border-color: var(--subtle); }
+.metron-card:hover { border-color: var(--subtle); border-top-color: var(--limit-edge); }
+.metron-card > :is(div, p, ul) + :is(div, p, ul).border-t {
+  border-top-color: color-mix(in srgb, var(--limit-edge) 35%, var(--line));
+}
 .micro-label, .risk-label {
   font-size: 11px;
   font-weight: 700;
@@ -27,13 +89,93 @@
   background: linear-gradient(115deg, var(--limit-tint), transparent 85%), var(--surface);
   box-shadow: inset 3px 0 0 var(--limit-edge), 0 0 32px var(--limit-tint);
 }
-.overview-command { border-left: 3px solid var(--safe); padding: 8px 0 8px 20px; }
+.overview-command {
+  --command-signal: var(--safe);
+  position: relative;
+  border: 1px solid var(--line);
+  border-top-color: var(--limit-edge);
+  border-left: 6px solid var(--command-signal);
+  border-radius: 2px;
+  padding: 24px;
+  background: linear-gradient(110deg, var(--raised), var(--surface) 70%);
+  box-shadow: inset 0 1px 0 var(--line), 0 8px 24px color-mix(in srgb, var(--bg) 65%, transparent);
+}
+.overview-command::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -6px;
+  width: 6px;
+  background: var(--command-signal);
+}
+.overview-command[data-risk="caution"] { --command-signal: var(--caution); }
+.overview-command[data-risk="limit"] { --command-signal: var(--limit); }
+.overview-command[data-risk="caution"]::before, .overview-command[data-risk="limit"]::before { animation: command-pulse 2.8s ease-in-out infinite; }
 .overview-command[data-risk="caution"] { border-color: var(--caution); }
 .overview-command[data-risk="limit"] { border-color: var(--limit-edge); }
 .overview-command[data-risk="limit"] h1 { color: var(--limit); }
 .risk-banner h2 { font-weight: 800; letter-spacing: -0.035em; }
 .risk-banner[data-risk="limit"] > svg { filter: drop-shadow(0 0 10px var(--limit-tint)); }
 .risk-badge { white-space: nowrap; }
+.measure-level { align-self: flex-end; }
+.measure-level .risk-badge { border: 1px solid currentColor; border-radius: 1px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 5px; }
+.measure-level .risk-badge svg { width: 12px; height: 12px; }
+.measure .measure-track { height: 18px; border-radius: 0; background: repeating-linear-gradient(90deg, var(--raised) 0 11px, transparent 11px 14px); box-shadow: 0 0 0 1px var(--line); }
+.measure[data-size="sm"] .measure-track { height: 12px; }
+.measure .measure-solid, .measure .measure-added { border-radius: 0; mask-image: repeating-linear-gradient(90deg, black 0 11px, transparent 11px 14px); }
+.measure[data-risk="caution"] .measure-solid { background: linear-gradient(90deg, var(--limit-edge), var(--caution)); }
+.measure[data-risk="limit"] .measure-solid { background: linear-gradient(90deg, var(--limit-edge), var(--limit)); }
+.measure .measure-mark { top: -5px; bottom: -5px; box-shadow: 0 0 0 1px var(--surface); }
+.pnl[data-pnl="negative"] { border-radius: 2px; text-shadow: 0 0 12px var(--loss-tint); animation: loss-flash 700ms ease-out; }
+.check-result[data-verdict="limit"] {
+  padding: 12px;
+  border: 1px solid var(--limit-edge);
+  border-radius: 3px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--limit-edge) 30%, var(--bg)), var(--bg) 85%);
+  box-shadow: 0 0 48px var(--limit-tint);
+}
+.check-result[data-verdict="limit"] .risk-banner {
+  background: linear-gradient(120deg, color-mix(in srgb, var(--limit-edge) 32%, var(--surface)), var(--surface));
+  border: 1px solid var(--limit);
+  border-left-width: 6px;
+  padding-block: 28px;
+}
+.blocked-stamp {
+  order: 3;
+  margin: 12px 4px 8px auto;
+  padding: 8px 12px;
+  transform: rotate(-9deg);
+  border: 3px double currentColor;
+  color: var(--limit);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  box-shadow: 3px 3px 0 var(--limit-tint);
+}
+.check-result[data-verdict="limit"] li[data-risk="limit"] { animation: violation-heartbeat 2.8s ease-in-out infinite; border-left: 4px solid var(--limit); }
+.market-ticker { display: flex; min-width: 0; border-bottom: 1px solid var(--limit-edge); background: var(--surface); }
+.ticker-controls { position: relative; z-index: 1; display: flex; align-items: center; flex-shrink: 0; gap: 6px; padding-left: 24px; border-right: 1px solid var(--line); background: var(--raised); }
+.ticker-source { display: flex; align-items: center; gap: 7px; color: var(--muted); }
+.ticker-beacon { width: 5px; height: 5px; background: var(--muted); }
+[data-source="live"] .ticker-beacon { background: var(--safe); }
+.ticker-pause { display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
+.ticker-viewport { flex: 1; min-width: 0; overflow: hidden; }
+.ticker-track { display: flex; width: max-content; animation: ticker-march 65s linear infinite; }
+.ticker-quotes { display: flex; flex-shrink: 0; align-items: center; list-style: none; margin: 0; padding: 0; }
+.ticker-quotes li { display: flex; align-items: center; flex-shrink: 0; gap: 12px; min-height: 44px; padding: 0 24px; border-right: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+.ticker-pair { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+.market-ticker:hover .ticker-track, .market-ticker:focus-within .ticker-track, .market-ticker[data-paused="true"] .ticker-track { animation-play-state: paused; }
+.ticker-viewport:focus { overflow-x: auto; }
+.ticker-viewport:focus .ticker-track { animation: none; }
+[data-theme="light"] body::after { background: linear-gradient(to bottom, transparent 55%, var(--bg) 100%), radial-gradient(ellipse 60% 75% at 0 30%, color-mix(in srgb, var(--limit-tint) 45%, transparent), transparent 70%), radial-gradient(ellipse 55% 70% at 100% 70%, color-mix(in srgb, var(--limit-tint) 45%, transparent), transparent 70%); }
+[data-theme="light"] body::before { opacity: 0.018; }
+[data-theme="light"] .check-result[data-verdict="limit"] { background: linear-gradient(135deg, var(--limit-tint), transparent), var(--bg); }
+[data-theme="light"] .check-result[data-verdict="limit"] .risk-banner { background: linear-gradient(120deg, var(--limit-tint), transparent), var(--surface); }
+[data-theme="light"] tbody tr:hover, [data-theme="light"] tbody tr:focus-within { background: linear-gradient(90deg, var(--limit-tint), transparent 35%), var(--surface); }
+@keyframes ticker-march { to { transform: translateX(-50%); } }
+@keyframes command-pulse { 50% { box-shadow: 0 0 18px var(--command-signal); } }
+@keyframes loss-flash { from { outline: 1px solid var(--loss); box-shadow: 0 0 12px var(--loss-tint); } to { outline: 1px solid transparent; box-shadow: none; } }
+@keyframes violation-heartbeat { 0%, 38%, 66%, 100% { box-shadow: inset 1px 0 0 var(--limit), 0 0 4px var(--limit-tint); } 48%, 58% { box-shadow: inset 4px 0 0 var(--limit), 0 0 24px var(--limit-tint); } }
 
 .measure-solid, .measure-added, .stop-fill {
   transform-origin: left;
@@ -44,8 +186,8 @@
 .live-dot { animation: live-beacon 2s ease-in-out infinite; }
 @keyframes meter-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes risk-heartbeat {
-  0%, 38%, 66%, 100% { opacity: 1; filter: brightness(1); }
-  48%, 58% { opacity: 0.8; filter: brightness(1.3); }
+  0%, 38%, 66%, 100% { box-shadow: 0 0 0 var(--limit-tint); }
+  48%, 58% { box-shadow: 0 0 16px var(--limit-tint); }
 }
 @keyframes live-beacon { 50% { opacity: 0.45; box-shadow: 0 0 0 5px var(--safe-tint); } }
 .price-tick { display: inline-flex; align-items: center; gap: 4px; border-radius: 2px; padding: 3px 4px; }
@@ -59,7 +201,8 @@
 table { font-variant-numeric: tabular-nums; }
 thead th { white-space: nowrap; }
 tbody tr { transition: background-color 160ms ease; }
-tbody tr:hover, tbody tr:focus-within { background: var(--raised); }
+tbody tr:hover, tbody tr:focus-within { background: linear-gradient(90deg, var(--limit-tint), transparent 35%), var(--raised); }
+tbody tr:hover > :first-child, tbody tr:focus-within > :first-child { box-shadow: inset 3px 0 0 var(--limit-edge); }
 .positions-table { min-width: 710px; font-size: 13px; }
 .positions-table thead th { padding-inline: 10px; }
 .positions-table tbody td { white-space: nowrap; padding-inline: 10px; }
@@ -76,8 +219,14 @@ tbody tr:hover, tbody tr:focus-within { background: var(--raised); }
   .overview-command { padding-left: 12px; }
   .overview-command h1 { font-size: 32px; line-height: 1.1; }
   main#main-content { padding: 20px 16px; }
+  .ticker-controls { padding-left: 12px; }
+  .ticker-quotes li { padding-inline: 16px; }
+  .check-result[data-verdict="limit"] { padding: 6px; }
+  .blocked-stamp { font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .price-direction { display: none; }
+  .ticker-viewport { overflow-x: auto; }
+  .ticker-duplicate, .ticker-pause { display: none; }
 }

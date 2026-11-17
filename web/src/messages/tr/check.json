@@ -1,6 +1,8 @@
 {
+  "blockedStamp": "ENGELLENDİ",
   "broken": "İhlal edildi",
   "exceeded": "Aşıldı",
+  "caution": "Dikkat",
   "cooldownStatus": "{value} · İhlal edildi",
   "cooldownComplete": "{value} · Uygun",
   "order": "Emir",

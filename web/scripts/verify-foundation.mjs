@@ -146,6 +146,8 @@ for (const check of [data.preTradeCaution, data.preTradeBlocked]) {
   assert.ok(text.includes(formatPrice(check.entry, undefined, "tr")));
   assert.ok(text.includes(formatPercent(check.riskPercent, 2, "tr")));
   assert.doesNotMatch(text, /\d+\.\d+%|%\d+\.\d+/);
+  assert.equal(markup.includes('class="blocked-stamp"'), check.verdict === "limit");
+  if (check.verdict === "limit") assert.ok(text.includes(getMessages("check", "tr")("blockedStamp")));
 }
 assert.equal(getMessages("check", "tr")("transitionPercent", {
   before: formatPercent("2.75", 2, "tr"), after: formatPercent("3.25", 2, "tr"), limit: formatPercent("6", 2, "tr"),
@@ -154,6 +156,52 @@ const { formatVolume } = load(resolve(root, "src/app/markets/_lib/market-data"))
 assert.equal(formatVolume("38200000000", "tr"), "38,2B");
 assert.equal(formatVolume("1200000000", "en"), "1.2B");
 assert.equal(formatVolume("1000000000", "tr"), "1B");
+
+// Exercise the ticker route against the Markets API contract without a network.
+const { GET: getTicker } = load(resolve(root, "src/app/api/market-ticker/route"));
+const { sampleTicker } = lib("market-ticker");
+const liveQuote = {
+  symbol: "BTCUSDT", base_asset: "BTC", quote_asset: "USDT", coin_class: "core",
+  price: "9007199254740993.125", change_24h_percent: "-2.10",
+  quote_volume_24h: null, price_time: null, atr_percent: null, atr: null, suggested_stop_percent: null,
+};
+const originalFetch = globalThis.fetch;
+try {
+  for (const [upstream, expected] of [
+    [{ markets: [liveQuote, { ...liveQuote, symbol: "ETHUSDT", base_asset: "ETH", price: null, change_24h_percent: null }] }, {
+      source: "live", quotes: [
+        { pair: "BTC/USDT", price: liveQuote.price, change: "-2.10" },
+        { pair: "ETH/USDT", price: null, change: null },
+      ],
+    }],
+    [{ markets: [] }, sampleTicker],
+    [{ markets: [{ ...liveQuote, price: null }] }, sampleTicker],
+    [{ markets: [{ ...liveQuote, price: "bad" }] }, sampleTicker],
+    [null, sampleTicker],
+  ]) {
+    globalThis.fetch = async url => {
+      assert.ok(String(url).endsWith("/v1/markets"), "Ticker uses the same API as Markets");
+      if (upstream === null) throw new Error("Offline");
+      return Response.json(upstream);
+    };
+    const response = await getTicker();
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.deepEqual(await response.json(), expected);
+  }
+  globalThis.fetch = async () => new Response(null, { status: 503 });
+  assert.deepEqual(await (await getTicker()).json(), sampleTicker);
+} finally {
+  globalThis.fetch = originalFetch;
+}
+assert.equal(sampleTicker.quotes[0].price, "97846.00");
+assert.equal(sampleTicker.quotes.length, data.markets.length);
+for (const locale of ["en", "tr"]) {
+  const { MarketTicker } = component("market-ticker");
+  const markup = renderToStaticMarkup(createElement(LocaleProvider, { locale }, createElement(MarketTicker)));
+  assert.ok(markup.includes(getMessages("common", locale)("ticker.sample")));
+  assert.ok(markup.includes('aria-hidden="true"'));
+  assert.ok(markup.includes(formatPrice("97846.00", undefined, locale)));
+}
 
 const { themeBootstrap } = lib("theme");
 for (const stored of ["light", "dark", "invalid", null]) {
@@ -176,9 +224,19 @@ const contrast = (foreground, background) => {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 };
 for (const [theme, palette] of Object.entries(tokens.color)) {
+  const [r, g, b, alpha] = palette.limitTint.match(/[\d.]+/g).map(Number);
+  const mix = (front, back, amount) => back.map((value, index) => value * (1 - amount) + front[index] * amount);
+  const redWash = mix([r, g, b], rgb(palette.surface), alpha);
+  const roomBackgrounds = {
+    blockedBanner: theme === "dark" ? mix(rgb(palette.limitEdge), rgb(palette.surface), 0.32) : redWash,
+    hoveredRow: theme === "dark" ? mix([r, g, b], rgb(palette.raised), alpha) : redWash,
+  };
   for (const name of ["text", "muted", "subtle", "profit", "loss", "safe", "caution", "limit"]) {
     for (const background of ["bg", "surface", "raised"]) {
       assert.ok(contrast(rgb(palette[name]), rgb(palette[background])) >= 4.5, `${theme}: ${name} on ${background} is AA`);
+    }
+    for (const [background, color] of Object.entries(roomBackgrounds)) {
+      assert.ok(contrast(rgb(palette[name]), color) >= 4.5, `${theme}: ${name} on ${background} is AA`);
     }
     if (palette[`${name}Tint`]) {
       const [r, g, b, alpha] = palette[`${name}Tint`].match(/[\d.]+/g).map(Number);
@@ -210,4 +268,4 @@ for (const utility of utilities.filter((name) => !name.includes(":"))) assert.ok
 // so a shared name would cap the page at the padding width.
 assert.match(compiled, new RegExp(`\\.max-w-canvas \\{\\s*max-width: ${tokens.size.pageMaxWidth}px;`), "max-w-canvas uses the page width, not the page padding");
 assert.ok(compiled.includes(":root:not([data-theme=\"light\"])"));
-console.log("Passed decimal precision, risk boundaries, messages, component rendering, source fixtures, theme bootstrap, tokens, color isolation, and Tailwind compilation checks.");
+console.log("Passed decimal precision, risk boundaries, messages, component rendering, ticker live/fallback responses, source fixtures, theme bootstrap, tokens, AA surface/wash contrast, color isolation, and Tailwind compilation checks.");

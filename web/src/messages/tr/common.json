@@ -1,5 +1,13 @@
 {
   "brand": "Metron",
+  "ticker.label": "Piyasa takip bandı",
+  "ticker.live": "Canlı akış",
+  "ticker.sample": "Örnek akış",
+  "ticker.pause": "Bandı duraklat",
+  "ticker.resume": "Bandı sürdür",
+  "ticker.quotes": "Takip edilen pariteler, fiyatlar ve 24 saatlik değişimler",
+  "ticker.change": "24 saatlik değişim",
+  "ticker.missing": "—",
   "description": "Kripto risk yönetimi",
   "nav.label": "Ana menü",
   "nav.overview": "Genel bakış",

@@ -1,6 +1,6 @@
 import { getLocale } from "@/lib/locale-server";
 import { CircleCheck, Octagon, TriangleAlert } from "lucide-react";
-import { Card, ClassTag, Measure, PnL, RiskBadge, Stat, riskState } from "@/components/metron";
+import { Card, ClassTag, Measure, PnL, Stat, riskState } from "@/components/metron";
 import { formatAmount, formatPercent, formatPrice } from "@/lib/format";
 import { getMessages } from "@/lib/messages";
 import { account, gauges, limits, openPositions } from "@/lib/sample-data";
@@ -38,9 +38,9 @@ export default async function Page() {
         const value = parseFloat(gauge.value), limit = parseFloat(gauge.limit);
         const label = t(`gauge.${gaugeKeys[index]}.label`);
         return <Card key={gaugeKeys[index]} data-risk={gaugeStates[index]} className="risk-panel flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-card">
-          <div className="flex items-center justify-between gap-3"><h2 className="risk-label text-muted">{label}</h2><RiskBadge locale={locale} state={riskState(value, limit, limits.cautionAt)} /></div>
+          <h2 className="risk-label text-muted">{label}</h2>
           <div className="flex flex-wrap items-baseline gap-2.5">
-            <span className="num text-figure-large">{formatPercent(gauge.value.replace("%", ""), 2, locale)}</span>
+            <span className="gauge-figure num text-figure-large">{formatPercent(gauge.value.replace("%", ""), 2, locale)}</span>
             <span className="text-body text-subtle"><NumberText text={t("of", { limit: formatPercent(gauge.limit.replace("%", ""), 2, locale) })} /></span>
           </div>
           <Measure locale={locale} value={value} limit={limit} cautionAt={limits.cautionAt} label={label} formatValue={(amount) => amount === "0" ? formatAmount(amount, 0, locale) : formatPercent(amount, 2, locale)} />
@@ -49,7 +49,8 @@ export default async function Page() {
       })}
     </section>
     <section aria-label={t("details")} className="positions-layout min-w-0 items-start gap-4">
-      <Card aria-labelledby="positions-title" className="flex min-w-0 flex-[999_1_640px] flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-col gap-4">
+      <Card aria-labelledby="positions-title" className="flex min-w-0 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-5"><h2 id="positions-title" className="text-heading">{t("positions")}</h2><span className="text-small text-subtle">{t("sorted")}</span></div>
         <div role="region" aria-label={t("positions.table")} tabIndex={0} className="min-w-0 overflow-x-auto">
           <table className="positions-table w-full border-collapse text-right">
@@ -68,6 +69,11 @@ export default async function Page() {
         </div>
         <p className="border-t border-line px-6 py-3.5 text-small text-subtle">{t("stopsNote")}</p>
       </Card>
+      <Card aria-labelledby="checks-title" className="flex flex-col gap-4 px-6 py-5">
+        <h2 id="checks-title" className="text-label text-subtle uppercase">{t("checks")}</h2>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">{checks.map((check) => <div key={check} className="flex min-w-0 flex-col-reverse gap-1"><dt className="text-small text-muted">{t(`checks.${check}`)}</dt><dd className="num text-figure-medium">{formatAmount(String(account.checksToday[check]), 0, locale)}</dd></div>)}</dl>
+      </Card>
+      </div>
       <aside aria-label={t("discipline")} className="positions-aside min-w-0 flex-col gap-4">
         <Card data-risk={cooldown.minutesRemaining > 0 ? "caution" : "safe"} className="risk-panel flex flex-col gap-4 p-card">
           <div className="flex items-center justify-between gap-3"><h2 className="text-heading">{t("discipline")}</h2><a href="/rules" className="inline-flex min-h-control items-center py-3 text-small text-muted underline">{t("editRules")}</a></div>
@@ -78,7 +84,6 @@ export default async function Page() {
           <ul className="flex flex-col gap-3 text-sm">{(["hours", "stop"] as const).map((rule) => <li key={rule} className="flex items-center gap-2.5"><CircleCheck role="img" aria-label={t("kept")} className="size-4 shrink-0 text-safe" /><span><NumberText text={t(`rule.${rule}`)} /></span></li>)}</ul>
           <p className="border-t border-line pt-3.5 text-small text-subtle"><NumberText text={t("violations", { count: formatAmount(String(cooldown.violationsThisWeek), 0, locale) })} /></p>
         </Card>
-        <Card className="flex flex-col gap-3.5 p-card"><h2 className="text-heading">{t("checks")}</h2><dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2.5 text-sm">{checks.map((check) => <div key={check} className="contents"><dt className="text-muted">{t(`checks.${check}`)}</dt><dd className="num text-right">{formatAmount(String(account.checksToday[check]), 0, locale)}</dd></div>)}</dl></Card>
       </aside>
     </section>
   </>;

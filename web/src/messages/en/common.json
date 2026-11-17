@@ -1,5 +1,13 @@
 {
   "brand": "Metron",
+  "ticker.label": "Market watch ticker",
+  "ticker.live": "Live feed",
+  "ticker.sample": "Sample feed",
+  "ticker.pause": "Pause ticker",
+  "ticker.resume": "Resume ticker",
+  "ticker.quotes": "Watched pairs, prices and 24-hour changes",
+  "ticker.change": "24-hour change",
+  "ticker.missing": "—",
   "description": "Crypto risk management",
   "nav.label": "Main",
   "nav.overview": "Overview",

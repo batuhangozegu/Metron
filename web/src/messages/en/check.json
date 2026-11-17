@@ -1,6 +1,8 @@
 {
+  "blockedStamp": "BLOCKED",
     "broken": "Broken",
     "exceeded": "Exceeded",
+    "caution": "Caution",
     "cooldownStatus": "{value} · Broken",
     "cooldownComplete": "{value} · Safe",
     "order":  "Order",

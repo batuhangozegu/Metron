@@ -41,6 +41,6 @@ export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md"
       <span className="absolute -translate-x-1/2" style={{ left: `${cautionAt * 100}%` }} title={t("measure.caution")}>{formatValue(decimalProduct(String(limit), String(cautionAt)))}</span>
       <span title={t("measure.limit")}>{formatValue(String(limit))}</span>
     </div>}
-    <span className="sr-only"><RiskBadge locale={locale} state={state} /></span>
+    <div className="measure-level"><RiskBadge locale={locale} state={state} /></div>
   </div>;
 }
