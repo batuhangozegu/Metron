@@ -86,6 +86,8 @@ services:
       ENGINE_ADDR: engine:9090
       DATABASE_URL: postgres://${POSTGRES_USER:-metron}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/${POSTGRES_DB:-metron}?sslmode=disable
       REDIS_URL: redis://redis:6379
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
     depends_on:

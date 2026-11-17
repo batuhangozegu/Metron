@@ -1,4 +1,4 @@
-// Command api is Metron's Go API gateway for health and market data.
+// Command api is Metron's Go API for health, markets and user accounts.
 package main
 
 import (
@@ -19,6 +19,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/batuhangozegu/metron/api/internal/accounts"
+	"github.com/batuhangozegu/metron/api/internal/auth"
+	"github.com/batuhangozegu/metron/api/internal/cryptobox"
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
 	"github.com/batuhangozegu/metron/api/internal/health"
 	"github.com/batuhangozegu/metron/api/internal/market"
@@ -49,8 +52,10 @@ func run(log *slog.Logger) error {
 	defer stop()
 
 	var symbols market.SymbolSource
+	var authStore auth.Store
+	var accountStore accounts.Store
 	// No implicit database password. With no URL, health and the HTTP server
-	// remain available while /v1/markets reports 503.
+	// remain available while markets and authentication report 503.
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
 		// Use Compose's local port only when a loopback URL omits its port.
 		// An explicitly supplied :5432 (or any remote endpoint) stays intact.
@@ -61,21 +66,23 @@ func run(log *slog.Logger) error {
 		}
 		config, err := pgxpool.ParseConfig(databaseURL)
 		if err != nil {
-			log.Warn("invalid DATABASE_URL; markets will return 503")
+			log.Warn("invalid DATABASE_URL; markets and authentication will return 503")
 		} else {
 			if config.ConnConfig.Host == "" {
 				config.ConnConfig.Host = "127.0.0.1"
 			}
 			pool, err := pgxpool.NewWithConfig(ctx, config)
 			if err != nil {
-				log.Warn("database unavailable; markets will return 503")
+				log.Warn("database unavailable; markets and authentication will return 503")
 			} else {
 				defer pool.Close()
 				symbols = market.Postgres{Pool: pool}
+				authStore = auth.Postgres{Pool: pool}
+				accountStore = accounts.Postgres{Pool: pool}
 			}
 		}
 	} else {
-		log.Warn("DATABASE_URL unset; configure Postgres at 127.0.0.1:5433 with an explicit password; markets will return 503")
+		log.Warn("DATABASE_URL unset; configure Postgres at 127.0.0.1:5433 with an explicit password; markets and authentication will return 503")
 	}
 	var tickers market.TickerSource
 	redisOptions, err := redis.ParseURL(envOr("REDIS_URL", "redis://127.0.0.1:6379"))
@@ -101,6 +108,16 @@ func run(log *slog.Logger) error {
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Get("/healthz", health.Handler(engine))
 	r.Get("/v1/markets", market.Handler(symbols, tickers))
+	box, keyErr := cryptobox.New(os.Getenv("APP_ENCRYPTION_KEY"))
+	if keyErr != nil {
+		log.Warn("APP_ENCRYPTION_KEY missing or invalid; authentication endpoints will return 503", "err", keyErr)
+	}
+	authService, err := auth.New(authStore, box)
+	if err != nil {
+		return err
+	}
+	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
+	authHTTP.Mount(r, accounts.Service{Store: accountStore}.Mount)
 
 	srv := &http.Server{Addr: apiAddr, Handler: r, ReadHeaderTimeout: 5 * time.Second}
 	errCh := make(chan error, 1)
