@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
       RiskLevel.forUsage(account.weeklyLossPercent, limits.weeklyLossPercent),
     ].reduce((a, b) => a.index > b.index ? a : b);
     final c = context.colors;
-    return Scaffold(
+    return WarRoomScaffold(
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -36,72 +36,97 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 16,
             children: [
-              Row(
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
                 children: [
-                  const Icon(Icons.stacked_bar_chart, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppStrings.of(context).appName,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: c.line),
-                      borderRadius: BorderRadius.circular(MetronRadius.tag),
-                    ),
-                    child: Text(
-                      HomeStrings.of(context).paper,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: c.muted,
-                        letterSpacing: .66,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.stacked_bar_chart, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppStrings.of(context).appName,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Num(
-                    NumberFormatter.of(context)
-                        .decimal(account.equity, minimumDecimals: 2),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 8,
-                children: [
-                  SectionHeader(
-                    HomeStrings.of(context).riskStatus,
-                    trailing: Num(
-                      '${_time(account.asOf)} UTC',
-                      style: TextStyle(fontSize: 11, color: c.subtle),
-                    ),
+                    ],
                   ),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Semantics(
-                        label: level.label(context),
-                        child: Icon(
-                          level.icon,
-                          color: level.color(c),
-                          size: 26,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: c.line),
+                          borderRadius: BorderRadius.circular(MetronRadius.tag),
+                        ),
+                        child: Text(
+                          HomeStrings.of(context).paper,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: c.muted,
+                            letterSpacing: .66,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          HomeStrings.of(context).headline(level),
-                          style: Theme.of(context).textTheme.headlineLarge,
-                        ),
+                      Num(
+                        NumberFormatter.of(context)
+                            .decimal(account.equity, minimumDecimals: 2),
                       ),
                     ],
                   ),
                 ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [c.raised, c.surface]),
+                  border: Border(
+                    top: BorderSide(color: c.limitEdge),
+                    left: BorderSide(color: level.color(c), width: 5),
+                    right: BorderSide(color: c.line),
+                    bottom: BorderSide(color: c.line),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 8,
+                  children: [
+                    SectionHeader(
+                      HomeStrings.of(context).riskStatus,
+                      trailing: Num(
+                        '${_time(account.asOf)} UTC',
+                        style: TextStyle(fontSize: 11, color: c.subtle),
+                      ),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          label: level.label(context),
+                          child: Icon(
+                            level.icon,
+                            color: level.color(c),
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: CommandTitle(
+                            HomeStrings.of(context).headline(level),
+                            style: Theme.of(context).textTheme.headlineLarge,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               _RiskCard(
                 title: HomeStrings.of(context).openRisk,
@@ -215,6 +240,7 @@ class _RiskCard extends StatelessWidget {
     final c = context.colors;
     final level = RiskLevel.forUsage(value, limit);
     return MetronCard(
+      risk: level,
       padding: EdgeInsets.all(large ? 20 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -243,7 +269,11 @@ class _RiskCard extends StatelessWidget {
               Num(
                 NumberFormatter.of(context).percent(value),
                 style: large
-                    ? MetronType.figureLarge
+                    ? MetronType.gauge.copyWith(
+                        color: level == RiskLevel.safe
+                            ? c.text
+                            : level.color(c),
+                      )
                     : const TextStyle(
                         fontSize: 22,
                         height: 28 / 22,
@@ -276,7 +306,7 @@ class _RiskCard extends StatelessWidget {
             label:
                 '$title, ${NumberFormatter.of(context).percent(value)} ${AppStrings.of(context).outOf} ${NumberFormatter.of(context).percent(limit, decimalPlaces: large ? 2 : 0)}, ${level.label(context)}',
             child: SizedBox(
-              height: 30,
+              height: 38,
               child: CustomPaint(
                 painter: MeasurePainter(
                   fraction: (value / limit).clamp(0, 1),

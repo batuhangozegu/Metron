@@ -34,7 +34,7 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
         )
         .toList();
     final note = TextStyle(fontSize: 12, height: 17 / 12, color: c.subtle);
-    return Scaffold(
+    return WarRoomScaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -43,11 +43,11 @@ class _MarketsScreenState extends ConsumerState<MarketsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  CommandTitle(
                     AppStrings.of(context).markets,
-                    style: MetronType.heading.copyWith(
-                      fontSize: 22,
-                      height: 28 / 22,
+                    style: MetronType.title.copyWith(
+                      fontSize: 28,
+                      height: 1.12,
                       letterSpacing: -.22,
                     ),
                   ),

@@ -7,6 +7,7 @@ import '../theme/metron_colors.dart';
 import '../theme/tokens.dart';
 import 'num.dart';
 import 'risk_badge.dart';
+import 'segmented_bar.dart';
 
 /// Ten-division risk ruler. Values use the same unit (e.g. 2.75 and 6 percent).
 /// Fill clamps to the track; the labels retain an exceeded value in full.
@@ -71,7 +72,7 @@ class Measure extends StatelessWidget {
           ),
           const SizedBox(height: MetronSpace.sm),
           SizedBox(
-            height: 30,
+            height: 38,
             child: CustomPaint(
               key: const ValueKey('measure-ruler'),
               painter: MeasurePainter(
@@ -112,28 +113,24 @@ class MeasurePainter extends CustomPainter {
       final x = 1 + width * i / divisions;
       canvas.drawLine(Offset(x, 0), Offset(x, 8), paint..color = tick);
     }
-    final bar = RRect.fromRectAndRadius(
-      Rect.fromLTWH(1, 16, width, 8),
-      const Radius.circular(2),
+    paintSegmentedBar(
+      canvas,
+      Rect.fromLTWH(1, 14, width, MetronRisk.meterHeight),
+      fraction: fraction,
+      color: fill,
+      startColor: fill == limit ? caution : null,
+      track: track,
     );
-    canvas.drawRRect(bar, paint..color = track);
-    canvas.save();
-    canvas.clipRRect(bar);
-    canvas.drawRect(
-      Rect.fromLTWH(1, 16, width * fraction, 8),
-      paint..color = fill,
-    );
-    canvas.restore();
     paint.strokeWidth = 2;
     final cautionX = 1 + width * MetronRisk.cautionAtFractionOfLimit;
     canvas.drawLine(
-      Offset(cautionX, 12),
-      Offset(cautionX, 28),
+      Offset(cautionX, 10),
+      Offset(cautionX, 32),
       paint..color = caution,
     );
     canvas.drawLine(
-      Offset(1 + width, 12),
-      Offset(1 + width, 28),
+      Offset(1 + width, 10),
+      Offset(1 + width, 32),
       paint..color = limit,
     );
   }

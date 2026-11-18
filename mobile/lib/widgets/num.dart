@@ -25,8 +25,13 @@ class Num extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     data,
-    style: GoogleFonts.jetBrainsMono(textStyle: MetronType.figure.merge(style))
-        .copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+    style:
+        (style?.fontFamily == MetronType.condensed
+                ? MetronType.figure.merge(style)
+                : GoogleFonts.jetBrainsMono(
+                    textStyle: MetronType.figure.merge(style),
+                  ))
+            .copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
     textAlign: textAlign,
     maxLines: maxLines,
     overflow: overflow,

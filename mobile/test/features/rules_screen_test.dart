@@ -87,9 +87,12 @@ void main() {
           ),
           findsOneWidget,
         );
-        for (final value in ['6.00%', '5.00%', '10.00%', '5', '2.0']) {
+        for (final value in ['2.00%', '6.00%', '5.00%', '10.00%', '2.0']) {
           expect(find.text(value), findsOneWidget);
         }
+        expect(find.text('5'), findsNWidgets(2));
+        expect(find.text('3'), findsNWidgets(2));
+        expect(find.text('Spot portfolio allocation cap'), findsNWidgets(3));
         for (final label in ['BTC/ETH', 'Large-cap', 'Small-cap']) {
           await reveal(tester, find.text(label));
         }

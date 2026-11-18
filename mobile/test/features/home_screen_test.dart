@@ -74,7 +74,7 @@ void main() {
         'PAPER',
         '25,000.00',
         '14:20 UTC',
-        'Within your limits',
+        'WITHIN YOUR LIMITS',
         'Total open risk',
         '2.75%',
         '6.00%',
@@ -128,7 +128,7 @@ void main() {
     tester,
   ) async {
     await boot(tester, account: stateAccount(openRisk: 4.5));
-    expect(find.text('Approaching your limits'), findsOneWidget);
+    expect(find.text('APPROACHING YOUR LIMITS'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (w) => w is RiskBadge && w.level == RiskLevel.caution,
@@ -142,7 +142,8 @@ void main() {
       account: stateAccount(dailyLoss: 5.01, cooldown: false),
       positions: [],
     );
-    expect(find.text('Limit exceeded'), findsNWidgets(2));
+    expect(find.text('LIMIT EXCEEDED'), findsOneWidget);
+    expect(find.text('Limit exceeded'), findsOneWidget);
     expect(find.text('Cooldown after a loss'), findsNothing);
     expect(find.text('No open positions'), findsOneWidget);
     expect(tester.takeException(), isNull);

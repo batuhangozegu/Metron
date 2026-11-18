@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 export 'risk_tokens.dart';
 
-/// Hand-transcribed from design/tokens.json. Update alongside that source.
+/// Shared spacing and the web war-room presentation tokens.
 abstract final class MetronSpace {
   static const double xs = 4;
   static const double sm = 8;
@@ -13,9 +13,9 @@ abstract final class MetronSpace {
 }
 
 abstract final class MetronRadius {
-  static const double tag = 6;
-  static const double control = 8;
-  static const double card = 12;
+  static const double tag = 1;
+  static const double control = 3;
+  static const double card = 3;
 }
 
 abstract final class MetronSize {
@@ -29,19 +29,20 @@ abstract final class MetronSize {
 abstract final class MetronType {
   static const sans = 'Inter';
   static const mono = 'JetBrains Mono';
+  static const condensed = 'Oswald';
   static const display = TextStyle(
-    fontFamily: sans,
+    fontFamily: condensed,
     fontSize: 40,
     height: 44 / 40,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: -.8,
   );
   static const title = TextStyle(
-    fontFamily: sans,
-    fontSize: 28,
-    height: 34 / 28,
-    fontWeight: FontWeight.w600,
-    letterSpacing: -.28,
+    fontFamily: condensed,
+    fontSize: 32,
+    height: 1.12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -.8,
   );
   static const heading = TextStyle(
     fontFamily: sans,
@@ -69,8 +70,8 @@ abstract final class MetronType {
     fontFamily: sans,
     fontSize: 12,
     height: 16 / 12,
-    fontWeight: FontWeight.w400,
-    letterSpacing: .96,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.1,
   );
   static const figureLarge = TextStyle(
     fontFamily: mono,
@@ -78,6 +79,14 @@ abstract final class MetronType {
     height: 48 / 44,
     fontWeight: FontWeight.w500,
     letterSpacing: -1.32,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const gauge = TextStyle(
+    fontFamily: condensed,
+    fontSize: 56,
+    height: 1.1,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -1.4,
     fontFeatures: [FontFeature.tabularFigures()],
   );
   static const figureMedium = TextStyle(

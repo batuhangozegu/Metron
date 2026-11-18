@@ -47,6 +47,7 @@ class RiskBadge extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: level.tint(context.colors),
+          border: Border.all(color: color.withValues(alpha: .65)),
           borderRadius: BorderRadius.circular(MetronRadius.tag),
         ),
         child: Row(
@@ -60,7 +61,7 @@ class RiskBadge extends StatelessWidget {
                 style: GoogleFonts.inter(
                   textStyle: Theme.of(context).textTheme.bodySmall,
                   color: color,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

@@ -6,3 +6,6 @@ export 'num.dart';
 export 'pnl_text.dart';
 export 'risk_badge.dart';
 export 'section_header.dart';
+export 'command_title.dart';
+export 'market_ticker.dart';
+export 'war_room_scaffold.dart';

@@ -53,7 +53,7 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
         '${account.cooldownEndsAt.hour.toString().padLeft(2, '0')}:'
         '${account.cooldownEndsAt.minute.toString().padLeft(2, '0')}';
     final c = context.colors;
-    return Scaffold(
+    return WarRoomScaffold(
       appBar: AppBar(
         toolbarHeight: 56,
         leading: BackButton(
@@ -66,7 +66,10 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
           },
         ),
         titleSpacing: 0,
-        title: Text(AppStrings.of(context).check),
+        title: CommandTitle(
+          AppStrings.of(context).check,
+          style: const TextStyle(fontSize: 24),
+        ),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -94,6 +97,11 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 14,
             children: [
+              Text(
+                '${AppStrings.of(context).accountMarket}: ${preview?.market == AccountMarket.futures ? AppStrings.of(context).futures : AppStrings.of(context).spot}',
+                key: const ValueKey('account-market'),
+                style: TextStyle(fontSize: 12, color: c.muted),
+              ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -145,20 +153,28 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
               ),
               if (coin != null && rule != null)
                 Wrap(
-                  spacing: 4,
-                  runSpacing: 2,
+                  key: const ValueKey('check-meta'),
+                  spacing: 12,
+                  runSpacing: 6,
                   children: [
                     Text(switch (coin.coinClass) {
-                      CoinClass.btcEth => 'BTC/ETH ·',
-                      CoinClass.largeCap => 'Large-cap ·',
-                      CoinClass.smallCap => 'Small-cap ·',
+                      CoinClass.btcEth => AppStrings.of(context).coreClass,
+                      CoinClass.largeCap => AppStrings.of(
+                        context,
+                      ).largeCapClass,
+                      CoinClass.smallCap => AppStrings.of(
+                        context,
+                      ).smallCapClass,
                     }, style: TextStyle(fontSize: 12, color: c.subtle)),
-                    Num(
-                      'ATR ${NumberFormatter.of(context).percent(coin.atrPercent, decimalPlaces: 1)} / day · '
-                      'risk ${NumberFormatter.of(context).percent(rule.riskPerTradePercent)} · '
-                      'stop ${NumberFormatter.of(context).number(rule.atrMultiplier, decimalPlaces: 1)} ATR',
-                      style: TextStyle(fontSize: 12, color: c.subtle),
-                    ),
+                    for (final segment in [
+                      '${AppStrings.of(context).dailyAtr} ${NumberFormatter.of(context).percent(coin.atrPercent, decimalPlaces: 1)}',
+                      '${AppStrings.of(context).tradeRisk} ${NumberFormatter.of(context).percent(rule.riskPerTradePercent)}',
+                      '${AppStrings.of(context).stopDistance} ${NumberFormatter.of(context).number(rule.atrMultiplier, decimalPlaces: 1)} ATR',
+                    ])
+                      Num(
+                        segment,
+                        style: TextStyle(fontSize: 12, color: c.subtle),
+                      ),
                   ],
                 ),
               if (preview == null)
@@ -213,7 +229,9 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                 if (preview != null) ...[
                   if (preview.verdict == RiskLevel.limit)
                     PrimaryButton(
-                      label: CheckStrings.of(context).reduce,
+                      label: preview.largestFittingOrderValue == null
+                          ? AppStrings.of(context).waitUntilReset
+                          : CheckStrings.of(context).reduce,
                       onPressed: preview.largestFittingOrderValue == null
                           ? null
                           : () => _showReduction(preview),
@@ -266,7 +284,8 @@ class _CheckLayoutState extends ConsumerState<CheckLayout> {
                     ),
                   ),
                 ),
-                if (preview?.verdict == RiskLevel.limit)
+                if (preview?.verdict == RiskLevel.limit &&
+                    preview?.largestFittingOrderValue != null)
                   _ReductionCopy(preview: preview!),
               ],
             ),
@@ -322,31 +341,31 @@ class _Verdict extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final level = preview.verdict;
-    final size = preview.checks
-        .where((check) => check.id == 'size')
-        .firstOrNull;
     final body = switch (level) {
       RiskLevel.safe => CheckStrings.of(context).safeBody,
       RiskLevel.caution => CheckStrings.of(context).cooldown(
         NumberFormatter.of(context)
             .number(remaining.clamp(0, 60), decimalPlaces: 0),
       ),
-      RiskLevel.limit => CheckStrings.of(context).blocked(
-        preview.pair.split('/').first,
-        size == null ? '—' : NumberFormatter.of(context).percent(size.after),
-        size == null
-            ? '—'
-            : NumberFormatter.of(context).percent(size.limit, decimalPlaces: 0),
-      ),
+      RiskLevel.limit => AppStrings.of(context).dailyLossBlockedBody,
     };
     return Semantics(
       liveRegion: true,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(level == RiskLevel.limit ? 20 : 16),
         decoration: BoxDecoration(
-          color: level.tint(context.colors),
-          border: Border.all(color: level.color(context.colors)),
-          borderRadius: BorderRadius.circular(MetronRadius.card),
+          gradient: LinearGradient(
+            colors: [level.tint(context.colors), context.colors.surface],
+          ),
+          border: Border(
+            left: BorderSide(color: level.color(context.colors), width: 5),
+            top: BorderSide(color: level.color(context.colors)),
+            right: BorderSide(color: level.color(context.colors)),
+            bottom: BorderSide(color: level.color(context.colors)),
+          ),
+          boxShadow: level == RiskLevel.limit
+              ? [BoxShadow(color: context.colors.limitTint, blurRadius: 32)]
+              : null,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,22 +382,59 @@ class _Verdict extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 4,
                 children: [
-                  Text(
+                  CommandTitle(
                     switch (level) {
                       RiskLevel.safe => CheckStrings.of(context).safeTitle,
                       RiskLevel.caution => CheckStrings.of(
                         context,
                       ).cautionTitle,
-                      RiskLevel.limit => CheckStrings.of(context).blockedTitle,
+                      RiskLevel.limit => AppStrings.of(
+                        context,
+                      ).dailyLossBlockedTitle,
                     },
-                    style: const TextStyle(
-                      fontSize: 20,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -.2,
+                    style: TextStyle(
+                      fontSize: level == RiskLevel.limit ? 30 : 26,
+                      color: level.color(context.colors),
                     ),
                   ),
                   NumericCopy(body),
+                  if (level == RiskLevel.limit)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 16, bottom: 8),
+                        child: Transform.rotate(
+                          angle: -.12,
+                          child: Container(
+                            key: const ValueKey('blocked-stamp'),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.colors.limit,
+                                width: 2,
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: context.colors.limit),
+                              ),
+                              child: CommandTitle(
+                                AppStrings.of(context).blockedStamp,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  color: context.colors.limit,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

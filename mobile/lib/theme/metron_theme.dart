@@ -33,14 +33,14 @@ abstract final class MetronTheme {
     // material_ui, whose TextTheme differs from Flutter Material's TextTheme.
     final text = base.textTheme
         .copyWith(
-          displayLarge: GoogleFonts.inter(textStyle: MetronType.display),
+          displayLarge: MetronType.display,
           displayMedium: GoogleFonts.inter(
             textStyle: base.textTheme.displayMedium,
           ),
           displaySmall: GoogleFonts.inter(
             textStyle: base.textTheme.displaySmall,
           ),
-          headlineLarge: GoogleFonts.inter(textStyle: MetronType.title),
+          headlineLarge: MetronType.title,
           headlineMedium: GoogleFonts.inter(
             textStyle: base.textTheme.headlineMedium,
           ),
@@ -85,7 +85,8 @@ abstract final class MetronTheme {
         foregroundColor: c.text,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: text.titleLarge,
+        titleTextStyle: MetronType.title.copyWith(fontSize: 24, color: c.text),
+        shape: Border(bottom: BorderSide(color: c.limitEdge)),
       ),
       cardTheme: CardThemeData(
         color: c.surface,

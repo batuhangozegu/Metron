@@ -30,7 +30,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         await pumpTestApp(tester, const SignInScreen(), light: light);
-        expect(find.text('Metron'), findsOneWidget);
+        expect(find.text('METRON'), findsOneWidget);
         expect(find.text(const EnglishSignInStrings().tagline), findsOneWidget);
         expect(
           find.text(const EnglishSignInStrings().paperNotice),

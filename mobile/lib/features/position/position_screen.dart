@@ -29,7 +29,7 @@ class PositionScreen extends ConsumerWidget {
         .where((r) => r.coinClass == position?.coinClass)
         .firstOrNull
         ?.maxPositionPercent;
-    return Scaffold(
+    return WarRoomScaffold(
       appBar: AppBar(
         leading: IconButton(
           tooltip: AppStrings.of(context).back,
@@ -43,7 +43,10 @@ class PositionScreen extends ConsumerWidget {
           icon: const Icon(Icons.chevron_left, size: 22),
         ),
         titleSpacing: 0,
-        title: Text(position?.pair ?? AppStrings.of(context).position),
+        title: CommandTitle(
+          position?.pair ?? AppStrings.of(context).position,
+          style: const TextStyle(fontSize: 24),
+        ),
         actions: [
           if (position != null)
             Container(

@@ -24,7 +24,7 @@ class RulesScreen extends ConsumerWidget {
     final classes = ref.watch(coinClassRulesProvider);
     final discipline = ref.watch(disciplineRulesProvider);
     final account = ref.watch(accountProvider);
-    return Scaffold(
+    return WarRoomScaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           key: const PageStorageKey('rules-scroll'),
@@ -36,11 +36,11 @@ class RulesScreen extends ConsumerWidget {
                 alignment: Alignment.centerRight,
                 child: LanguageSelector(),
               ),
-              Text(
+              CommandTitle(
                 AppStrings.of(context).rules,
-                style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                  fontSize: 22,
-                  height: 28 / 22,
+                style: MetronType.title.copyWith(
+                  fontSize: 28,
+                  height: 1.12,
                   letterSpacing: -.22,
                 ),
               ),
@@ -56,8 +56,34 @@ class RulesScreen extends ConsumerWidget {
                 child: MetronCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     spacing: 12,
                     children: [
+                      _ValueRow(
+                        AppStrings.of(context).riskPerTradeLimit,
+                        Num(
+                          NumberFormatter.of(context)
+                              .percent(limits.riskPerTradePercent),
+                        ),
+                      ),
+                      _ValueRow(
+                        AppStrings.of(context).dailyLosingTradesLimit,
+                        Num(
+                          NumberFormatter.of(context).number(
+                            limits.maxLosingTradesPerDay,
+                            decimalPlaces: 0,
+                          ),
+                        ),
+                      ),
+                      _ValueRow(
+                        AppStrings.of(context).weeklyStoppedTradesLimit,
+                        Num(
+                          NumberFormatter.of(context).number(
+                            limits.maxStoppedTradesPerWeek,
+                            decimalPlaces: 0,
+                          ),
+                        ),
+                      ),
                       _ValueRow(
                         RulesStrings.of(context).openRisk,
                         Num(
@@ -286,7 +312,7 @@ class _ClassRow extends StatelessWidget {
               NumberFormatter.of(context).percent(rule.riskPerTradePercent),
             ),
             _ClassValue(
-              RulesStrings.of(context).largestPosition,
+              AppStrings.of(context).spotAllocationCap,
               NumberFormatter.of(context)
                   .percent(rule.maxPositionPercent, decimalPlaces: 0),
             ),

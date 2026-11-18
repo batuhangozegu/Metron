@@ -5,6 +5,7 @@ import '../../data/models.dart';
 import '../../data/risk_level.dart';
 import '../../theme/metron_colors.dart';
 import '../../widgets/widgets.dart';
+import '../../widgets/segmented_bar.dart';
 import 'check_strings.dart';
 
 /// Compact before/after projection; hatching distinguishes the proposed order.
@@ -18,7 +19,16 @@ class ProjectedLimit extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: c.line)),
+        color: check.level == RiskLevel.limit ? c.limitTint : null,
+        border: Border(
+          top: BorderSide(color: c.line),
+          left: BorderSide(
+            color: check.level == RiskLevel.limit
+                ? c.limit
+                : Colors.transparent,
+            width: 3,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -55,12 +65,13 @@ class ProjectedLimit extends StatelessWidget {
             ],
           ),
           SizedBox(
-            height: 6,
+            height: 12,
             child: CustomPaint(
               painter: _ProjectionPainter(
                 before: (check.before / check.limit).clamp(0, 1),
                 after: (check.after / check.limit).clamp(0, 1),
                 color: color,
+                startColor: check.level == RiskLevel.limit ? c.caution : color,
                 track: c.raised,
               ),
             ),
@@ -82,32 +93,22 @@ class _ProjectionPainter extends CustomPainter {
     required this.before,
     required this.after,
     required this.color,
+    required this.startColor,
     required this.track,
   });
   final double before, after;
-  final Color color, track;
+  final Color color, startColor, track;
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint();
-    canvas.save();
-    canvas.clipRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)),
+    paintSegmentedBar(
+      canvas,
+      Offset.zero & size,
+      fraction: after,
+      solidFraction: before,
+      color: color,
+      startColor: startColor,
+      track: track,
     );
-    canvas.drawRect(Offset.zero & size, p..color = track);
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, before * size.width, size.height),
-      p..color = color,
-    );
-    canvas.clipRect(
-      Rect.fromLTRB(before * size.width, 0, after * size.width, size.height),
-    );
-    p
-      ..color = color
-      ..strokeWidth = 2;
-    for (double x = 0; x < size.width + size.height; x += 5) {
-      canvas.drawLine(Offset(x, 0), Offset(x - size.height, size.height), p);
-    }
-    canvas.restore();
   }
 
   @override
@@ -115,5 +116,6 @@ class _ProjectionPainter extends CustomPainter {
       before != old.before ||
       after != old.after ||
       color != old.color ||
+      startColor != old.startColor ||
       track != old.track;
 }

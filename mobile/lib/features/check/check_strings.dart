@@ -3,6 +3,7 @@ import '../../data/models.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../l10n/catalog_scope.dart';
+import '../../l10n/app_strings.dart';
 
 /// Every locale must implement all members; no translation falls back silently.
 abstract interface class CheckStrings {
@@ -14,7 +15,6 @@ abstract interface class CheckStrings {
   String get wait;
   String get safeTitle;
   String get cautionTitle;
-  String get blockedTitle;
   String get safeBody;
   String get broken;
   String get exceeded;
@@ -40,7 +40,6 @@ abstract interface class CheckStrings {
   String get reductionBody;
   String get close;
   String cooldown(String minutes);
-  String blocked(String coin, String after, String cap);
   String reduction(String value, String risk);
   String limitName(LimitCheck check);
   String limitValue(String value);
@@ -60,8 +59,6 @@ final class EnglishCheckStrings implements CheckStrings {
   @override
   String get cautionTitle => 'One rule would be broken';
   @override
-  String get blockedTitle => 'Blocked: position too large';
-  @override
   String get safeBody => 'Every check is within your limits.';
   @override
   String get broken => 'Broken';
@@ -71,10 +68,6 @@ final class EnglishCheckStrings implements CheckStrings {
   String cooldown(String minutes) =>
       'No limit is exceeded. Your cooldown rule asks you '
       'to wait $minutes more minutes.';
-  @override
-  String blocked(String coin, String after, String cap) =>
-      '$coin would be $after of the account. Your '
-      'BTC/ETH rule allows $cap.';
   @override
   String reduction(String value, String risk) =>
       'The largest order that fits is $value USDT, risking '
@@ -125,7 +118,9 @@ final class EnglishCheckStrings implements CheckStrings {
   @override
   String get close => 'Close';
   @override
-  String limitName(LimitCheck check) => check.name;
+  String limitName(LimitCheck check) => check.id == 'daily-losing-trades'
+      ? const EnglishAppStrings().losingTradesToday
+      : check.name;
   @override
   String limitValue(String value) => value;
 }
@@ -142,8 +137,6 @@ final class TurkishCheckStrings implements CheckStrings {
   String get safeTitle => 'Limitleriniz dahilinde';
   @override
   String get cautionTitle => 'Bir kural ihlal edilecek';
-  @override
-  String get blockedTitle => 'Engellendi: pozisyon çok büyük';
   @override
   String get safeBody => 'Tüm kontroller limitleriniz dahilinde.';
   @override
@@ -198,13 +191,11 @@ final class TurkishCheckStrings implements CheckStrings {
   String cooldown(String minutes) =>
       'Hiçbir limit aşılmıyor. Bekleme kuralınıza göre $minutes dakika daha beklemelisiniz.';
   @override
-  String blocked(String coin, String after, String cap) =>
-      '$coin hesabın $after kadarını oluşturacak. BTC/ETH kuralınız en fazla $cap paya izin veriyor.';
-  @override
   String reduction(String value, String risk) =>
       'Limite uyan en büyük emir $value USDT, riske edilen tutar $risk USDT. Engellenen emir hiçbir koşulda verilemez.';
   @override
   String limitName(LimitCheck check) => switch (check.id) {
+    'daily-losing-trades' => const TurkishAppStrings().losingTradesToday,
     'cooldown' => 'Zarardan sonra bekleme süresi',
     'risk' => 'Toplam açık risk',
     'daily' => 'Günlük zarar limiti',

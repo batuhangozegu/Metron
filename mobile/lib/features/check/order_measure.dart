@@ -62,6 +62,7 @@ class OrderMeasure extends StatelessWidget {
       ),
     );
     return MetronCard(
+      risk: preview.verdict,
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,8 +112,8 @@ class OrderMeasure extends StatelessWidget {
             children: [
               Semantics(
                 label:
-                    'Stop ${NumberFormatter.of(context).decimal(preview.stop)}, entry ${NumberFormatter.of(context).decimal(preview.entry)}, '
-                    'target ${NumberFormatter.of(context).decimal(preview.target)}',
+                    '${CheckStrings.of(context).stop} ${NumberFormatter.of(context).decimal(preview.stop)}, ${CheckStrings.of(context).entry} ${NumberFormatter.of(context).decimal(preview.entry)}, '
+                    '${CheckStrings.of(context).target} ${NumberFormatter.of(context).decimal(preview.target)}',
                 child: SizedBox(
                   height: 41,
                   width: double.infinity,

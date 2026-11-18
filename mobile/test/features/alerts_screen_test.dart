@@ -51,7 +51,7 @@ void main() {
       'Mockup content, risk and PnL at 390px (${light ? 'light' : 'dark'})',
       (tester) async {
         await boot(tester, light: light);
-        expect(find.text('Alerts'), findsOneWidget);
+        expect(find.text('ALERTS'), findsOneWidget);
         expect(find.text('PAPER'), findsOneWidget);
         expect(find.text('TODAY'), findsOneWidget);
         expect(

@@ -6,6 +6,9 @@ import '../../theme/metron_colors.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/metron_button.dart';
 import '../../widgets/num.dart';
+import '../../widgets/command_title.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/war_room_scaffold.dart';
 import 'sign_in_strings.dart';
 
 /// Local-only preview. Credentials are never transmitted or persisted.
@@ -79,7 +82,8 @@ class _SignInScreenState extends State<SignInScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && _codeStep) _resetStep();
       },
-      child: Scaffold(
+      child: WarRoomScaffold(
+        showTicker: false,
         body: SafeArea(
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -103,7 +107,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
+                  SectionHeader(AppStrings.of(context).warRoom),
+                  const SizedBox(height: 8),
+                  CommandTitle(
                     AppStrings.of(context).appName,
                     style: MetronType.title.copyWith(
                       color: colors.text,

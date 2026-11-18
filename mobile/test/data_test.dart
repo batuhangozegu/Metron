@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:metron/data/providers.dart';
+import 'package:metron/data/models.dart';
 import 'package:metron/data/risk_level.dart';
 
 void main() {
@@ -42,7 +43,22 @@ void main() {
     expect(caution.checks.first.brokenRule, isTrue);
     expect(caution.checks.first.level, RiskLevel.caution);
     expect(blocked.verdict, RiskLevel.limit);
-    expect(blocked.checks.first.after, 66.67);
-    expect(blocked.largestFittingOrderValue, '1666.67');
+    expect(caution.market, AccountMarket.spot);
+    expect(blocked.market, AccountMarket.futures);
+    expect(blocked.checks.first.id, 'daily-losing-trades');
+    expect(blocked.checks.first.before, 3);
+    expect(blocked.checks.first.after, 3);
+    expect(blocked.checks.first.limit, 3);
+    expect(blocked.checks.first.brokenRule, isTrue);
+    expect(blocked.checks.any((check) => check.id == 'size'), isFalse);
+    expect(blocked.largestFittingOrderValue, isNull);
+    final limits = container.read(limitsProvider);
+    expect(limits.riskPerTradePercent, 2);
+    expect(limits.openRiskPercent, 6);
+    expect(limits.maxOpenPositions, 5);
+    expect(limits.maxLosingTradesPerDay, 3);
+    expect(limits.dailyLossPercent, 5);
+    expect(limits.maxStoppedTradesPerWeek, 5);
+    expect(limits.weeklyLossPercent, 10);
   });
 }

@@ -303,14 +303,15 @@ abstract final class SampleData {
   ];
   static const blockedChecks = [
     LimitCheck(
-      id: 'size',
-      name: 'Position size',
-      before: 33.33,
-      after: 66.67,
-      limit: 40,
-      unit: '%',
+      id: 'daily-losing-trades',
+      name: 'Losing trades today',
+      before: 3,
+      after: 3,
+      limit: 3,
+      unit: '',
       level: RiskLevel.limit,
-      valueLabel: '33.33% → 66.67% of 40.00%',
+      valueLabel: '3 of 3',
+      brokenRule: true,
     ),
     LimitCheck(
       id: 'cooldown',
@@ -369,6 +370,7 @@ abstract final class SampleData {
   static const blockedOrderPreview = OrderPreview(
     pair: 'BTC/USDT',
     verdict: RiskLevel.limit,
+    market: AccountMarket.futures,
     entry: '97846.00',
     stop: '94910.62',
     target: '103716.76',
@@ -377,7 +379,5 @@ abstract final class SampleData {
     lossAtStop: '-250.00',
     profitAtTarget: '500.00',
     checks: blockedChecks,
-    largestFittingOrderValue: '1666.67',
-    largestFittingRisk: '50.00',
   );
 }

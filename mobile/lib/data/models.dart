@@ -4,6 +4,8 @@ import 'risk_level.dart';
 /// arithmetic. Percentages are percentage points (2.75 means 2.75%, not .0275).
 enum CoinClass { btcEth, largeCap, smallCap }
 
+enum AccountMarket { spot, futures }
+
 class CoinPrice {
   const CoinPrice({
     required this.pair,
@@ -90,13 +92,17 @@ class AccountLimits {
     required this.maxOpenPositions,
     required this.targetRiskReward,
     required this.smallCapTotalPercent,
+    this.riskPerTradePercent = 2,
+    this.maxLosingTradesPerDay = 3,
+    this.maxStoppedTradesPerWeek = 5,
   });
   final double openRiskPercent,
       dailyLossPercent,
       weeklyLossPercent,
       targetRiskReward,
       smallCapTotalPercent;
-  final int maxOpenPositions;
+  final int maxOpenPositions, maxLosingTradesPerDay, maxStoppedTradesPerWeek;
+  final double riskPerTradePercent;
 }
 
 class CoinClassRule {
@@ -188,6 +194,7 @@ class OrderPreview {
     required this.profitAtTarget,
     required this.checks,
     this.largestFittingOrderValue,
+    this.market = AccountMarket.spot,
     this.largestFittingRisk,
   });
   final String pair,
@@ -199,6 +206,7 @@ class OrderPreview {
       lossAtStop,
       profitAtTarget;
   final RiskLevel verdict;
+  final AccountMarket market;
   final List<LimitCheck> checks;
   final String? largestFittingOrderValue, largestFittingRisk;
 }

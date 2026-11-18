@@ -48,7 +48,7 @@ void main() {
       'Caution content, fixed actions and projections; light=$light',
       (tester) async {
         await boot(tester, light: light);
-        expect(find.text('One rule would be broken'), findsOneWidget);
+        expect(find.text('ONE RULE WOULD BE BROKEN'), findsOneWidget);
         expect(find.text('5.200'), findsNWidgets(2));
         expect(find.text('4.576'), findsOneWidget);
         expect(find.text('6.448'), findsOneWidget);
@@ -82,12 +82,17 @@ void main() {
 
     testWidgets('Blocked has no placement path; light=$light', (tester) async {
       await boot(tester, blocked: true, light: light);
-      expect(find.text('Blocked: position too large'), findsOneWidget);
+      expect(find.text('BLOCKED: DAILY LOSS LIMIT REACHED'), findsOneWidget);
+      expect(find.text('Account market: Futures'), findsOneWidget);
       expect(find.text('94,910.62'), findsOneWidget);
       expect(find.text('103,716.76'), findsOneWidget);
       expect(find.text('Place paper order anyway'), findsNothing);
       expect(find.text('Place paper order'), findsNothing);
-      expect(find.text('1,666.67'), findsOneWidget);
+      expect(find.text('Reduce to fit the limit'), findsNothing);
+      final wait = tester.widget<PrimaryButton>(
+        find.widgetWithText(PrimaryButton, 'Wait until 00:00 UTC'),
+      );
+      expect(wait.onPressed, isNull);
       expect(find.byType(OrderMeasure), findsOneWidget);
       await tester.drag(
         find.byType(SingleChildScrollView),
@@ -95,15 +100,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(ProjectedLimit), findsNWidgets(5));
-      expect(find.text('Exceeded'), findsOneWidget);
-      expect(find.text('33.33% → 66.67% of 40.00%'), findsOneWidget);
+      expect(find.text('3 of 3'), findsOneWidget);
+      expect(find.text('Losing trades today'), findsOneWidget);
+      expect(find.textContaining('40.00%'), findsNothing);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('Reduce to fit the limit'));
-      await tester.pumpAndSettle();
-      expect(find.text('Suggested reduction'), findsOneWidget);
-      expect(find.text('Place paper order'), findsNothing);
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Discard'));
       await tester.pumpAndSettle();
       expect(find.text('Check a new order'), findsOneWidget);
@@ -129,7 +129,7 @@ void main() {
         checks: const [],
       ),
     );
-    expect(find.text('Within your limits'), findsOneWidget);
+    expect(find.text('WITHIN YOUR LIMITS'), findsOneWidget);
     expect(find.text('Place paper order'), findsOneWidget);
     expect(find.text('Place paper order anyway'), findsNothing);
     expect(find.text('Discard'), findsOneWidget);
@@ -151,7 +151,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('BTC/USDT').last);
       await tester.pumpAndSettle();
-      expect(find.text('Blocked: position too large'), findsOneWidget);
+      expect(find.text('BLOCKED: DAILY LOSS LIMIT REACHED'), findsOneWidget);
       expect(find.text('Place paper order anyway'), findsNothing);
       expect(tester.takeException(), isNull);
     },
