@@ -6,6 +6,7 @@ import { getMessages } from "@/lib/messages";
 import { themeBootstrap } from "@/lib/theme";
 import { getLocale } from "@/lib/locale-server";
 import { LocaleProvider } from "@/components/metron/locale-provider";
+import { AuthProvider } from "@/components/metron/auth-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -48,7 +49,7 @@ async function LocalizedDocument({ children }: { children: ReactNode }) {
       className={`${inter.variable} ${jetBrainsMono.variable} ${display.variable} h-full antialiased`}
     >
       <head><script dangerouslySetInnerHTML={{ __html: themeBootstrap }} /></head>
-      <body className="min-h-full"><LocaleProvider locale={locale}><AppShell locale={locale}>{children}</AppShell></LocaleProvider></body>
+      <body className="min-h-full"><LocaleProvider locale={locale}><AuthProvider><AppShell locale={locale}>{children}</AppShell></AuthProvider></LocaleProvider></body>
     </html>
   );
 }

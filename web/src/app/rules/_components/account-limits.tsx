@@ -13,6 +13,9 @@ export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
   const t = getMessages("rules", locale);
 
   const [inputs, setInputs] = useState(() => ({ locale, values: {
+    riskPerTrade: formatAmount(initialLimits.riskPerTrade, 2, locale),
+    losingTradesPerDay: formatAmount(String(initialLimits.losingTradesPerDay), 0, locale),
+    stoppedTradesPerWeek: formatAmount(String(initialLimits.stoppedTradesPerWeek), 0, locale),
     totalOpenRisk: formatAmount(initialLimits.totalOpenRisk, 2, locale),
     dailyLoss: formatAmount(initialLimits.dailyLoss, 2, locale),
     weeklyLoss: formatAmount(initialLimits.weeklyLoss, 2, locale),
@@ -22,7 +25,7 @@ export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
   } }));
   if (inputs.locale !== locale) setInputs({ locale, values: Object.fromEntries(Object.entries(inputs.values).map(([field, value]) => [field, reformatInput(value, inputs.locale, locale)])) as typeof inputs.values });
   const [saved, setSaved] = useState(false);
-  const fields = ["totalOpenRisk", "dailyLoss", "weeklyLoss", "maxPositions", "targetRiskReward", "cautionAt"] as const;
+  const fields = ["riskPerTrade", "losingTradesPerDay", "stoppedTradesPerWeek", "totalOpenRisk", "dailyLoss", "weeklyLoss", "maxPositions", "targetRiskReward", "cautionAt"] as const;
   const hints = {
     totalOpenRisk: t("limits.totalOpenRisk.hint"),
     dailyLoss: t("limits.dailyLoss.hint"),
@@ -50,7 +53,7 @@ export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
           const hint = field in hints ? hints[field as keyof typeof hints] : undefined;
           return <div key={field} className="flex min-w-0 flex-col gap-2">
             <label htmlFor={field} className="text-small text-muted">{t(`limits.${field}`)}</label>
-            <input id={field} name={field} inputMode={field === "maxPositions" || field === "cautionAt" ? "numeric" : "decimal"} value={inputs.values[field]} aria-describedby={hint ? `${field}-hint` : undefined} onChange={(event) => { setInputs((previous) => ({ locale, values: { ...previous.values, [field]: event.target.value } })); setSaved(false); }} className="num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text" />
+            <input id={field} name={field} inputMode={field === "maxPositions" || field === "cautionAt" || field === "losingTradesPerDay" || field === "stoppedTradesPerWeek" ? "numeric" : "decimal"} value={inputs.values[field]} aria-describedby={hint ? `${field}-hint` : undefined} onChange={(event) => { setInputs((previous) => ({ locale, values: { ...previous.values, [field]: event.target.value } })); setSaved(false); }} className="num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text" />
             {hint && <span id={`${field}-hint`} className="text-xs leading-[17px] text-subtle"><NumericCopy text={hint} /></span>}
           </div>;
         })}

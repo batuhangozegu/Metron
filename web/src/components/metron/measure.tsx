@@ -6,12 +6,12 @@ import { RiskBadge } from "./risk-badge";
 
 export interface MeasureProps { locale?: Locale;
   value: number; limit: number; added?: number; cautionAt?: number;
-  size?: "md" | "sm"; showMarks?: boolean; className?: string; label?: string;
+  size?: "md" | "sm"; showMarks?: boolean; showStatus?: boolean; className?: string; label?: string;
   formatValue?: (value: string) => string;
 }
 
 /** Ten-division ruler: current exposure is solid, proposed exposure hatched; state uses their total. */
-export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md", showMarks = true, className, label, formatValue: customFormat, locale = "en" }: MeasureProps) {
+export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md", showMarks = true, showStatus = true, className, label, formatValue: customFormat, locale = "en" }: MeasureProps) {
   const formatValue = customFormat ?? ((amount: string) => formatAmount(amount, 2, locale));
   const t = getMessages("common", locale);
   const safeValue = Number.isFinite(value) && value >= 0 ? value : 0;
@@ -41,6 +41,6 @@ export function Measure({ value, limit, added = 0, cautionAt = 0.75, size = "md"
       <span className="absolute -translate-x-1/2" style={{ left: `${cautionAt * 100}%` }} title={t("measure.caution")}>{formatValue(decimalProduct(String(limit), String(cautionAt)))}</span>
       <span title={t("measure.limit")}>{formatValue(String(limit))}</span>
     </div>}
-    <div className="measure-level"><RiskBadge locale={locale} state={state} /></div>
+    {showStatus && <div className="measure-level"><RiskBadge locale={locale} state={state} /></div>}
   </div>;
 }

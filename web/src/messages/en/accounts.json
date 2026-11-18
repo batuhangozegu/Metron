@@ -1,0 +1,23 @@
+{
+  "title": "Accounts",
+  "eyebrow": "Paper trading",
+  "note": "Practice with a virtual USDT balance before putting real capital at risk.",
+  "list": "Your accounts",
+  "empty": "No accounts yet. Create your first paper account below.",
+  "loading": "Loading accounts…",
+  "create": "Create paper account",
+  "name": "Account name",
+  "name.hint": "1–100 characters.",
+  "name.invalid": "Enter an account name of 1–100 characters.",
+  "balance": "Starting balance (USDT)",
+  "balance.hint": "Use a decimal point, without separators or spaces. More than 0, up to 10,000,000 USDT, with at most 8 decimal places.",
+  "balance.invalid": "Enter a positive balance up to 10000000, using a decimal point and at most 8 decimal places. Use at most 8 digits before the point.",
+  "paper": "Paper",
+  "live": "Live",
+  "balance.label": "Balance",
+  "balance.unavailable": "—",
+  "created": "Paper account created.",
+  "market": "Market",
+  "market.spot": "Spot",
+  "market.futures": "Futures"
+}

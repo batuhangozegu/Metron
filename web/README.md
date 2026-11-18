@@ -2,6 +2,16 @@
 
 Next.js App Router, Tailwind v4, React Server Components by default. The root layout loads Inter and JetBrains Mono, initializes the persisted theme before paint, and renders `AppShell` once. Pages provide their content inside its `<main>`.
 
+## Sign-in and accounts
+
+`/sign-in`, `/register` and `/markets` are public. Other app pages check `/v1/me` in a client guard before displaying content. The API authorizes every private data request. Session checks run on navigation and window focus; the UI shows a retry action when the service is unavailable.
+
+The `/v1/*` route handler forwards requests to `METRON_API_URL` at runtime, defaulting to `http://127.0.0.1:8080`. Compose already supplies `http://api:8080`; no deployment changes are needed. Set this server-side environment variable when using another API address. The proxy preserves separate full/pending `Set-Cookie` headers, refreshed cookies, JSON content types, and `Retry-After`, and disables caching. Browser requests always use the web origin. Use the API's `COOKIE_SECURE=true` setting when serving over HTTPS.
+
+`/settings` manages authenticator setup, enable/disable and sign-out. QR codes are generated locally with `qrcode.react`; setup secrets are kept only in component memory. Authenticator codes cannot be reused after a successful operation. `/accounts` lists user-owned accounts and creates Spot or Futures paper accounts using exact decimal strings. Accounts without a market field display as Spot. Balance entry uses a decimal point in either interface language; displayed balances use locale-aware formatting and retain up to eight fractional digits.
+
+Run `npm run lint`, `npx tsc --noEmit`, `node scripts/verify-foundation.mjs`, and `npm run build`. The verification script includes auth request/proxy cookie checks, localized errors and exact balance validation alongside the existing foundation checks.
+
 ## Ownership and folders
 
 Each screen agent owns **only its route folder and its English message file**:
@@ -23,7 +33,7 @@ Import from individual files or `@/components/metron`. All props/types are expor
 | Component | Props |
 | --- | --- |
 | `AppShell` | `children`; already applied by the layout |
-| `Measure` | `value`, `limit`: numbers in the same real unit; `added = 0`; `cautionAt = 0.75`; `size = "md"` (`"md"` or `"sm"`); `showMarks = true`; optional `label`, `className`, `formatValue(decimalString)` |
+| `Measure` | `value`, `limit`: numbers in the same real unit; `added = 0`; `cautionAt = 0.75`; `size = "md"` (`"md"` or `"sm"`); `showMarks = true`; `showStatus = true` (disable when a row already has a verdict); optional `label`, `className`, `formatValue(decimalString)` |
 | `RiskBadge` | `state: "safe" \| "caution" \| "limit"`, optional `className`; translated icon/word/color |
 | `PnL` | `value: string \| bigint`, `decimals = 2`, `suffix = ""`, optional `className`; arrow/sign and semantic color; zero is neutral |
 | `Card` | Standard `<article>` props; add `className="p-card"` for a padded card |

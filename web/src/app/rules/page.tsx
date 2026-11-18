@@ -16,6 +16,7 @@ export default async function RulesPage() {
 
   return <>
     <AccountLimits initialLimits={limits} />
+    <p className="text-small text-muted"><NumericCopy text={t("defaults")} /></p>
     <Card aria-labelledby="class-rules-title">
       <CardHeader title={<span id="class-rules-title">{t("classes.title")}</span>} note={t("classes.description")} />
       <div className="overflow-x-auto rounded-b-card" role="region" aria-label={t("classes.scrollLabel")} tabIndex={0}>

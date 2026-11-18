@@ -117,6 +117,22 @@ main :is(button, input, select, [data-slot="button"]), .command-header :is(butto
 .risk-banner[data-risk="limit"] > svg { filter: drop-shadow(0 0 10px var(--limit-tint)); }
 .risk-badge { white-space: nowrap; }
 .measure-level { align-self: flex-end; }
+/* Access and account forms use the room's typography with neutral controls. */
+.auth-layout { min-width: 0; }
+.auth-layout .auth-card { border-top-color: var(--subtle); }
+.auth-layout .auth-card:hover { border-top-color: var(--text); }
+.auth-layout h2 {
+  font-family: var(--font-display), var(--font-inter), sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+.auth-layout input { background: var(--bg); }
+.auth-layout input:focus-visible { border-color: var(--text); }
+.auth-layout button:not(:disabled):hover,
+.command-header button:not(:disabled):hover { box-shadow: inset 0 -2px 0 var(--subtle); }
+.auth-layout button { min-height: 44px; height: auto; padding: 12px 18px; }
+.auth-error { overflow-wrap: anywhere; }
+.auth-qr { height: auto; }
 .measure-level .risk-badge { border: 1px solid currentColor; border-radius: 1px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 5px; }
 .measure-level .risk-badge svg { width: 12px; height: 12px; }
 .measure .measure-track { height: 18px; border-radius: 0; background: repeating-linear-gradient(90deg, var(--raised) 0 11px, transparent 11px 14px); box-shadow: 0 0 0 1px var(--line); }
@@ -229,4 +245,38 @@ tbody tr:hover > :first-child, tbody tr:focus-within > :first-child { box-shadow
   .price-direction { display: none; }
   .ticker-viewport { overflow-x: auto; }
   .ticker-duplicate, .ticker-pause { display: none; }
+}
+
+/* Compact command row, with a separate scrollable navigation row on phones. */
+.account-menu summary::-webkit-details-marker { display: none; }
+.command-header > a { flex-shrink: 0; }
+.command-nav { min-width: 0; }
+.command-nav a { white-space: nowrap; }
+@media (min-width: 1024px) {
+  .command-header { flex-wrap: nowrap; }
+  .command-nav { flex-wrap: nowrap; gap: 0; }
+  .command-nav a { padding-inline: 9px; font-size: 13px; }
+}
+@media (max-width: 1023px) {
+  .command-header { padding-inline: 16px; }
+  .command-nav { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; }
+  .command-nav a { flex-shrink: 0; }
+}
+@media (max-width: 479px) {
+  .command-header { gap: 8px; }
+  .command-header > a { font-size: 14px; gap: 6px; }
+  .header-actions { gap: 4px; }
+  .header-actions .new-order { padding-inline: 8px; font-size: 12px; }
+  .header-actions .language-switch button { padding-inline: 5px; }
+}
+
+@media (max-width: 479px) {
+  .command-header .brand-name { display: none; }
+  .account-panel { position: fixed; inset: 64px 16px auto; width: auto; max-width: none; }
+}
+
+@media (max-width: 359px) {
+  .header-actions .new-order { width: 44px; justify-content: center; }
+  .new-order span { display: none; }
+  .new-order .new-order-icon { display: block; }
 }

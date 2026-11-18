@@ -1,6 +1,6 @@
 {
   "title": "Rules",
-  "description": "Set these with a clear head. Every pre-trade check measures an order against them.",
+  "description": "Set your trading discipline and spot portfolio limits with a clear head.",
   "save": "Save changes",
   "saved": "Changes saved.",
   "edit": "Edit",
@@ -18,12 +18,12 @@
   "limits.targetRiskReward": "Target risk/reward",
   "limits.cautionAt": "Caution starts at, % of a limit",
   "classes.title": "Coin class rules",
-  "classes.description": "Stop distance is the multiplier times the coin's daily movement. A wider stop means a smaller position, so the money at risk stays the same.",
+  "classes.description": "Stop distance is the ATR multiplier times daily movement. Largest position and class total are spot portfolio allocation caps, not futures pre-trade limits.",
   "classes.class": "Class",
   "classes.multiplier": "ATR multiplier",
   "classes.risk": "Risk per trade",
-  "classes.position": "Largest position",
-  "classes.total": "Class total",
+  "classes.position": "Spot allocation cap",
+  "classes.total": "Spot class total",
   "classes.source": "Source",
   "classes.action": "Action",
   "classes.scrollLabel": "Coin class rules, scroll horizontally to see all columns",
@@ -51,5 +51,9 @@
   "discipline.stop.name": "A stop is never widened",
   "discipline.stop.detail": "A stop can move toward the price, never away from it.",
   "discipline.stop.history": "Blocked {n0} times",
-  "discipline.footer": "A rule cannot be loosened while it is counting down or within an hour of a loss."
+  "discipline.footer": "A rule cannot be loosened while it is counting down or within an hour of a loss.",
+  "defaults": "Discipline defaults: 2% risk per trade; 6% total open risk; 5 open positions; 3 losing trades per day; 5% daily loss cap; 5 stopped trades per week; 10% weekly loss cap.",
+  "limits.riskPerTrade": "Default risk per trade, %",
+  "limits.losingTradesPerDay": "Losing trades per day",
+  "limits.stoppedTradesPerWeek": "Stopped trades per week"
 }

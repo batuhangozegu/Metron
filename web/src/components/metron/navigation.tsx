@@ -15,6 +15,7 @@ const routes = [
 export function Navigation() {
   const locale = useLocale();
   const t = getMessages("common", locale);
+  const accounts = getMessages("accounts", locale);
   const pathname = usePathname();
 
   return <nav aria-label={t("nav.label")} className="command-nav flex flex-auto flex-wrap gap-1">
@@ -23,5 +24,7 @@ export function Navigation() {
       return <Link key={href} href={href} aria-current={active ? "page" : undefined}
         className={cn("inline-flex min-h-control items-center rounded-control px-3.5 py-3 text-sm leading-5 hover:bg-raised", active ? "bg-raised font-medium text-text" : "text-muted")}>{t(key)}</Link>;
     })}
+    <Link href="/accounts" aria-current={pathname === "/accounts" ? "page" : undefined}
+      className={cn("inline-flex min-h-control items-center rounded-control px-3.5 py-3 text-sm leading-5 hover:bg-raised", pathname === "/accounts" ? "bg-raised font-medium text-text" : "text-muted")}>{accounts("title")}</Link>
   </nav>;
 }

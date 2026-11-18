@@ -1,6 +1,6 @@
 {
   "title": "Kurallar",
-  "description": "Kurallarınızı sakin kafayla belirleyin. Her işlem öncesi kontrolde emir bu kurallara göre değerlendirilir.",
+  "description": "İşlem disiplini ve spot portföy sınırlarınızı sakin bir kafayla belirleyin.",
   "save": "Değişiklikleri kaydet",
   "saved": "Değişiklikler kaydedildi.",
   "edit": "Düzenle",
@@ -18,12 +18,12 @@
   "limits.targetRiskReward": "Hedef risk/getiri",
   "limits.cautionAt": "Uyarı eşiği, limitin % kaçı",
   "classes.title": "Coin sınıfı kuralları",
-  "classes.description": "Stop mesafesi, coinin günlük hareketi ile çarpanın çarpımıdır. Stop mesafesi arttıkça pozisyon küçülür; böylece riske edilen tutar aynı kalır.",
+  "classes.description": "Stop mesafesi, ATR çarpanı ile günlük hareketin çarpımıdır. En büyük pozisyon ve sınıf toplamı, spot portföy dağılım sınırlarıdır; vadeli işlem öncesi kontrol sınırları değildir.",
   "classes.class": "Sınıf",
   "classes.multiplier": "ATR çarpanı",
   "classes.risk": "İşlem riski",
-  "classes.position": "Pozisyon limiti",
-  "classes.total": "Sınıf toplamı",
+  "classes.position": "Spot dağılım sınırı",
+  "classes.total": "Spot sınıf toplamı",
   "classes.source": "Kaynak",
   "classes.action": "İşlem",
   "classes.scrollLabel": "Coin sınıfı kuralları; tüm sütunları görmek için yatay kaydırın",
@@ -51,5 +51,9 @@
   "discipline.stop.name": "Stop mesafesi asla artırılmaz",
   "discipline.stop.detail": "Stop fiyata yaklaştırılabilir, fiyattan uzaklaştırılamaz.",
   "discipline.stop.history": "{n0} kez engellendi",
-  "discipline.footer": "Bekleme süresi devam ederken veya zarardan sonraki bir saat içinde kural esnetilemez."
+  "discipline.footer": "Bekleme süresi devam ederken veya zarardan sonraki bir saat içinde kural esnetilemez.",
+  "defaults": "Disiplin varsayılanları: işlem başına %2 risk; toplam %6 açık risk; 5 açık pozisyon; günde 3 zararlı işlem; %5 günlük zarar sınırı; haftada 5 stopla kapanan işlem; %10 haftalık zarar sınırı.",
+  "limits.riskPerTrade": "Varsayılan işlem başına risk, %",
+  "limits.losingTradesPerDay": "Günlük zararlı işlem sayısı",
+  "limits.stoppedTradesPerWeek": "Haftalık stopla kapanan işlem sayısı"
 }

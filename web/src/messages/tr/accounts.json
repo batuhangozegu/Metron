@@ -1,0 +1,23 @@
+{
+  "title": "Hesaplar",
+  "eyebrow": "Sanal işlem",
+  "note": "Gerçek sermayenizi riske atmadan önce sanal USDT bakiyesiyle pratik yapın.",
+  "list": "Hesaplarınız",
+  "empty": "Henüz hesap yok. Aşağıdan ilk sanal hesabınızı oluşturun.",
+  "loading": "Hesaplar yükleniyor…",
+  "create": "Sanal hesap oluştur",
+  "name": "Hesap adı",
+  "name.hint": "1–100 karakter.",
+  "name.invalid": "1–100 karakter uzunluğunda bir hesap adı girin.",
+  "balance": "Başlangıç bakiyesi (USDT)",
+  "balance.hint": "Ayırıcı veya boşluk kullanmadan ondalık nokta girin. 0’dan büyük, en fazla 10.000.000 USDT ve en fazla 8 ondalık basamak.",
+  "balance.invalid": "Ondalık nokta ve en fazla 8 ondalık basamak kullanarak 10000000’a kadar pozitif bir bakiye girin. Noktadan önce en fazla 8 rakam kullanın.",
+  "paper": "Sanal",
+  "live": "Gerçek",
+  "balance.label": "Bakiye",
+  "balance.unavailable": "—",
+  "created": "Sanal hesap oluşturuldu.",
+  "market": "Piyasa",
+  "market.spot": "Spot",
+  "market.futures": "Vadeli"
+}

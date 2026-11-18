@@ -21,6 +21,7 @@ export function CheckScreen({ caution, blocked }: { caution: ReactNode; blocked:
   return <div className="flex min-w-0 flex-wrap items-start gap-6">
     <form aria-label={t("order")} onSubmit={event => event.preventDefault()} className="flex min-w-0 flex-[1_1_320px] flex-col gap-5 rounded-card border border-line bg-surface p-card">
       <h1 className="text-heading">{t("order")}</h1>
+      <p className="text-small text-muted">{t("accountMarket")}: <span className="rounded-tag border border-line px-2 py-1">{getMessages("accounts", locale)(`market.${check.market}`)}</span></p>
       <div className="flex flex-col gap-2">
         <label htmlFor="pair" className="text-small text-muted">{t("pair")}</label>
         <select id="pair" className={`${control} text-[15px] font-medium`} value={pair} onChange={event => {

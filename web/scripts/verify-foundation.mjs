@@ -112,6 +112,9 @@ assert.match(percentRuler, /4\.50%/);
 const fractionalRuler = renderToStaticMarkup(createElement(Measure, { value: 0.1, added: 0.2, limit: 0.3 }));
 assert.match(fractionalRuler, /aria-valuenow="0.3"/);
 assert.doesNotMatch(fractionalRuler, /Limit exceeded/);
+const rowRuler = renderToStaticMarkup(createElement(Measure, { value: 70, limit: 100, showStatus: false }));
+assert.doesNotMatch(rowRuler, /measure-level|risk-badge/);
+assert.match(rowRuler, /aria-valuetext="70.00 of 100.00 · Safe"/);
 
 const data = lib("sample-data");
 assert.equal(data.getSampleData("tr").journal[0].how, "Stop tetiklendi");
@@ -126,7 +129,7 @@ for (const [name, field, fixture] of [
   ["Main", "gauges", data.gauges], ["Main", "positions", data.openPositions], ["Markets", "rows", data.markets],
   ["Rules", "classes", data.classRules], ["Rules", "discipline", data.disciplineRules],
   ["Portfolio", "journal", data.journal], ["Portfolio", "classes", data.classStatistics], ["Portfolio", "holdings", data.holdings],
-  ["PreTrade", "checks", data.preTradeCaution.checks], ["PreTradeBlocked", "checks", data.preTradeBlocked.checks],
+  ["PreTrade", "checks", data.preTradeCaution.checks],
 ]) {
   const source = mockup(name)[field];
   assert.equal(fixture.length, source.length);
@@ -134,7 +137,11 @@ for (const [name, field, fixture] of [
 }
 assert.equal(data.preTradeCaution.entry, "5.200");
 assert.equal(data.preTradeCaution.quantity, "200.32");
-assert.equal(data.preTradeBlocked.reducedOrderValue, "1666.67");
+assert.equal(data.preTradeCaution.market, "spot");
+assert.equal(data.preTradeBlocked.market, "futures");
+assert.equal(data.preTradeBlocked.checks[0].value, "3 → 3 of 3");
+assert.equal(data.preTradeBlocked.checks[0].over, true);
+assert.deepEqual([data.limits.riskPerTrade, data.limits.totalOpenRisk, data.limits.maxPositions, data.limits.losingTradesPerDay, data.limits.dailyLoss, data.limits.stoppedTradesPerWeek, data.limits.weeklyLoss], ["2.00", "6.00", 5, 3, "5.00", 5, "10.00"]);
 assert.equal(data.equitySeries.account.length, 13);
 const { LocaleProvider } = component("locale-provider");
 const { CheckResult } = load(resolve(root, "src/app/check/_components/check-result"));
@@ -147,7 +154,13 @@ for (const check of [data.preTradeCaution, data.preTradeBlocked]) {
   assert.ok(text.includes(formatPercent(check.riskPercent, 2, "tr")));
   assert.doesNotMatch(text, /\d+\.\d+%|%\d+\.\d+/);
   assert.equal(markup.includes('class="blocked-stamp"'), check.verdict === "limit");
-  if (check.verdict === "limit") assert.ok(text.includes(getMessages("check", "tr")("blockedStamp")));
+  assert.doesNotMatch(markup, /measure-level/, "Check rows retain only the trailing verdict");
+  if (check.verdict === "limit") {
+    assert.ok(text.includes(getMessages("check", "tr")("blockedStamp")));
+    assert.ok(text.includes("00:00 UTC"));
+    assert.doesNotMatch(markup, /<button/, "A daily discipline block offers no order/reduction action");
+    assert.doesNotMatch(text, /40|66,7/, "Futures discipline blocks do not use spot allocation caps");
+  }
 }
 assert.equal(getMessages("check", "tr")("transitionPercent", {
   before: formatPercent("2.75", 2, "tr"), after: formatPercent("3.25", 2, "tr"), limit: formatPercent("6", 2, "tr"),
@@ -190,6 +203,77 @@ try {
   }
   globalThis.fetch = async () => new Response(null, { status: 503 });
   assert.deepEqual(await (await getTicker()).json(), sampleTicker);
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
+// Auth regressions: exact API boundaries, JSON mutations and both session cookies.
+const { apiRequest, ApiError, apiError, errorText, validPassword, validCode, validPaperBalance } = lib("auth");
+for (const value of ["0.00000001", "10000000", "10000000.00000000", "00000001.12345678"]) assert.equal(validPaperBalance(value), true, value);
+for (const value of ["0", "0.00000000", "-1", "+1", " 1", "1 ", "1e2", ".1", "1.", "1,25", "10000000.00000001", "99999999", "000000001", "1.123456789"]) assert.equal(validPaperBalance(value), false, value);
+assert.equal(validPassword("😀".repeat(12)), true, "Password length counts Unicode characters");
+assert.equal(validPassword("x".repeat(11)), false);
+assert.equal(validPassword("x".repeat(128)), true);
+assert.equal(validPassword("x".repeat(129)), false);
+assert.equal(validCode("000001"), true, "Leading-zero codes stay strings");
+for (const value of ["12345", "1234567", " 123456", "12345a"]) assert.equal(validCode(value), false);
+assert.equal(apiError(new ApiError(400)).key, "error.badRequest");
+assert.equal(apiError(new ApiError(401), "login").key, "error.credentials");
+assert.equal(apiError(new ApiError(401), "code").key, "error.code");
+assert.equal(apiError(new ApiError(401), "disable").key, "error.disable");
+assert.equal(apiError(new ApiError(401), "accounts").key, "error.session");
+assert.equal(apiError(new ApiError(409), "register").key, "error.duplicate");
+assert.equal(apiError(new ApiError(409), "settings").key, "error.conflict");
+assert.equal(apiError(new ApiError(503)).key, "error.unavailable");
+const limited = apiError(new ApiError(429, "900"));
+assert.equal(limited.seconds, "900");
+assert.ok(errorText(limited, "en").includes("900 seconds"));
+assert.ok(errorText(limited, "tr").includes("900 saniye"));
+try {
+  for (const [path, body] of [["/auth/register", { email: "test@example.com", password: " password with spaces " }], ["/auth/login/2fa", { code: "000001" }], ["/auth/logout", {}], ["/auth/2fa/setup", {}], ["/accounts", { name: "Practice", paper_balance: "0.00000001" }]]) {
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, `/v1${path}`);
+      assert.equal(options.credentials, "same-origin");
+      assert.equal(options.cache, "no-store");
+      assert.equal(options.method, "POST");
+      assert.equal(options.headers["Content-Type"], "application/json");
+      assert.deepEqual(JSON.parse(options.body), body);
+      return Response.json({ ok: true });
+    };
+    await apiRequest(path, body);
+  }
+  globalThis.fetch = async () => Response.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": "120" } });
+  await assert.rejects(apiRequest("/auth/login", {}), error => error instanceof ApiError && error.retryAfter === "120");
+  const { GET: proxyGet, POST: proxyPost } = load(resolve(root, "src/app/v1/[...path]/route"));
+  const cookies = ["metron_session=full; Path=/; HttpOnly; SameSite=Lax", "metron_pending=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"];
+  const request = { method: "POST", headers: new Headers({ cookie: "metron_pending=pending", "content-type": "application/json", "user-agent": "metron-test" }), text: async () => '{"code":"000001"}', nextUrl: { search: "" } };
+  globalThis.fetch = async (url, options) => {
+    assert.ok(url.endsWith("/v1/auth/login/2fa"));
+    assert.equal(options.headers.get("cookie"), "metron_pending=pending");
+    assert.equal(options.headers.get("user-agent"), "metron-test");
+    assert.equal(options.body, '{"code":"000001"}');
+    assert.equal(options.cache, "no-store");
+    assert.equal(options.redirect, "manual");
+    const headers = new Headers();
+    cookies.forEach(cookie => headers.append("Set-Cookie", cookie));
+    return Response.json({ id: "user" }, { headers });
+  };
+  const completed = await proxyPost(request, { params: Promise.resolve({ path: ["auth", "login", "2fa"] }) });
+  assert.deepEqual(completed.headers.getSetCookie(), cookies, "Full and pending cookies survive the proxy separately");
+  assert.equal(completed.headers.get("Cache-Control"), "no-store");
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options.headers.get("content-type"), "text/plain", "Proxy does not upgrade cross-site form content to JSON");
+    return Response.json({ error: "JSON required" }, { status: 400 });
+  };
+  await proxyPost({ ...request, headers: new Headers({ "content-type": "text/plain" }) }, { params: Promise.resolve({ path: ["auth", "logout"] }) });
+  globalThis.fetch = async () => Response.json({ error: "limited" }, { status: 429, headers: { "Retry-After": "900" } });
+  const throttled = await proxyGet({ ...request, method: "GET" }, { params: Promise.resolve({ path: ["me"] }) });
+  assert.equal(throttled.status, 429);
+  assert.equal(throttled.headers.get("Retry-After"), "900");
+  globalThis.fetch = async () => { throw new Error("offline"); };
+  const offline = await proxyGet({ ...request, method: "GET" }, { params: Promise.resolve({ path: ["me"] }) });
+  assert.equal(offline.status, 503);
+  assert.equal(offline.headers.get("Cache-Control"), "no-store");
 } finally {
   globalThis.fetch = originalFetch;
 }
@@ -268,4 +352,4 @@ for (const utility of utilities.filter((name) => !name.includes(":"))) assert.ok
 // so a shared name would cap the page at the padding width.
 assert.match(compiled, new RegExp(`\\.max-w-canvas \\{\\s*max-width: ${tokens.size.pageMaxWidth}px;`), "max-w-canvas uses the page width, not the page padding");
 assert.ok(compiled.includes(":root:not([data-theme=\"light\"])"));
-console.log("Passed decimal precision, risk boundaries, messages, component rendering, ticker live/fallback responses, source fixtures, theme bootstrap, tokens, AA surface/wash contrast, color isolation, and Tailwind compilation checks.");
+console.log("Passed decimal precision, auth validation/requests/proxy cookies, localized API errors, risk boundaries, messages, component rendering, ticker live/fallback responses, source fixtures, theme bootstrap, tokens, AA surface/wash contrast, color isolation, and Tailwind compilation checks.");
