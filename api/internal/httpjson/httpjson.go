@@ -17,7 +17,26 @@ func Write(w http.ResponseWriter, status int, value any) {
 }
 
 func Error(w http.ResponseWriter, status int, message string) {
-	Write(w, status, map[string]string{"error": message})
+	value := map[string]string{"error": message}
+	// Shared request/session failures also appear on the bilingual risk screen.
+	translations := map[string]string{
+		"market must be spot or futures":                                              "Piyasa spot veya futures olmalıdır",
+		"name must contain 1 to 100 characters":                                       "Ad 1 ile 100 karakter arasında olmalıdır",
+		"paper_balance must be a decimal string with at most 8 decimal places":        "Kağıt hesap bakiyesi en fazla 8 ondalık basamaklı bir dize olmalıdır",
+		"paper_balance must be greater than 0 and at most 10000000":                   "Kağıt hesap bakiyesi 0'dan büyük ve en fazla 10000000 olmalıdır",
+		"accounts temporarily unavailable":                                            "Hesaplar geçici olarak kullanılamıyor",
+		"invalid JSON body":                                                           "Geçersiz JSON gövdesi",
+		"expected one JSON object":                                                    "Tek bir JSON nesnesi bekleniyor",
+		"Content-Type must be application/json":                                       "Content-Type application/json olmalıdır",
+		"authentication required":                                                     "Oturum açmanız gerekiyor",
+		"authentication temporarily unavailable":                                      "Kimlik doğrulama geçici olarak kullanılamıyor",
+		"authentication unavailable: configure APP_ENCRYPTION_KEY (32 bytes, base64)": "Kimlik doğrulama kullanılamıyor: APP_ENCRYPTION_KEY ayarlayın (32 bayt, base64)",
+		"authentication unavailable: configure DATABASE_URL and run migrations":       "Kimlik doğrulama kullanılamıyor: DATABASE_URL ayarlayın ve veritabanı geçişlerini çalıştırın",
+	}
+	if tr, ok := translations[message]; ok {
+		value["error_tr"] = tr
+	}
+	Write(w, status, value)
 }
 
 func Decode(w http.ResponseWriter, r *http.Request, value any) bool {

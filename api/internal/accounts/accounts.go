@@ -22,6 +22,7 @@ type Account struct {
 	ID           string    `json:"id"`
 	UserID       string    `json:"user_id"`
 	Type         string    `json:"type"`
+	Market       string    `json:"market"`
 	Name         string    `json:"name"`
 	QuoteAsset   string    `json:"quote_asset"`
 	PaperBalance *string   `json:"paper_balance"`
@@ -29,7 +30,7 @@ type Account struct {
 }
 
 type Store interface {
-	CreatePaper(context.Context, string, string, decimal.Decimal) (Account, error)
+	CreatePaper(context.Context, string, string, string, decimal.Decimal) (Account, error)
 	List(context.Context, string) ([]Account, error)
 }
 
@@ -48,7 +49,13 @@ func ValidateBalance(value string) (decimal.Decimal, error) {
 	return balance, nil
 }
 
-func (s Service) Create(ctx context.Context, userID, name, value string) (Account, error) {
+func (s Service) Create(ctx context.Context, userID, name, value, market string) (Account, error) {
+	if market == "" {
+		market = "spot"
+	}
+	if market != "spot" && market != "futures" {
+		return Account{}, auth.ValidationError("market must be spot or futures")
+	}
 	name = strings.TrimSpace(name)
 	if !utf8.ValidString(name) || utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 100 {
 		return Account{}, auth.ValidationError("name must contain 1 to 100 characters")
@@ -57,7 +64,7 @@ func (s Service) Create(ctx context.Context, userID, name, value string) (Accoun
 	if err != nil {
 		return Account{}, auth.ValidationError(err.Error())
 	}
-	return s.Store.CreatePaper(ctx, userID, name, balance)
+	return s.Store.CreatePaper(ctx, userID, name, market, balance)
 }
 
 func (s Service) Mount(r chi.Router) {
@@ -65,11 +72,12 @@ func (s Service) Mount(r chi.Router) {
 		var body struct {
 			Name         string `json:"name"`
 			PaperBalance string `json:"paper_balance"`
+			Market       string `json:"market"`
 		}
 		if !httpjson.Decode(w, r, &body) {
 			return
 		}
-		account, err := s.Create(r.Context(), auth.UserFromContext(r.Context()).ID, body.Name, body.PaperBalance)
+		account, err := s.Create(r.Context(), auth.UserFromContext(r.Context()).ID, body.Name, body.PaperBalance, body.Market)
 		var validation auth.ValidationError
 		if errors.As(err, &validation) {
 			httpjson.Error(w, 400, err.Error())

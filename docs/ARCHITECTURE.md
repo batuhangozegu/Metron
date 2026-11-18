@@ -133,7 +133,7 @@ Folders are created as the roadmap reaches them.
 
 ### 7.1 First-release scope limits
 
-- **Trading scope.** Spot only, USDT pairs only (for example BTC/USDT), as in v1. Other quote currencies and futures complicate the risk calculation and are left out.
+- **Trading scope.** Spot and USDT-M futures accounts with separate risk rules: allocation caps apply to spot; futures uses leverage, isolated liquidation estimates and discipline. Both use USDT quotes, ATR sizing and class risk caps. See [RISK.md](RISK.md) for preview limitations. **Türkçe:** Spot ve USDT-M vadeli hesaplar ayrı kurallara sahiptir; dağılım sınırları spotta, kaldıraç/tasfiye/disiplin vadeli işlemlerde kullanılır. ATR ve sınıf risk sınırları ortaktır.
 - **Interface language.** The UI is written in English, with all text kept in translation files from the start, so Turkish can be added later as one more file.
 - **Hosting.** None. Metron runs locally through Docker Compose; there is no server and no deployment target for now.
 - **License.** None. The repository is public but carries no license file; all rights are reserved.

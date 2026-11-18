@@ -8,7 +8,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // The client is generated too, for the over-the-wire tests.
-    tonic_prost_build::configure()
-        .compile_protos(&["../proto/metron/engine/v1/engine.proto"], &["../proto"])?;
+    tonic_prost_build::configure().compile_protos(
+        &[
+            "../proto/metron/engine/v1/engine.proto",
+            "../proto/metron/engine/v1/risk.proto",
+        ],
+        &["../proto"],
+    )?;
     Ok(())
 }

@@ -18,12 +18,16 @@ All responses and errors are JSON (`{"error":"message"}`), with `Cache-Control: 
 | POST `/v1/auth/2fa/setup` | `{}`, session cookie | 200 `{secret, otpauth_url}`; encrypted secret stored but not enabled |
 | POST `/v1/auth/2fa/enable` | `{code}`, session cookie | 200 `{two_factor_enabled: true}` |
 | POST `/v1/auth/2fa/disable` | `{code, password}`, session cookie | 200 `{two_factor_enabled: false}` |
-| POST `/v1/accounts` | `{name, paper_balance}`, session cookie | 201 account |
+| POST `/v1/accounts` | `{name, paper_balance, market?}`, session cookie | 201 account |
 | GET `/v1/accounts` | session cookie | 200 account array (empty array when none) |
 
 Emails are trimmed, lowercased and parsed as addresses without display names, with a 254-byte limit. Passwords contain 12–128 Unicode characters and are never trimmed. Invalid registration/balance/name/JSON inputs return 400; missing/expired sessions and invalid passwords/codes return 401; duplicate registration and invalid 2FA state return 409; rate limits return 429 (`Retry-After: 900`); unavailable configuration/database returns 503. Unknown email and incorrect password have the same error response and both run Argon2id verification.
 
-Accounts return `{id, user_id, type, name, quote_asset, paper_balance, created_at}`. Names are trimmed, 1–100 characters. Balance input must be a plain positive decimal string, at most 10,000,000 with up to eight fractional digits (no exponent/sign/whitespace). It is parsed by shopspring/decimal, stored as `numeric` and returned as a canonical decimal string. Only paper/USDT creation is exposed. The database supports `live` with NULL balance for step 8; the API rejects extra type/quote/user fields. Lists always filter by the authenticated user.
+Accounts return `{id, user_id, type, market, name, quote_asset, paper_balance, created_at}`. Names are trimmed, 1–100 characters. Balance input must be a plain positive decimal string, at most 10,000,000 with up to eight fractional digits (no exponent/sign/whitespace). It is parsed by shopspring/decimal, stored as `numeric` and returned as a canonical decimal string. Only paper/USDT creation is exposed. The database supports `live` with NULL balance for step 8; the API rejects extra type/quote/user fields. Lists always filter by the authenticated user.
+
+Optional `market` is `spot` (default when omitted/empty/null) or `futures` (USDT-M); other values return a bilingual 400. For example, `{"name":"Futures practice","paper_balance":"10000","market":"futures"}` creates a futures paper account. Market is separate from paper/live type, appears in creation/list responses, and selects the risk rule set. Apply `db/app/00002_account_market.sql`; existing accounts default to spot and the database rejects other markets. The risk endpoint reads market from the owned account, never from client input; see [RISK.md](RISK.md).
+
+**Türkçe:** İsteğe bağlı `market`, `spot` (verilmezse/boş/null ise varsayılan) veya USDT-M için `futures` olabilir; diğer değerler iki dilli 400 hatasıdır. Yukarıdaki örnek vadeli kağıt hesap oluşturur. Piyasa, kağıt/gerçek hesap türünden ayrıdır; oluşturma/listeleme yanıtlarında bulunur ve risk kurallarını seçer. `00002_account_market.sql` mevcut hesapları spot yapar ve geçersiz piyasaları engeller. Risk API'si piyasayı istemciden değil, kullanıcıya ait hesaptan okur. Yanıt alanları ve ondalık dize biçimi her iki piyasada aynıdır.
 
 ## Sessions and two-factor state
 

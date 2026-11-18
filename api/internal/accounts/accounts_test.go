@@ -36,13 +36,13 @@ type fakeStore struct {
 	calls      int
 }
 
-func (f *fakeStore) CreatePaper(_ context.Context, user, name string, balance decimal.Decimal) (Account, error) {
+func (f *fakeStore) CreatePaper(_ context.Context, user, name, market string, balance decimal.Decimal) (Account, error) {
 	f.user = user
 	f.name = name
 	f.balance = balance
 	f.calls++
 	value := balance.String()
-	return Account{UserID: user, Type: "paper", Name: name, QuoteAsset: "USDT", PaperBalance: &value}, nil
+	return Account{UserID: user, Type: "paper", Market: market, Name: name, QuoteAsset: "USDT", PaperBalance: &value}, nil
 }
 func (f *fakeStore) List(context.Context, string) ([]Account, error) { return nil, nil }
 
@@ -56,17 +56,37 @@ func TestCreatePaper(t *testing.T) {
 		t.Run(tc.name+tc.balance, func(t *testing.T) {
 			f := &fakeStore{}
 			s := Service{Store: f}
-			a, err := s.Create(context.Background(), "user-1", tc.name, tc.balance)
+			a, err := s.Create(context.Background(), "user-1", tc.name, tc.balance, "")
 			if (err == nil) != tc.valid {
 				t.Fatal(err)
 			}
 			if tc.valid {
-				if f.user != "user-1" || f.name != "Paper" || a.Type != "paper" || !f.balance.Equal(decimal.RequireFromString(tc.balance)) {
+				if f.user != "user-1" || f.name != "Paper" || a.Type != "paper" || a.Market != "spot" || !f.balance.Equal(decimal.RequireFromString(tc.balance)) {
 					t.Fatalf("invalid account %+v", a)
 				}
 			} else if f.calls != 0 {
 				t.Fatal("invalid data reached store")
 			}
 		})
+	}
+}
+
+func TestAccountMarkets(t *testing.T) {
+	for _, market := range []string{"", "spot", "futures", "margin", "SPOT", " futures "} {
+		f := &fakeStore{}
+		a, err := (Service{Store: f}).Create(context.Background(), "user-1", "Paper", "100", market)
+		valid := market == "" || market == "spot" || market == "futures"
+		if (err == nil) != valid || (!valid && f.calls != 0) {
+			t.Fatalf("market %q: %+v %v", market, a, err)
+		}
+		if valid {
+			want := market
+			if want == "" {
+				want = "spot"
+			}
+			if a.Market != want {
+				t.Fatalf("market %q got %q", market, a.Market)
+			}
+		}
 	}
 }

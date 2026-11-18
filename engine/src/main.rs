@@ -1,6 +1,7 @@
 //! Metron risk engine: market data ingestion and gRPC risk services.
 
 mod market;
+mod risk;
 
 use std::net::SocketAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -67,6 +68,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = Server::builder()
         .add_service(EngineServiceServer::new(Engine))
+        .add_service(pb::risk_service_server::RiskServiceServer::new(
+            risk::grpc::Service {
+                source: std::sync::Arc::new(pool.clone()),
+            },
+        ))
         .serve_with_shutdown(addr, shutdown_signal())
         .await;
 

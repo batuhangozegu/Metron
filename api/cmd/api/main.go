@@ -25,6 +25,7 @@ import (
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
 	"github.com/batuhangozegu/metron/api/internal/health"
 	"github.com/batuhangozegu/metron/api/internal/market"
+	"github.com/batuhangozegu/metron/api/internal/risk"
 )
 
 func main() {
@@ -54,6 +55,7 @@ func run(log *slog.Logger) error {
 	var symbols market.SymbolSource
 	var authStore auth.Store
 	var accountStore accounts.Store
+	var riskAccounts risk.Accounts
 	// No implicit database password. With no URL, health and the HTTP server
 	// remain available while markets and authentication report 503.
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
@@ -79,6 +81,7 @@ func run(log *slog.Logger) error {
 				symbols = market.Postgres{Pool: pool}
 				authStore = auth.Postgres{Pool: pool}
 				accountStore = accounts.Postgres{Pool: pool}
+				riskAccounts = risk.Postgres{Pool: pool}
 			}
 		}
 	} else {
@@ -117,7 +120,10 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
-	authHTTP.Mount(r, accounts.Service{Store: accountStore}.Mount)
+	authHTTP.Mount(r, func(r chi.Router) {
+		accounts.Service{Store: accountStore}.Mount(r)
+		risk.Service{Accounts: riskAccounts, Engine: enginev1.NewRiskServiceClient(conn)}.Mount(r)
+	})
 
 	srv := &http.Server{Addr: apiAddr, Handler: r, ReadHeaderTimeout: 5 * time.Second}
 	errCh := make(chan error, 1)

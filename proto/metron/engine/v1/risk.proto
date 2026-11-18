@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package metron.engine.v1;
+
+service RiskService {
+  // Preview only: never submits an order or writes user data.
+  rpc Check(CheckRequest) returns (CheckResponse);
+}
+
+message RiskProfile {
+  // Percent units: "2" means 2%. Empty uses the system default of 2%.
+  string risk_per_trade_percent = 1;
+  // Empty uses 2. This is a display target, not a profit prediction.
+  string target_risk_reward = 2;
+  // Empty percentages / absent counts use these defaults.
+  string total_open_risk_limit_percent = 3; // 6
+  optional uint32 max_open_positions = 4; // 5
+  optional uint32 max_losing_trades_today = 5; // 3
+  string daily_loss_limit_percent = 6; // 5
+  optional uint32 max_stopped_trades_this_week = 7; // 5
+  string weekly_loss_limit_percent = 8; // 10
+}
+
+// Trusted account activity, supplied by Go, never from the public client.
+// TODO(step 4): aggregate positions/fills; Go currently sends explicit zeros.
+message Activity {
+  string open_risk_percent = 1;
+  uint32 open_positions = 2;
+  uint32 losing_trades_today = 3;
+  string daily_loss_percent = 4;
+  uint32 stopped_trades_this_week = 5;
+  // Weeks start Monday 00:00 UTC; daily activity starts 00:00 UTC.
+  string weekly_loss_percent = 6;
+}
+
+message CheckRequest {
+  string symbol = 1;
+  // "long" or "short". Spot permits long orders only.
+  string side = 2;
+  string entry_price = 3;
+  optional string manual_stop = 4;
+  // Supplied by Go from the authenticated user's paper account.
+  string account_equity = 5;
+  RiskProfile risk_profile = 6;
+  // From app.accounts.market, never the public client. Empty means spot.
+  string market = 7;
+  optional uint32 leverage = 8;
+  // Existing holding of this coin class in quote currency; default zero.
+  string current_class_holding = 9;
+  Activity activity = 10;
+}
+
+message RuleCheck {
+  string rule_id = 1;
+  // "pass", "caution" or "fail".
+  string status = 2;
+  map<string, string> values = 3;
+  string message_en = 4;
+  string message_tr = 5;
+}
+
+message CheckResponse {
+  string symbol = 1;
+  string side = 2;
+  string coin_class = 3;
+  string entry_price = 4;
+  string account_equity = 5;
+  string atr = 6;
+  string atr_multiplier = 7;
+  string suggested_stop = 8;
+  string stop = 9;
+  string stop_distance = 10;
+  string stop_percent = 11;
+  string requested_risk_percent = 12;
+  string risk_percent = 13;
+  string max_risk_percent = 14;
+  // Budget before quantity rounding; actual_risk never exceeds this.
+  string risk_amount = 15;
+  string quantity_step = 16;
+  string position_size = 17;
+  string notional = 18;
+  string actual_risk = 19;
+  string position_percent = 20;
+  string max_position_percent = 21;
+  string target_risk_reward = 22;
+  string target_price = 23;
+  repeated RuleCheck checks = 24;
+  string verdict = 25;
+  bool allowed = 26;
+  uint32 passed = 27;
+  uint32 cautions = 28;
+  uint32 failed = 29;
+  // UTC RFC3339 timestamp of the market snapshot used.
+  string market_updated_at = 30;
+  // Stored Wilder ATR before rounding upward to 8 fractional digits for sizing.
+  string source_atr = 31;
+  string market = 32;
+  uint32 leverage = 33;
+  // Futures only: absent for spot. Provisional isolated-margin approximation.
+  optional string liquidation_price = 34;
+  optional string initial_margin = 35;
+}

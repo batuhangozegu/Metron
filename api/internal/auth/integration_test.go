@@ -22,6 +22,7 @@ import (
 	"github.com/batuhangozegu/metron/api/internal/accounts"
 	"github.com/batuhangozegu/metron/api/internal/auth"
 	"github.com/batuhangozegu/metron/api/internal/cryptobox"
+	"github.com/batuhangozegu/metron/api/internal/risk"
 )
 
 // Requires a dedicated test database with db/app migrations applied. Only this
@@ -121,7 +122,7 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 	if err = json.Unmarshal(res.Body.Bytes(), &account); err != nil {
 		t.Fatal(err)
 	}
-	if account.Type != "paper" || account.PaperBalance == nil || *account.PaperBalance != "1234.12345678" {
+	if account.Type != "paper" || account.Market != "spot" || account.PaperBalance == nil || *account.PaperBalance != "1234.12345678" {
 		t.Fatalf("precision/account: %+v", account)
 	}
 	res = request("GET", "/v1/accounts", "", full)
@@ -129,6 +130,33 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 	var list []accounts.Account
 	if err = json.Unmarshal(res.Body.Bytes(), &list); err != nil || len(list) != 1 {
 		t.Fatalf("list: %s %v", res.Body.String(), err)
+	}
+	want(request("POST", "/v1/accounts", `{"name":"Invalid","paper_balance":"100","market":"margin"}`, full), 400)
+	res = request("POST", "/v1/accounts", `{"name":"Futures","paper_balance":"2000.00000001","market":"futures"}`, full)
+	want(res, 201)
+	var futures accounts.Account
+	if err = json.Unmarshal(res.Body.Bytes(), &futures); err != nil || futures.Market != "futures" || futures.PaperBalance == nil || *futures.PaperBalance != "2000.00000001" {
+		t.Fatalf("futures account: %s %v", res.Body.String(), err)
+	}
+	res = request("GET", "/v1/accounts", "", full)
+	want(res, 200)
+	if err = json.Unmarshal(res.Body.Bytes(), &list); err != nil || len(list) != 2 || list[0].Market != "spot" || list[1].Market != "futures" {
+		t.Fatalf("market list: %s %v", res.Body.String(), err)
+	}
+	riskStore := risk.Postgres{Pool: pool}
+	for _, a := range list {
+		got, err := riskStore.RiskAccount(ctx, user.ID, a.ID)
+		if err != nil || got.Market != a.Market || got.Equity != *a.PaperBalance {
+			t.Fatalf("risk account: %+v %v", got, err)
+		}
+	}
+	// Migration defaults old-style inserts to spot and constrains markets.
+	var defaultMarket string
+	if err = pool.QueryRow(ctx, `INSERT INTO app.accounts(user_id,type,name,paper_balance) VALUES($1,'paper','default',100) RETURNING market`, user.ID).Scan(&defaultMarket); err != nil || defaultMarket != "spot" {
+		t.Fatalf("market default: %s %v", defaultMarket, err)
+	}
+	if _, err = pool.Exec(ctx, `INSERT INTO app.accounts(user_id,type,name,paper_balance,market) VALUES($1,'paper','invalid',100,'margin')`, user.ID); err == nil {
+		t.Fatal("database accepted invalid market")
 	}
 	// Isolation: another user's list cannot expose the first account.
 	res = request("POST", "/v1/auth/register", strings.Replace(credentials, email, "other-"+email, 1))
@@ -143,6 +171,9 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 		}
 	}()
 	otherCookie := cookie(res, auth.CookieName)
+	if _, err = riskStore.RiskAccount(ctx, other.ID, futures.ID); err != risk.ErrAccountNotFound {
+		t.Fatalf("risk account isolation: %v", err)
+	}
 	res = request("GET", "/v1/accounts", "", otherCookie)
 	want(res, 200)
 	if strings.TrimSpace(res.Body.String()) != "[]" {

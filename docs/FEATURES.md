@@ -13,14 +13,14 @@ Note: This list is at the idea stage; it is not a finalized scope.
 ## 2. Per-coin stop-loss (priority 1)
 
 - **Volatility-based stop (ATR).** The stop distance is not a fixed percentage; it is set from the coin's average movement over recent days. Example (illustrative figures): if BTC moves 2% a day on average, the stop is 3%; if an altcoin moves 8%, the stop is 12%. When the stop is wide, the position size shrinks automatically and the amount of money at risk stays the same.
-- **Coin classes.** BTC/ETH, large-cap altcoin, small-cap altcoin, stablecoin. Each class gets its own ATR multiplier, maximum position size and risk per trade (example: BTC 2%, small-cap altcoin 0.5%).
+- **Coin classes.** BTC/ETH, large-cap altcoin, small-cap altcoin, stablecoin. Each class gets its own ATR multiplier and risk per trade (example: BTC 2%, small-cap altcoin 0.5%) in both markets. Maximum class allocation belongs to the portfolio/spot side: core 40%, large 15%, small 8%, including existing class holdings. **Türkçe:** Sınıf risk sınırları ve ATR iki piyasada da kullanılır; mevcut tutarlar dahil %40/%15/%8 dağılım sınırları yalnızca spot portföye aittir.
 - **Liquidity check.** On a coin with a thin order book, the price slips even when the stop triggers. The system estimates slippage from the order book and, if needed, reduces the position size or warns.
 
 ## 3. Portfolio-level risk (priority 2)
 
-- **Total open risk limit.** An upper bound is set on what percentage of the account is lost if all stops trigger at the same time. (v1 only has a limit on the number of positions.)
+- **Total open risk limit.** Default 6% of equity, including the new trade's effective risk, for spot and futures. Default maximum open positions is 5, including the proposed trade. Percentage rules caution at 75% of the limit, counts at limit minus one; exceeding capacity blocks new trades. **Türkçe:** Spot ve vadeli işlemlerde yeni işlem dahil toplam açık risk varsayılanı %6, açık pozisyon sınırı 5'tir. Yüzdelerde sınırın %75'inde, sayılarda bir eksiğinde uyarı; kapasite aşımında engel uygulanır.
 - **Correlation.** Five longs in five different altcoins are not five separate risks; if BTC falls they fall together. The system calculates the total risk of open positions using correlation and warns.
-- **Loss brake.** In addition to the daily cap, a weekly cap and a cooldown period after consecutive losses.
+- **Loss brake.** Editable defaults: reaching 3 losing trades today or 5% daily loss blocks new trades for the rest of the UTC day; reaching 5 stopped trades this week or 10% weekly loss blocks them until Monday 00:00 UTC. These discipline rules apply to both markets. **Türkçe:** Değiştirilebilir varsayılanlar: günde 3 zararlı işlem veya %5 zarar UTC gün sonuna kadar; haftada 5 stop olan işlem veya %10 zarar pazartesi UTC 00:00'a kadar yeni işlemleri engeller. İki piyasada da geçerlidir.
 - **Market regime.** When the market as a whole is very volatile, all risk percentages drop automatically.
 
 ## 4. Stop types (priority 3)
@@ -39,7 +39,7 @@ Three topics (portfolio management, stablecoin, tokenized stocks) are grouped un
 - **Target allocation definition.** The user defines once how they want the portfolio to look (example: 40% BTC/ETH, 20% altcoin, 25% stablecoin, 15% tokenized stocks). The system continuously compares the actual allocation with it. v1 only showed "what you hold"; v2 also answers "how far have you drifted from where you should be".
 - **Drift alert.** When a class's share moves noticeably away from the target (example: altcoin from 20% to 35%), the system warns and lists the buys and sells needed to return to balance.
 - **Rebalancing suggestion.** The system does not send orders itself; it prepares the suggestion, and it is applied if the user approves. Automatic execution may be left to a later stage.
-- **Class limits.** The same classes as the coin classes in the risk engine are used. A rule such as "total small-cap altcoin cannot exceed 10% of the account" blocks a new order up front.
+- **Class limits (spot only).** The same classes as the risk engine are used. Current class holdings plus proposed notional are checked against core 40%, large 15%, small 8% of equity. Leveraged futures has no notional/equity allocation cap. **Türkçe:** Mevcut sınıf tutarı ve yeni işlem, spotta %40/%15/%8 sınırlarına göre kontrol edilir; kaldıraçlı vadeli işlemlere dağılım sınırı uygulanmaz.
 
 ### 5.2 Stablecoin (cash role)
 
@@ -94,7 +94,7 @@ Features outside the risk engine and the portfolio.
 - **DCA (recurring buys).** Plans such as "buy 50 dollars of BTC every week" are defined. It separates the long-term part from the trading part.
 - **Weekly report.** An automatic summary is produced at the end of the week (profit/loss, broken rules, best and worst trade).
 - **Tax/profit statement.** An annual realized-profit report and export are provided.
-- **Futures.** Leverage, liquidation price and funding cost are added. It greatly enlarges the risk engine; it will not be entered until spot works solidly.
+- **Trading markets.** Trading supports spot and USDT-M futures accounts with separate rule sets. Spot uses portfolio allocation limits and no leverage; futures uses leverage 1–125, initial margin, an approximate isolated liquidation/stop check, and discipline. Both share ATR sizing and class risk caps. Funding costs and exchange-accurate liquidation tiers remain future integration work. **Türkçe:** İşlemler ayrı kurallarla spot ve USDT-M vadeli hesapları destekler. Spot dağılım sınırlarıyla kaldıraçsız; vadeli işlemler 1–125 kaldıraç, başlangıç marjini, yaklaşık izole tasfiye/stop kontrolü ve disiplinle çalışır. ATR ve sınıf risk sınırları ortaktır; fonlama ve borsa tasfiye kademeleri sonraki entegrasyondadır.
 - **AI commentary.** An assistant that draws observations from trade history (example: "most losses are in small-cap altcoins, in trades opened at night").
 
 ## 9. Release tiers
@@ -110,6 +110,7 @@ Note: This section determines which release the priority notes in the previous s
 - Portfolio tracking: historical performance, trade statistics, cost tracking (section 5.4)
 - Pre-trade check screen
 - Discipline rules
+- Spot and USDT-M futures accounts with separate risk rule sets / Ayrı risk kurallarıyla spot ve USDT-M vadeli hesaplar
 - Paper trading
 - Market service: coin list, candle data, live price feed (section 6; prerequisite for the ATR calculation)
 - Two-factor authentication (section 6)
@@ -129,5 +130,4 @@ Note: This section determines which release the priority notes in the previous s
 - Multiple exchanges
 - Tokenized stocks (section 5.3)
 - Tax/profit statement
-- Futures
 - AI commentary

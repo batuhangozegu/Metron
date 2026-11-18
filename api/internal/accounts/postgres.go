@@ -10,11 +10,11 @@ import (
 
 type Postgres struct{ Pool *pgxpool.Pool }
 
-const columns = `id::text,user_id::text,type,name,quote_asset,paper_balance::text,created_at`
+const columns = `id::text,user_id::text,type,market,name,quote_asset,paper_balance::text,created_at`
 
 func scanAccount(row pgx.Row) (Account, error) {
 	var a Account
-	err := row.Scan(&a.ID, &a.UserID, &a.Type, &a.Name, &a.QuoteAsset, &a.PaperBalance, &a.CreatedAt)
+	err := row.Scan(&a.ID, &a.UserID, &a.Type, &a.Market, &a.Name, &a.QuoteAsset, &a.PaperBalance, &a.CreatedAt)
 	a.CreatedAt = a.CreatedAt.UTC()
 	if a.PaperBalance != nil {
 		balance, parseErr := decimal.NewFromString(*a.PaperBalance)
@@ -27,8 +27,8 @@ func scanAccount(row pgx.Row) (Account, error) {
 	return a, err
 }
 
-func (p Postgres) CreatePaper(ctx context.Context, userID, name string, balance decimal.Decimal) (Account, error) {
-	return scanAccount(p.Pool.QueryRow(ctx, `INSERT INTO app.accounts(user_id,type,name,paper_balance) VALUES($1,'paper',$2,$3::numeric) RETURNING `+columns, userID, name, balance.String()))
+func (p Postgres) CreatePaper(ctx context.Context, userID, name, market string, balance decimal.Decimal) (Account, error) {
+	return scanAccount(p.Pool.QueryRow(ctx, `INSERT INTO app.accounts(user_id,type,name,market,paper_balance) VALUES($1,'paper',$2,$3,$4::numeric) RETURNING `+columns, userID, name, market, balance.String()))
 }
 
 func (p Postgres) List(ctx context.Context, userID string) ([]Account, error) {
