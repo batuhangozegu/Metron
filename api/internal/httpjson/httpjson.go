@@ -36,6 +36,10 @@ func Error(w http.ResponseWriter, status int, message string) {
 	if tr, ok := translations[message]; ok {
 		value["error_tr"] = tr
 	}
+	if writer, ok := w.(interface{ WriteError(int, string, string) }); ok {
+		writer.WriteError(status, message, value["error_tr"])
+		return
+	}
 	Write(w, status, value)
 }
 

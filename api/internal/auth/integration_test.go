@@ -145,7 +145,7 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 	}
 	riskStore := risk.Postgres{Pool: pool}
 	for _, a := range list {
-		got, err := riskStore.RiskAccount(ctx, user.ID, a.ID)
+		got, err := riskStore.RiskAccount(ctx, user.ID, a.ID, "BTCUSDT")
 		if err != nil || got.Market != a.Market || got.Equity != *a.PaperBalance {
 			t.Fatalf("risk account: %+v %v", got, err)
 		}
@@ -171,7 +171,7 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 		}
 	}()
 	otherCookie := cookie(res, auth.CookieName)
-	if _, err = riskStore.RiskAccount(ctx, other.ID, futures.ID); err != risk.ErrAccountNotFound {
+	if _, err = riskStore.RiskAccount(ctx, other.ID, futures.ID, "BTCUSDT"); err != risk.ErrAccountNotFound {
 		t.Fatalf("risk account isolation: %v", err)
 	}
 	res = request("GET", "/v1/accounts", "", otherCookie)
@@ -179,8 +179,9 @@ func TestPostgresAccountsAndSignIn(t *testing.T) {
 	if strings.TrimSpace(res.Body.String()) != "[]" {
 		t.Fatal("cross-user account leak")
 	}
-	// DB constraints also reject a paper balance missing or over the cap.
-	for _, value := range []string{"NULL", "0", "10000000.00000001", "0.000000001"} {
+	// A paper balance is required. Creation caps/precision are validated in the
+	// accounts API; settlement may produce arbitrary precision or exhaust equity.
+	for _, value := range []string{"NULL"} {
 		if _, err = pool.Exec(ctx, `INSERT INTO app.accounts(user_id,type,name,paper_balance) VALUES($1,'paper','invalid',`+value+`)`, user.ID); err == nil {
 			t.Fatal("database accepted invalid paper balance", value)
 		}

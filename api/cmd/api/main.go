@@ -26,6 +26,7 @@ import (
 	"github.com/batuhangozegu/metron/api/internal/health"
 	"github.com/batuhangozegu/metron/api/internal/market"
 	"github.com/batuhangozegu/metron/api/internal/risk"
+	"github.com/batuhangozegu/metron/api/internal/trading"
 )
 
 func main() {
@@ -56,6 +57,7 @@ func run(log *slog.Logger) error {
 	var authStore auth.Store
 	var accountStore accounts.Store
 	var riskAccounts risk.Accounts
+	var tradingStore trading.Store
 	// No implicit database password. With no URL, health and the HTTP server
 	// remain available while markets and authentication report 503.
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
@@ -82,6 +84,7 @@ func run(log *slog.Logger) error {
 				authStore = auth.Postgres{Pool: pool}
 				accountStore = accounts.Postgres{Pool: pool}
 				riskAccounts = risk.Postgres{Pool: pool}
+				tradingStore = trading.Postgres{Pool: pool}
 			}
 		}
 	} else {
@@ -108,7 +111,7 @@ func run(log *slog.Logger) error {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.Recoverer)
+	r.Use(middleware.RequestID, middleware.Recoverer, trading.ErrorShape)
 	r.Get("/healthz", health.Handler(engine))
 	r.Get("/v1/markets", market.Handler(symbols, tickers))
 	box, keyErr := cryptobox.New(os.Getenv("APP_ENCRYPTION_KEY"))
@@ -120,9 +123,18 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
+	riskService := risk.Service{Accounts: riskAccounts, Engine: enginev1.NewRiskServiceClient(conn)}
+	tradingService := trading.Service{Store: tradingStore, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService}
+	if tradingStore != nil {
+		stopsDone := make(chan struct{})
+		go func() { defer close(stopsDone); tradingService.WatchStops(ctx, engine, log) }()
+		// Stop workers before deferred database/Redis/engine connection cleanup.
+		defer func() { stop(); <-stopsDone }()
+	}
 	authHTTP.Mount(r, func(r chi.Router) {
 		accounts.Service{Store: accountStore}.Mount(r)
-		risk.Service{Accounts: riskAccounts, Engine: enginev1.NewRiskServiceClient(conn)}.Mount(r)
+		riskService.Mount(r)
+		tradingService.Mount(r)
 	})
 
 	srv := &http.Server{Addr: apiAddr, Handler: r, ReadHeaderTimeout: 5 * time.Second}

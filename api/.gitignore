@@ -1,2 +1,4 @@
 # Generated from ../proto by `go generate ./...`; never committed.
 /internal/gen/
+# Local Go/Buf caches and isolated database verification data.
+/.cache/

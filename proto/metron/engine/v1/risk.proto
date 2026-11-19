@@ -22,7 +22,8 @@ message RiskProfile {
 }
 
 // Trusted account activity, supplied by Go, never from the public client.
-// TODO(step 4): aggregate positions/fills; Go currently sends explicit zeros.
+// Go aggregates owned positions using UTC day and Monday week boundaries.
+// Go rounds ratios up to 8 decimals so limits stay conservative.
 message Activity {
   string open_risk_percent = 1;
   uint32 open_positions = 2;
@@ -39,13 +40,15 @@ message CheckRequest {
   string side = 2;
   string entry_price = 3;
   optional string manual_stop = 4;
-  // Supplied by Go from the authenticated user's paper account.
+  // Supplied by Go from the authenticated user's paper account, rounded down
+  // to 8 decimals.
   string account_equity = 5;
   RiskProfile risk_profile = 6;
   // From app.accounts.market, never the public client. Empty means spot.
   string market = 7;
   optional uint32 leverage = 8;
-  // Existing holding of this coin class in quote currency; default zero.
+  // Open spot entry notional in the symbol's coin class, aggregated by Go.
+  // Rounded up to 8 decimals.
   string current_class_holding = 9;
   Activity activity = 10;
 }

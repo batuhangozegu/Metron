@@ -1,5 +1,5 @@
 // Package risk exposes the engine's preview behind the existing session policy.
-// Financial calculations remain exclusively in Rust.
+// Risk decisions and sizing remain in Rust; Go supplies account aggregates.
 package risk
 
 import (
@@ -26,12 +26,14 @@ var ErrAccountNotFound = errors.New("account not found")
 
 type Accounts interface {
 	// RiskAccount must filter by BOTH owner and account, and only accept paper/USDT.
-	RiskAccount(context.Context, string, string) (Account, error)
+	RiskAccount(context.Context, string, string, string) (Account, error)
 }
 
 type Account struct {
-	Equity string
-	Market string
+	Equity              string
+	Market              string
+	Activity            *enginev1.Activity
+	CurrentClassHolding string
 }
 
 type Engine interface {
@@ -78,7 +80,10 @@ func validDecimal(value string, max int64) bool {
 	return err == nil && d.IsPositive() && d.LessThanOrEqual(decimal.NewFromInt(max))
 }
 
-func (r Request) valid() bool {
+func ValidID(value string) bool       { return uuid.MatchString(value) }
+func ValidQuantity(value string) bool { return validDecimal(value, 1000000000000) }
+
+func (r Request) Valid() bool {
 	if r.Leverage != nil && (*r.Leverage < 1 || *r.Leverage > 125) {
 		return false
 	}
@@ -152,7 +157,7 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 		failure(w, 404, "account_not_found", "Account not found.", "Hesap bulunamadı.")
 		return
 	}
-	if !body.valid() {
+	if !body.Valid() {
 		failure(w, 400, "invalid_input", "Use a USDT symbol, long/short side and positive plain decimal strings with up to 8 decimal places.", "USDT işlem çifti, long/short yönü ve en fazla 8 ondalık basamaklı pozitif ondalık dizeler kullanın.")
 		return
 	}
@@ -162,7 +167,7 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
-	account, err := s.Accounts.RiskAccount(ctx, userID, body.AccountID)
+	account, err := s.Accounts.RiskAccount(ctx, userID, body.AccountID, body.Symbol)
 	if errors.Is(err, ErrAccountNotFound) {
 		failure(w, 404, "account_not_found", "Account not found.", "Hesap bulunamadı.")
 		return
@@ -171,31 +176,7 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 		engineFailure(w, err)
 		return
 	}
-	if account.Market != "spot" && account.Market != "futures" {
-		engineFailure(w, status.Error(codes.Unavailable, ""))
-		return
-	}
-	if (account.Market == "spot" && body.Leverage != nil && *body.Leverage != 1) || (account.Market == "futures" && body.Leverage == nil) {
-		engineFailure(w, status.Error(codes.InvalidArgument, "invalid_leverage"))
-		return
-	}
-	request := &enginev1.CheckRequest{Symbol: body.Symbol, Side: body.Side, EntryPrice: body.EntryPrice, ManualStop: body.ManualStop, AccountEquity: account.Equity, Market: account.Market, Leverage: body.Leverage,
-		// TODO(step 4): derive class holdings and all activity from owned positions/fills.
-		// Never accept counters or holdings from the public request. These explicit
-		// zeros make discipline previews incomplete until account history exists.
-		CurrentClassHolding: "0",
-		Activity: &enginev1.Activity{
-			OpenRiskPercent: "0", OpenPositions: 0, LosingTradesToday: 0,
-			DailyLossPercent: "0", StoppedTradesThisWeek: 0, WeeklyLossPercent: "0",
-		},
-	}
-	if body.RiskProfile != nil {
-		p := body.RiskProfile
-		request.RiskProfile = &enginev1.RiskProfile{RiskPerTradePercent: p.RiskPerTradePercent, TargetRiskReward: p.TargetRiskReward,
-			TotalOpenRiskLimitPercent: p.TotalOpenRiskLimitPercent, MaxOpenPositions: p.MaxOpenPositions, MaxLosingTradesToday: p.MaxLosingTradesToday,
-			DailyLossLimitPercent: p.DailyLossLimitPercent, MaxStoppedTradesThisWeek: p.MaxStoppedTradesThisWeek, WeeklyLossLimitPercent: p.WeeklyLossLimitPercent}
-	}
-	result, err := s.Engine.Check(ctx, request)
+	result, err := s.Evaluate(ctx, *body, account)
 	if err != nil {
 		engineFailure(w, err)
 		return
@@ -212,4 +193,32 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpjson.Write(w, 200, json.RawMessage(encoded))
+}
+
+// Evaluate is shared by previews and orders. Orders supply a snapshot protected
+// by the account lock; clients cannot supply holdings or activity.
+func (s Service) Evaluate(ctx context.Context, body Request, account Account) (*enginev1.CheckResponse, error) {
+	if !body.Valid() {
+		return nil, status.Error(codes.InvalidArgument, "invalid_input")
+	}
+	if s.Engine == nil || (account.Market != "spot" && account.Market != "futures") || account.Activity == nil || account.CurrentClassHolding == "" {
+		return nil, status.Error(codes.Unavailable, "risk activity unavailable")
+	}
+	if (account.Market == "spot" && body.Leverage != nil && *body.Leverage != 1) || (account.Market == "futures" && body.Leverage == nil) {
+		return nil, status.Error(codes.InvalidArgument, "invalid_leverage")
+	}
+	request := &enginev1.CheckRequest{Symbol: body.Symbol, Side: body.Side, EntryPrice: body.EntryPrice, ManualStop: body.ManualStop,
+		AccountEquity: account.Equity, Market: account.Market, Leverage: body.Leverage,
+		CurrentClassHolding: account.CurrentClassHolding, Activity: account.Activity}
+	if body.RiskProfile != nil {
+		p := body.RiskProfile
+		request.RiskProfile = &enginev1.RiskProfile{RiskPerTradePercent: p.RiskPerTradePercent, TargetRiskReward: p.TargetRiskReward,
+			TotalOpenRiskLimitPercent: p.TotalOpenRiskLimitPercent, MaxOpenPositions: p.MaxOpenPositions, MaxLosingTradesToday: p.MaxLosingTradesToday,
+			DailyLossLimitPercent: p.DailyLossLimitPercent, MaxStoppedTradesThisWeek: p.MaxStoppedTradesThisWeek, WeeklyLossLimitPercent: p.WeeklyLossLimitPercent}
+	}
+	result, err := s.Engine.Check(ctx, request)
+	if err == nil && result == nil {
+		err = status.Error(codes.Unavailable, "empty risk response")
+	}
+	return result, err
 }

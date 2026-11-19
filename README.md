@@ -61,6 +61,51 @@ curl -b cookies.txt "$API/v1/me"
 
 Replace sample codes with current authenticator codes; a code cannot be used twice. Session cookies are HttpOnly, SameSite=Lax and slide for 30 days; use `-b cookies.txt -c cookies.txt` to retain refreshed expiry in long-running curl use. Set `COOKIE_SECURE=true` for HTTPS (default false for local HTTP). The pending 2FA cookie expires after five minutes and cannot authorize account operations. See [backend auth details and tests](docs/AUTH.md).
 
+## Paper trading with curl
+
+After applying app migration `00003`, sign in with the cookie jar above and
+copy an account ID from `GET /v1/accounts`. The engine must have a fresh class/ATR
+snapshot and Redis must have a latest ticker for the symbol. The API chooses the
+entry price and runs the risk check against the account's actual open positions
+and settled UTC day/week history. Risk profiles remain per-request overrides.
+
+```sh
+ACCOUNT_ID=replace-with-your-paper-account-id
+curl -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"symbol\":\"BTCUSDT\",\"side\":\"long\",\"risk_profile\":{\"risk_per_trade_percent\":\"0.1\"}}" \
+  "$API/v1/orders"
+# The 201 response includes order, fill, position and check. Copy position.id.
+POSITION_ID=replace-with-the-returned-position-id
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/positions"
+curl -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d '{}' "$API/v1/positions/$POSITION_ID/close"
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/positions?status=closed"
+curl -b cookies.txt "$API/v1/accounts"
+```
+
+`manual_stop`, `quantity`, `risk_profile` and spot `leverage` are optional.
+Quantity defaults to the suggested size; a supplied decimal string must not
+exceed that size. Futures accounts require integer `leverage` (1–125); spot
+permits only long positions and leverage 1. Any failed rule produces HTTP 422
+with `error.id = "risk_blocked"`, the full `check`, and a rejected order record.
+Other trading errors use `{error:{id,message_en,message_tr}}`.
+
+The paper exchange charges 0.1% of notional per spot fill and 0.05% per futures
+fill, in USDT. Opening requires balance to cover notional (spot) or initial
+margin (futures), plus the opening fee. The balance changes only on close, by
+directional PnL minus both fill fees in one transaction. Open-position
+`unrealized_pnl` is directional PnL before settlement fees; it and `last_price`
+are null if Redis has no price. Closed positions omit these fields and list
+the newest 100 closes first. Repeating a manual close returns HTTP 409 with
+`error.id = "position_closed"`.
+
+The API subscribes to `EngineService.WatchStops` and reconnects with backoff.
+Stop hits close at the stored stop price, including when Redis is unavailable;
+duplicate hits settle once. Stop monitoring requires the step 4 engine changes.
+The engine lane must also accept full-precision trusted `account_equity`,
+class holdings and activity decimals: the previous eight-place risk input
+limit cannot represent settled fees or most balance-relative activity ratios.
+
 ## Target technology
 
 - **Go:** API gateway, authentication, user/portfolio CRUD, REST endpoints.

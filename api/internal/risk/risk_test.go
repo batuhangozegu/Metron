@@ -41,9 +41,11 @@ type fakeAccounts struct {
 	user, account string
 	calls         int
 	err           error
+	activity      *enginev1.Activity
+	holding       string
 }
 
-func (f *fakeAccounts) RiskAccount(_ context.Context, user, account string) (Account, error) {
+func (f *fakeAccounts) RiskAccount(_ context.Context, user, account, _ string) (Account, error) {
 	f.user, f.account = user, account
 	f.calls++
 	if f.err != nil {
@@ -56,7 +58,14 @@ func (f *fakeAccounts) RiskAccount(_ context.Context, user, account string) (Acc
 	if market == "" {
 		market = "spot"
 	}
-	return Account{Equity: "12345.12345678", Market: market}, nil
+	activity, holding := f.activity, f.holding
+	if activity == nil {
+		activity = &enginev1.Activity{OpenRiskPercent: "0", DailyLossPercent: "0", WeeklyLossPercent: "0"}
+	}
+	if holding == "" {
+		holding = "0"
+	}
+	return Account{Equity: "12345.12345678", Market: market, CurrentClassHolding: holding, Activity: activity}, nil
 }
 
 type fakeEngine struct {
@@ -285,5 +294,15 @@ func TestDisciplineProfileOverrides(t *testing.T) {
 	p := e.request.RiskProfile
 	if p.TotalOpenRiskLimitPercent != "4.5" || p.GetMaxOpenPositions() != 4 || p.GetMaxLosingTradesToday() != 2 || p.DailyLossLimitPercent != "3.5" || p.GetMaxStoppedTradesThisWeek() != 4 || p.WeeklyLossLimitPercent != "7.5" {
 		t.Fatalf("lost profile: %+v", p)
+	}
+}
+
+func TestCheckForwardsAuthoritativeActivity(t *testing.T) {
+	a := &fakeAccounts{holding: "1200.123456789", activity: &enginev1.Activity{
+		OpenRiskPercent: "3.123456789", OpenPositions: 4, LosingTradesToday: 2, DailyLossPercent: "1.25", StoppedTradesThisWeek: 3, WeeklyLossPercent: "2.5"}}
+	e := &fakeEngine{}
+	w := post(router(t, a, e), validBody, "application/json", token)
+	if w.Code != 200 || e.request.Activity != a.activity || e.request.CurrentClassHolding != a.holding {
+		t.Fatalf("wrong trusted snapshot %d %s %+v", w.Code, w.Body, e.request)
 	}
 }

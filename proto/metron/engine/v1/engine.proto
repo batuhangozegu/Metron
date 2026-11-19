@@ -9,6 +9,8 @@ service EngineService {
   // Health and connectivity check. The API calls it on startup to confirm
   // the engine is reachable.
   rpc Ping(PingRequest) returns (PingResponse);
+  // Streams stop hits for open paper positions. Go closes the position; the engine never writes user data.
+  rpc WatchStops(WatchStopsRequest) returns (stream StopHit);
 }
 
 message PingRequest {
@@ -23,4 +25,17 @@ message PingResponse {
   string engine_version = 2;
   // Engine clock at the time of the reply, Unix milliseconds, UTC.
   int64 server_time_unix_ms = 3;
+}
+
+message WatchStopsRequest {}
+
+message StopHit {
+  string position_id = 1;
+  string symbol = 2;
+  // The stop level that was crossed, as a decimal string.
+  string stop = 3;
+  // The ticker price that crossed it, as a decimal string.
+  string price = 4;
+  // RFC 3339 UTC.
+  string observed_at = 5;
 }
