@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { compareDecimals, formatPrice } from "@/lib/format";
+import { compareDecimals, formatTradePrice } from "@/lib/format";
 import { getMessages } from "@/lib/messages";
 import { useLocale } from "@/components/metron/locale-provider";
 
@@ -14,6 +14,6 @@ export function LivePrice({ value }: { value: string | null }) {
   }
   return <span key={tick.revision} className="price-tick" data-direction={tick.direction > 0 ? "up" : tick.direction < 0 ? "down" : undefined}>
     <span aria-hidden="true" className="price-direction w-2 text-[9px]">{tick.direction > 0 ? "▲" : tick.direction < 0 ? "▼" : ""}</span>
-    {value === null ? getMessages("markets", locale)("missing") : formatPrice(value, undefined, locale)}
+    {value === null ? getMessages("markets", locale)("missing") : formatTradePrice(value, locale)}
   </span>;
 }

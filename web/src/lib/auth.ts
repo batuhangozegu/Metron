@@ -20,7 +20,7 @@ export interface TradingAccount {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, public retryAfter: string | null = null) {
+  constructor(public status: number, public retryAfter: string | null = null, public data: unknown = null) {
     super(`API request failed (${status})`);
   }
 }
@@ -35,7 +35,7 @@ export async function apiRequest<T>(path: string, body?: object, signal?: AbortS
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: signal ?? AbortSignal.timeout(15_000),
   });
-  if (!response.ok) throw new ApiError(response.status, response.headers.get("Retry-After"));
+  if (!response.ok) throw new ApiError(response.status, response.headers.get("Retry-After"), await response.json().catch(() => null));
   return response.json() as Promise<T>;
 }
 

@@ -1,24 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { formatPrice } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/metron/locale-provider";
 import { getMessages } from "@/lib/messages";
-import { account } from "@/lib/sample-data";
-import { NumberCopy } from "./number-copy";
 
-export function CheckActions({ state, stop }: { state: "safe" | "caution" | "limit"; stop: string }) {
-  const locale = useLocale();
-  const t = getMessages("check", locale);
-  // Store the event, so an open confirmation also follows a language refresh.
-  const [feedbackKey, setFeedbackKey] = useState<"waitFeedback" | "placeFeedback" | "violationFeedback" | null>(null);
-  const feedback = feedbackKey ? t(feedbackKey, { time: account.cooldown.waitUntil, currency: account.currency }) : "";
-  return <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-    {state !== "limit" && <button type="button" onClick={() => setFeedbackKey(state === "caution" ? "waitFeedback" : "placeFeedback")} className="min-h-12 rounded-control bg-text px-[22px] py-3 text-[15px] font-semibold text-inverse"><NumberCopy text={t(state === "caution" ? "wait" : "place", { time: account.cooldown.waitUntil })} /></button>}
-    {state === "caution" && <button type="button" className="min-h-12 rounded-control border border-caution px-[22px] py-3 text-[15px] font-medium" onClick={() => setFeedbackKey("violationFeedback")}>{t("placeAnyway")}</button>}
-    <Link href="/" className="inline-flex min-h-12 items-center px-3 py-3 text-[15px] text-muted">{t("discard")}</Link>
-    <p className="min-w-0 flex-[1_1_260px] text-small text-subtle"><NumberCopy text={t(state === "limit" ? "blockedNote" : state === "caution" ? "cautionNote" : "safeNote", { currency: account.currency, stop: formatPrice(stop, undefined, locale) })} /></p>
-    {feedback && <p role="status" className="w-full rounded-control border border-line bg-raised p-3 text-small text-muted"><NumberCopy text={feedback} /></p>}
+export function CheckActions({ blocked, busy, onOpen }: { blocked: boolean; busy: boolean; onOpen: () => void }) {
+  const t = getMessages("check", useLocale());
+  return <div className="flex flex-wrap items-center gap-4">
+    <Button type="button" disabled={blocked || busy} onClick={onOpen}>{t(busy ? "opening" : "openOrder")}</Button>
+    <Link href="/" className="inline-flex min-h-control items-center px-3 text-muted">{t("discard")}</Link>
+    <p className="text-small text-subtle">{t(blocked ? "liveBlockedNote" : "executionNote")}</p>
   </div>;
 }

@@ -12,6 +12,16 @@ The `/v1/*` route handler forwards requests to `METRON_API_URL` at runtime, defa
 
 Run `npm run lint`, `npx tsc --noEmit`, `node scripts/verify-foundation.mjs`, and `npm run build`. The verification script includes auth request/proxy cookie checks, localized errors and exact balance validation alongside the existing foundation checks.
 
+## Paper trading
+
+`/check` loads the signed-in user's USDT paper accounts and `/v1/markets`. Spot accounts permit long orders only; futures accounts expose both directions and integer leverage from 1 to 125. An optional manual stop uses a decimal point in either language. The preview refreshes the ticker and sends its exact price to `/v1/risk/check`; editing the form clears the result. The API's bilingual rule list supplies every verdict, and any failed rule disables opening an order.
+
+Opening an order posts only account, symbol, side, optional stop and futures leverage to `/v1/orders`. Go prices the fill and checks risk again. A 422 response replaces the preview with the returned blocked check; success opens `/portfolio` with that account selected. No mutation is automatically retried.
+
+`/portfolio` reads open and closed positions for the selected paper account. Both lists refresh every five seconds while the tab is visible and when visibility returns. Closing posts to `/v1/positions/{id}/close`, then refreshes both lists; an already-closed response also triggers a refresh. Switching accounts cancels old reads. Missing quotes show an unavailable state, and close timestamps use UTC. Amounts stay decimal strings, including quantities beyond JavaScript's integer precision. Only bounded meter geometry uses numbers. The equity chart remains explicitly labeled sample data until step 6.
+
+Run `npm run lint`, `npm run typecheck`, `node scripts/verify-foundation.mjs`, and `npm run build`. The verification script covers live check rendering, fail-closed order controls, one status per rule, retained 422 payloads, localized open/closed/empty position tables, exact decimal quantities and UTC timestamps. These checks use contract fixtures; testing fills and stop execution against Go and the engine requires the other step 4 lanes.
+
 ## Ownership and folders
 
 Each screen agent owns **only its route folder and its English message file**:

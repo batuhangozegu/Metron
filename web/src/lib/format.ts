@@ -59,6 +59,12 @@ export function formatPrice(value: Decimal, decimals?: number, locale: Locale = 
   return formatAmount(value, decimals ?? parts(value).fraction.length, locale);
 }
 
+/** Bound calculated trading prices for display; keep API decimals unchanged. */
+export function formatTradePrice(value: Decimal, locale: Locale = "en"): string {
+  const { whole, fraction } = parts(value);
+  return formatPrice(value, Math.min(fraction.length, BigInt(whole) > BigInt(0) ? 2 : 8), locale);
+}
+
 /** Keep editable decimal drafts and their precision when the interface language changes. */
 export function reformatInput(value: string, from: Locale, to: Locale): string {
   const canonical = from === "tr" ? value.replaceAll(".", "").replace(",", ".") : value.replaceAll(",", "");

@@ -145,21 +145,56 @@ assert.deepEqual([data.limits.riskPerTrade, data.limits.totalOpenRisk, data.limi
 assert.equal(data.equitySeries.account.length, 13);
 const { LocaleProvider } = component("locale-provider");
 const { CheckResult } = load(resolve(root, "src/app/check/_components/check-result"));
-for (const check of [data.preTradeCaution, data.preTradeBlocked]) {
-  const markup = renderToStaticMarkup(createElement(LocaleProvider, { locale: "tr" }, createElement(CheckResult, { locale: "tr", check })));
+const liveCheck = {
+  symbol: "BTCUSDT", side: "long", coin_class: "core", market: "spot", leverage: 1,
+  entry_price: "100.12345678", stop: "95", target_price: "110.37037034",
+  account_equity: "10000", atr: "3.415637853333333333", atr_multiplier: "1.5",
+  stop_percent: "5.117", risk_percent: "1", risk_amount: "100", actual_risk: "99.99999999",
+  position_size: "19.517" , notional: "1954.109", target_risk_reward: "2",
+  allowed: true, verdict: "pass", passed: 1, cautions: 0, failed: 0,
+  checks: [{ rule_id: "total_open_risk", status: "pass", values: { current_percent: "1", proposed_percent: "2", limit_percent: "6" }, message_en: "Total open risk includes the proposed trade.", message_tr: "Toplam açık risk önerilen işlemi içerir." }],
+};
+for (const locale of ["en", "tr"]) for (const status of ["pass", "caution", "fail"]) {
+  // A failed row must block even if allowed/verdict are inconsistent.
+  const check = { ...liveCheck, checks: [{ ...liveCheck.checks[0], status }] };
+  const markup = renderToStaticMarkup(createElement(LocaleProvider, { locale }, createElement(CheckResult, { locale, check, onOpen() {} })));
   const text = markup.replace(/<[^>]*>/g, "");
-  assert.ok(markup.includes(`data-risk="${check.verdict}"`));
-  assert.ok(text.includes(formatAmount(check.orderValue, 2, "tr")));
-  assert.ok(text.includes(formatPrice(check.entry, undefined, "tr")));
-  assert.ok(text.includes(formatPercent(check.riskPercent, 2, "tr")));
-  assert.doesNotMatch(text, /\d+\.\d+%|%\d+\.\d+/);
-  assert.equal(markup.includes('class="blocked-stamp"'), check.verdict === "limit");
+  const state = { pass: "safe", caution: "caution", fail: "limit" }[status];
+  assert.ok(markup.includes(`data-verdict="${state}"`));
+  assert.ok(text.includes(formatAmount(check.notional, 2, locale)));
+  assert.ok(text.includes(formatPrice(check.entry_price, undefined, locale)));
+  assert.ok(text.includes(formatPercent(check.risk_percent, 2, locale)));
+  assert.ok(text.includes(check.checks[0][`message_${locale}`]));
+  assert.equal(markup.includes('class="blocked-stamp"'), status === "fail");
   assert.doesNotMatch(markup, /measure-level/, "Check rows retain only the trailing verdict");
-  if (check.verdict === "limit") {
-    assert.ok(text.includes(getMessages("check", "tr")("blockedStamp")));
-    assert.ok(text.includes("00:00 UTC"));
-    assert.doesNotMatch(markup, /<button/, "A daily discipline block offers no order/reduction action");
-    assert.doesNotMatch(text, /40|66,7/, "Futures discipline blocks do not use spot allocation caps");
+  assert.equal((markup.match(/class="risk-badge /g) ?? []).length, 1, "Exactly one status badge per rule row");
+  assert.equal(/<button[^>]* disabled=""/.test(markup), status === "fail", "A failed check disables the order action");
+}
+const { PositionTable } = load(resolve(root, "src/app/portfolio/_components/positions"));
+const position = {
+  id: "position-1", symbol: "BTCUSDT", side: "short", quantity: "9007199254740993.00000001",
+  entry_price: "100.12345678", stop: "105.12345678", leverage: 10, coin_class: "core",
+  initial_risk: "100", status: "open", opened_at: "2026-11-19T00:00:00Z", closed_at: null,
+  exit_price: null, realized_pnl: null, close_reason: null, last_price: null, unrealized_pnl: null,
+};
+for (const locale of ["en", "tr"]) {
+  const props = { locale, closingId: null, onClose() {} };
+  const open = renderToStaticMarkup(createElement(PositionTable, { ...props, rows: [position], closed: false }));
+  assert.ok(open.includes(formatPrice(position.quantity, undefined, locale)), "Position quantities retain precision beyond JS Number");
+  assert.ok(open.includes(getMessages("portfolio", locale)("unavailable")), "Missing quotes are explicit");
+  assert.match(open, /<button/);
+  const closing = renderToStaticMarkup(createElement(PositionTable, { ...props, closingId: position.id, rows: [position], closed: false }));
+  assert.match(closing, /<button[^>]* disabled=""/, "Close cannot be submitted twice while pending");
+  for (const reason of ["manual", "stop"]) {
+    const closed = renderToStaticMarkup(createElement(PositionTable, { ...props, closed: true, rows: [{ ...position, status: "closed", exit_price: "95.12345678", realized_pnl: "-10.005", close_reason: reason, closed_at: "2026-11-19T01:02:03Z" }] }));
+    assert.ok(closed.includes(getMessages("portfolio", locale)(`reason.${reason}`)));
+    assert.ok(closed.includes("01:02:03"), "Close times render in UTC regardless of machine timezone");
+    assert.match(closed, /data-pnl="negative"/);
+    assert.doesNotMatch(closed, /<button/, "Closed positions have no close action");
+  }
+  for (const closed of [false, true]) {
+    const empty = renderToStaticMarkup(createElement(PositionTable, { ...props, closed, rows: [] }));
+    assert.ok(empty.includes(getMessages("portfolio", locale)(closed ? "emptyClosed" : "emptyOpen")));
   }
 }
 assert.equal(getMessages("check", "tr")("transitionPercent", {
@@ -209,6 +244,22 @@ try {
 
 // Auth regressions: exact API boundaries, JSON mutations and both session cookies.
 const { apiRequest, ApiError, apiError, errorText, validPassword, validCode, validPaperBalance } = lib("auth");
+const { checkBlocked, rejectedCheck, tradingError, validStop, meterWidth } = lib("trading");
+assert.equal(checkBlocked(liveCheck), false);
+assert.equal(checkBlocked({ ...liveCheck, allowed: false }), true);
+assert.equal(checkBlocked({ ...liveCheck, checks: [{ ...liveCheck.checks[0], status: "fail" }] }), true);
+for (const value of ["0.00000001", "1000000000000", "100.12345678"]) assert.equal(validStop(value), true);
+for (const value of ["0", "-1", "1e2", "1,25", " 1", "1000000000000.00000001", "1.123456789"]) assert.equal(validStop(value), false);
+assert.equal(meterWidth("9007199254740993", "18014398509481986"), 50);
+assert.equal(meterWidth("0.00000001", "0.00000002"), 50);
+assert.equal(meterWidth("7", "6"), 100);
+assert.equal(meterWidth("1", "0"), 0);
+assert.equal(rejectedCheck(new ApiError(422, null, { check: liveCheck })).allowed, false);
+assert.equal(rejectedCheck(new ApiError(503)), null);
+const bilingualError = new ApiError(422, null, { error: { id: "risk_blocked", message_en: "Risk blocked", message_tr: "Risk engeli" } });
+assert.equal(tradingError(bilingualError, "en"), "Risk blocked");
+assert.equal(tradingError(bilingualError, "tr"), "Risk engeli");
+assert.equal(tradingError(new ApiError(400, null, { error: "Wrong stop", error_tr: "Hatalı stop" }), "tr"), "Hatalı stop");
 for (const value of ["0.00000001", "10000000", "10000000.00000000", "00000001.12345678"]) assert.equal(validPaperBalance(value), true, value);
 for (const value of ["0", "0.00000000", "-1", "+1", " 1", "1 ", "1e2", ".1", "1.", "1,25", "10000000.00000001", "99999999", "000000001", "1.123456789"]) assert.equal(validPaperBalance(value), false, value);
 assert.equal(validPassword("😀".repeat(12)), true, "Password length counts Unicode characters");
@@ -244,6 +295,13 @@ try {
   }
   globalThis.fetch = async () => Response.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": "120" } });
   await assert.rejects(apiRequest("/auth/login", {}), error => error instanceof ApiError && error.retryAfter === "120");
+  globalThis.fetch = async () => Response.json({ error: { id: "risk_blocked" }, check: liveCheck }, { status: 422 });
+  await assert.rejects(apiRequest("/orders", { account_id: "account", symbol: "BTCUSDT", side: "long" }), error => {
+    assert.equal(error.status, 422);
+    assert.deepEqual(error.data.check, liveCheck, "Order rejection retains the authoritative check");
+    assert.equal(rejectedCheck(error).allowed, false);
+    return true;
+  });
   const { GET: proxyGet, POST: proxyPost } = load(resolve(root, "src/app/v1/[...path]/route"));
   const cookies = ["metron_session=full; Path=/; HttpOnly; SameSite=Lax", "metron_pending=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"];
   const request = { method: "POST", headers: new Headers({ cookie: "metron_pending=pending", "content-type": "application/json", "user-agent": "metron-test" }), text: async () => '{"code":"000001"}', nextUrl: { search: "" } };
