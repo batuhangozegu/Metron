@@ -2,6 +2,7 @@
 
 mod market;
 mod risk;
+mod stops;
 
 use std::net::SocketAddr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,17 +15,28 @@ pub mod pb {
 }
 
 use pb::engine_service_server::{EngineService, EngineServiceServer};
-use pb::{PingRequest, PingResponse};
+use pb::{PingRequest, PingResponse, WatchStopsRequest};
 
 /// Where the engine listens unless `ENGINE_ADDR` says otherwise.
 /// Not 50051: Windows often reserves the 50000–50059 range for Hyper-V.
 const DEFAULT_ADDR: &str = "127.0.0.1:9090";
 
 #[derive(Debug, Default)]
-pub struct Engine;
+pub struct Engine {
+    stops: stops::Hub,
+}
 
 #[tonic::async_trait]
 impl EngineService for Engine {
+    type WatchStopsStream = stops::HitStream;
+
+    async fn watch_stops(
+        &self,
+        _request: Request<WatchStopsRequest>,
+    ) -> Result<Response<Self::WatchStopsStream>, Status> {
+        Ok(Response::new(self.stops.subscribe()))
+    }
+
     async fn ping(&self, request: Request<PingRequest>) -> Result<Response<PingResponse>, Status> {
         let message = request.into_inner().message;
         let server_time_unix_ms = SystemTime::now()
@@ -62,12 +74,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     let rest = market::binance::Rest::new(&config.rest_url)?;
     let sync = tokio::spawn(market::sync::run(config.clone(), rest, pool.clone()));
-    let ticker = tokio::spawn(market::ticker::run(config, redis));
+    let ticker = tokio::spawn(market::ticker::run(config, redis.clone()));
+    let engine = Engine::default();
+    let stop_watcher = tokio::spawn(stops::run(pool.clone(), redis, engine.stops.clone()));
 
     info!(%addr, version = env!("CARGO_PKG_VERSION"), "engine listening");
 
     let result = Server::builder()
-        .add_service(EngineServiceServer::new(Engine))
+        .add_service(EngineServiceServer::new(engine))
         .add_service(pb::risk_service_server::RiskServiceServer::new(
             risk::grpc::Service {
                 source: std::sync::Arc::new(pool.clone()),
@@ -78,7 +92,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     sync.abort();
     ticker.abort();
-    let _ = tokio::join!(sync, ticker);
+    stop_watcher.abort();
+    let _ = tokio::join!(sync, ticker, stop_watcher);
     pool.close().await;
     result?;
 
@@ -107,7 +122,7 @@ mod tests {
 
     #[tokio::test]
     async fn ping_echoes_message_and_reports_version() {
-        let response = Engine
+        let response = Engine::default()
             .ping(Request::new(PingRequest {
                 message: "hello".into(),
             }))
@@ -128,7 +143,7 @@ mod tests {
         let addr = listener.local_addr().unwrap();
         tokio::spawn(
             Server::builder()
-                .add_service(EngineServiceServer::new(Engine))
+                .add_service(EngineServiceServer::new(Engine::default()))
                 .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener)),
         );
 
