@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
 	"github.com/batuhangozegu/metron/api/internal/risk"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,7 +35,18 @@ func (p Postgres) Begin(ctx context.Context, owner, accountID string) (Transacti
 
 func (p *postgresTx) Account() risk.Account { return p.account }
 func (p *postgresTx) Snapshot(ctx context.Context, symbol string) (risk.Account, error) {
-	return risk.LoadActivity(ctx, p.Tx, p.accountID, symbol, p.account, time.Now())
+	profile, err := risk.LoadProfile(ctx, p.Tx, p.accountID)
+	if err != nil {
+		return risk.Account{}, err
+	}
+	a := p.account
+	a.Profile = &profile.Profile
+	return risk.LoadActivity(ctx, p.Tx, p.accountID, symbol, a, time.Now())
+}
+
+func (p *postgresTx) RecordCheck(ctx context.Context, body risk.Request, result *enginev1.CheckResponse, orderID string) error {
+	body.AccountID = p.accountID
+	return risk.InsertCheck(ctx, p.Tx, body, result, "order", &orderID)
 }
 
 func (p Postgres) PositionAccount(ctx context.Context, owner *string, id string) (string, string, error) {

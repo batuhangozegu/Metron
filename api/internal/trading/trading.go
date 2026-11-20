@@ -4,6 +4,7 @@ package trading
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -14,14 +15,15 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("position not found")
-	ErrClosed      = errors.New("position closed")
-	ErrBlocked     = errors.New("risk blocked")
-	ErrQuantity    = errors.New("quantity exceeds suggestion")
-	ErrBalance     = errors.New("insufficient balance")
-	ErrInput       = errors.New("invalid input")
-	ErrPrice       = errors.New("price unavailable")
-	ErrUnavailable = errors.New("trading unavailable")
+	ErrNotFound          = errors.New("position not found")
+	ErrClosed            = errors.New("position closed")
+	ErrBlocked           = errors.New("risk blocked")
+	ErrQuantity          = errors.New("quantity exceeds suggestion")
+	ErrBalance           = errors.New("insufficient balance")
+	ErrInput             = errors.New("invalid input")
+	ErrPrice             = errors.New("price unavailable")
+	ErrUnavailable       = errors.New("trading unavailable")
+	ErrProfileNotAllowed = errors.New("client risk profile not allowed")
 )
 
 type Order struct {
@@ -79,17 +81,17 @@ type Execution struct {
 }
 
 type Request struct {
-	AccountID   string        `json:"account_id"`
-	Symbol      string        `json:"symbol"`
-	Side        string        `json:"side"`
-	ManualStop  *string       `json:"manual_stop"`
-	RiskProfile *risk.Profile `json:"risk_profile"`
-	Leverage    *uint32       `json:"leverage"`
-	Quantity    *string       `json:"quantity"`
+	AccountID   string          `json:"account_id"`
+	Symbol      string          `json:"symbol"`
+	Side        string          `json:"side"`
+	ManualStop  *string         `json:"manual_stop"`
+	RiskProfile json.RawMessage `json:"risk_profile"`
+	Leverage    *uint32         `json:"leverage"`
+	Quantity    *string         `json:"quantity"`
 }
 
 func (r Request) riskRequest(price string) risk.Request {
-	return risk.Request{AccountID: r.AccountID, Symbol: r.Symbol, Side: r.Side, EntryPrice: price, ManualStop: r.ManualStop, RiskProfile: r.RiskProfile, Leverage: r.Leverage}
+	return risk.Request{AccountID: r.AccountID, Symbol: r.Symbol, Side: r.Side, EntryPrice: price, ManualStop: r.ManualStop, Leverage: r.Leverage}
 }
 
 type Store interface {
@@ -107,6 +109,7 @@ type Transaction interface {
 	Reject(context.Context, Order) error
 	Open(context.Context, Execution) error
 	Close(context.Context, Execution, decimal.Decimal) error
+	RecordCheck(context.Context, risk.Request, *enginev1.CheckResponse, string) error
 	Commit(context.Context) error
 	Rollback(context.Context) error
 }
@@ -136,6 +139,9 @@ func newID() string {
 
 func (s Service) Open(ctx context.Context, owner string, body Request) (Execution, error) {
 	var result Execution
+	if len(body.RiskProfile) != 0 && string(body.RiskProfile) != "null" {
+		return result, ErrProfileNotAllowed
+	}
 	if !risk.ValidID(body.AccountID) {
 		return result, risk.ErrAccountNotFound
 	}
@@ -189,6 +195,9 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 			order.Quantity = "0.00000001"
 		}
 		if err := tx.Reject(ctx, order); err != nil {
+			return result, err
+		}
+		if err := tx.RecordCheck(ctx, body.riskRequest(price.String()), check, order.ID); err != nil {
 			return result, err
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -246,6 +255,9 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 		Quantity: quantity.String(), EntryPrice: price.String(), Stop: stopText, Leverage: &leverage, CoinClass: check.CoinClass,
 		InitialRisk: price.Sub(stop).Abs().Mul(quantity).String(), Status: "open", OpenedAt: now}
 	if err := tx.Open(ctx, result); err != nil {
+		return Execution{}, err
+	}
+	if err := tx.RecordCheck(ctx, body.riskRequest(price.String()), check, order.ID); err != nil {
 		return Execution{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {

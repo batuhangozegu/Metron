@@ -4,7 +4,6 @@ package risk
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"regexp"
@@ -15,7 +14,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/batuhangozegu/metron/api/internal/auth"
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
@@ -34,6 +32,7 @@ type Account struct {
 	Market              string
 	Activity            *enginev1.Activity
 	CurrentClassHolding string
+	Profile             *Profile
 }
 
 type Engine interface {
@@ -43,6 +42,7 @@ type Engine interface {
 type Service struct {
 	Accounts Accounts
 	Engine   Engine
+	Store    Store
 }
 
 type Profile struct {
@@ -93,17 +93,8 @@ func (r Request) Valid() bool {
 	if r.ManualStop != nil && !validDecimal(*r.ManualStop, 1000000000000) {
 		return false
 	}
-	if r.RiskProfile != nil {
-		for _, value := range []string{r.RiskProfile.RiskPerTradePercent, r.RiskProfile.TargetRiskReward, r.RiskProfile.TotalOpenRiskLimitPercent, r.RiskProfile.DailyLossLimitPercent, r.RiskProfile.WeeklyLossLimitPercent} {
-			if value != "" && !validDecimal(value, 100) {
-				return false
-			}
-		}
-		for _, value := range []*uint32{r.RiskProfile.MaxOpenPositions, r.RiskProfile.MaxLosingTradesToday, r.RiskProfile.MaxStoppedTradesThisWeek} {
-			if value != nil && *value == 0 {
-				return false
-			}
-		}
+	if r.RiskProfile != nil && !r.RiskProfile.Valid(false) {
+		return false
 	}
 	return true
 }
@@ -137,7 +128,12 @@ func engineFailure(w http.ResponseWriter, err error) {
 }
 
 // Mount must be called in auth.HTTP.Mount's protected group.
-func (s Service) Mount(r chi.Router) { r.Post("/v1/risk/check", s.check) }
+func (s Service) Mount(r chi.Router) {
+	r.Post("/v1/risk/check", s.check)
+	r.Get("/v1/accounts/{id}/risk-profile", s.profileHTTP)
+	r.Put("/v1/accounts/{id}/risk-profile", s.profileHTTP)
+	r.Get("/v1/accounts/{id}/risk-checks", s.checksHTTP)
+}
 
 func (s Service) check(w http.ResponseWriter, r *http.Request) {
 	userID := auth.UserFromContext(r.Context()).ID
@@ -161,7 +157,7 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400, "invalid_input", "Use a USDT symbol, long/short side and positive plain decimal strings with up to 8 decimal places.", "USDT işlem çifti, long/short yönü ve en fazla 8 ondalık basamaklı pozitif ondalık dizeler kullanın.")
 		return
 	}
-	if s.Accounts == nil || s.Engine == nil {
+	if s.Accounts == nil || s.Engine == nil || s.Store == nil {
 		engineFailure(w, status.Error(codes.Unavailable, ""))
 		return
 	}
@@ -187,12 +183,16 @@ func (s Service) check(w http.ResponseWriter, r *http.Request) {
 	}
 	// Preserve the contract's snake_case names and decimal strings, including
 	// zero values, without exporting Go protobuf implementation details.
-	encoded, err := (protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}).Marshal(result)
+	encoded, err := checkResponse(result, ProfileSource(*body))
 	if err != nil {
 		engineFailure(w, err)
 		return
 	}
-	httpjson.Write(w, 200, json.RawMessage(encoded))
+	if err := s.Store.RecordCheck(ctx, userID, body.AccountID, *body, result); err != nil {
+		storeFailure(w, err)
+		return
+	}
+	httpjson.Write(w, 200, encoded)
 }
 
 // Evaluate is shared by previews and orders. Orders supply a snapshot protected
@@ -210,12 +210,10 @@ func (s Service) Evaluate(ctx context.Context, body Request, account Account) (*
 	request := &enginev1.CheckRequest{Symbol: body.Symbol, Side: body.Side, EntryPrice: body.EntryPrice, ManualStop: body.ManualStop,
 		AccountEquity: account.Equity, Market: account.Market, Leverage: body.Leverage,
 		CurrentClassHolding: account.CurrentClassHolding, Activity: account.Activity}
-	if body.RiskProfile != nil {
-		p := body.RiskProfile
-		request.RiskProfile = &enginev1.RiskProfile{RiskPerTradePercent: p.RiskPerTradePercent, TargetRiskReward: p.TargetRiskReward,
-			TotalOpenRiskLimitPercent: p.TotalOpenRiskLimitPercent, MaxOpenPositions: p.MaxOpenPositions, MaxLosingTradesToday: p.MaxLosingTradesToday,
-			DailyLossLimitPercent: p.DailyLossLimitPercent, MaxStoppedTradesThisWeek: p.MaxStoppedTradesThisWeek, WeeklyLossLimitPercent: p.WeeklyLossLimitPercent}
-	}
+	p := ResolveProfile(account.Profile, body.RiskProfile)
+	request.RiskProfile = &enginev1.RiskProfile{RiskPerTradePercent: p.RiskPerTradePercent, TargetRiskReward: p.TargetRiskReward,
+		TotalOpenRiskLimitPercent: p.TotalOpenRiskLimitPercent, MaxOpenPositions: p.MaxOpenPositions, MaxLosingTradesToday: p.MaxLosingTradesToday,
+		DailyLossLimitPercent: p.DailyLossLimitPercent, MaxStoppedTradesThisWeek: p.MaxStoppedTradesThisWeek, WeeklyLossLimitPercent: p.WeeklyLossLimitPercent}
 	result, err := s.Engine.Check(ctx, request)
 	if err == nil && result == nil {
 		err = status.Error(codes.Unavailable, "empty risk response")

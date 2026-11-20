@@ -23,6 +23,11 @@ func (p Postgres) RiskAccount(ctx context.Context, userID, accountID, symbol str
 	if err != nil {
 		return Account{}, err
 	}
+	profile, err := LoadProfile(ctx, p.Pool, accountID)
+	if err != nil {
+		return Account{}, err
+	}
+	account.Profile = &profile.Profile
 	return LoadActivity(ctx, p.Pool, accountID, symbol, account, time.Now())
 }
 

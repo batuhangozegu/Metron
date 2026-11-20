@@ -63,16 +63,16 @@ Replace sample codes with current authenticator codes; a code cannot be used twi
 
 ## Paper trading with curl
 
-After applying app migration `00003`, sign in with the cookie jar above and
+After applying app migrations through `00004`, sign in with the cookie jar above and
 copy an account ID from `GET /v1/accounts`. The engine must have a fresh class/ATR
 snapshot and Redis must have a latest ticker for the symbol. The API chooses the
 entry price and runs the risk check against the account's actual open positions
-and settled UTC day/week history. Risk profiles remain per-request overrides.
+and settled UTC day/week history, using the account's saved risk profile.
 
 ```sh
 ACCOUNT_ID=replace-with-your-paper-account-id
 curl -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
-  -d "{\"account_id\":\"$ACCOUNT_ID\",\"symbol\":\"BTCUSDT\",\"side\":\"long\",\"risk_profile\":{\"risk_per_trade_percent\":\"0.1\"}}" \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"symbol\":\"BTCUSDT\",\"side\":\"long\"}" \
   "$API/v1/orders"
 # The 201 response includes order, fill, position and check. Copy position.id.
 POSITION_ID=replace-with-the-returned-position-id
@@ -83,7 +83,8 @@ curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/positions?status=closed"
 curl -b cookies.txt "$API/v1/accounts"
 ```
 
-`manual_stop`, `quantity`, `risk_profile` and spot `leverage` are optional.
+`manual_stop`, `quantity` and spot `leverage` are optional. A non-null
+`risk_profile` on an order returns 400 `code: "risk_profile_not_allowed"`.
 Quantity defaults to the suggested size; a supplied decimal string must not
 exceed that size. Futures accounts require integer `leverage` (1–125); spot
 permits only long positions and leverage 1. Any failed rule produces HTTP 422
@@ -102,9 +103,40 @@ the newest 100 closes first. Repeating a manual close returns HTTP 409 with
 The API subscribes to `EngineService.WatchStops` and reconnects with backoff.
 Stop hits close at the stored stop price, including when Redis is unavailable;
 duplicate hits settle once. Stop monitoring requires the step 4 engine changes.
-The engine lane must also accept full-precision trusted `account_equity`,
-class holdings and activity decimals: the previous eight-place risk input
-limit cannot represent settled fees or most balance-relative activity ratios.
+Trusted equity is rounded down to eight decimal places, while activity
+percentages and class holdings are rounded up conservatively for the engine.
+
+## Saved risk limits and history with curl
+
+App migration `00004_risk_profiles_checks.sql` adds persistent account limits
+and check history. Use a full session cookie and an owned account ID. With no
+saved profile, GET returns the defaults and `updated_at: null`. PUT requires
+all eight fields; decimals are strings, counts are positive uint32 integers.
+
+```sh
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/risk-profile"
+curl -b cookies.txt -c cookies.txt -X PUT -H 'Content-Type: application/json' \
+  -d '{"risk_per_trade_percent":"0.1","target_risk_reward":"2","total_open_risk_limit_percent":"6","max_open_positions":5,"max_losing_trades_today":3,"daily_loss_limit_percent":"0.5","max_stopped_trades_this_week":5,"weekly_loss_limit_percent":"10"}' \
+  "$API/v1/accounts/$ACCOUNT_ID/risk-profile"
+# Uses the saved profile; response includes profile_source: "stored".
+ENTRY_PRICE=replace-with-current-BTCUSDT-price
+curl -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"symbol\":\"BTCUSDT\",\"side\":\"long\",\"entry_price\":\"$ENTRY_PRICE\"}" \
+  "$API/v1/risk/check"
+# What-if only: supplied fields override saved limits without saving them.
+curl -b cookies.txt -c cookies.txt -H 'Content-Type: application/json' \
+  -d "{\"account_id\":\"$ACCOUNT_ID\",\"symbol\":\"BTCUSDT\",\"side\":\"long\",\"entry_price\":\"$ENTRY_PRICE\",\"risk_profile\":{\"risk_per_trade_percent\":\"0.2\"}}" \
+  "$API/v1/risk/check"
+# Newest first; default limit 20, valid range 1..100.
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/risk-checks?limit=20"
+```
+
+Every completed preview is recorded, including failures of risk rules. Opening
+orders always use saved limits under the account lock; their checks and filled
+or rejected order records commit together. Loss brakes use settled net PnL
+over UTC days and Monday-start weeks. A tighter daily limit such as 0.5% blocks
+new orders once that loss percentage is reached. Preview overrides cannot
+authorize orders or change saved limits. See [RISK.md](docs/RISK.md).
 
 ## Target technology
 

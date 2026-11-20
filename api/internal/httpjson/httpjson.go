@@ -18,6 +18,18 @@ func Write(w http.ResponseWriter, status int, value any) {
 
 func Error(w http.ResponseWriter, status int, message string) {
 	value := map[string]string{"error": message}
+	switch status {
+	case 400:
+		value["code"] = "invalid_input"
+	case 401:
+		value["code"] = "authentication_required"
+	case 415:
+		value["code"] = "unsupported_media_type"
+	default:
+		if status >= 500 {
+			value["code"] = "unavailable"
+		}
+	}
 	// Shared request/session failures also appear on the bilingual risk screen.
 	translations := map[string]string{
 		"market must be spot or futures":                                              "Piyasa spot veya futures olmalıdır",

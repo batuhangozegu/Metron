@@ -57,6 +57,7 @@ func run(log *slog.Logger) error {
 	var authStore auth.Store
 	var accountStore accounts.Store
 	var riskAccounts risk.Accounts
+	var riskStore risk.Store
 	var tradingStore trading.Store
 	// No implicit database password. With no URL, health and the HTTP server
 	// remain available while markets and authentication report 503.
@@ -84,6 +85,7 @@ func run(log *slog.Logger) error {
 				authStore = auth.Postgres{Pool: pool}
 				accountStore = accounts.Postgres{Pool: pool}
 				riskAccounts = risk.Postgres{Pool: pool}
+				riskStore = risk.Postgres{Pool: pool}
 				tradingStore = trading.Postgres{Pool: pool}
 			}
 		}
@@ -123,7 +125,7 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
-	riskService := risk.Service{Accounts: riskAccounts, Engine: enginev1.NewRiskServiceClient(conn)}
+	riskService := risk.Service{Accounts: riskAccounts, Store: riskStore, Engine: enginev1.NewRiskServiceClient(conn)}
 	tradingService := trading.Service{Store: tradingStore, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService}
 	if tradingStore != nil {
 		stopsDone := make(chan struct{})

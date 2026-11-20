@@ -24,7 +24,12 @@ type wireError struct {
 }
 
 func failure(w http.ResponseWriter, code int, id, en, tr string, check any) {
-	value := map[string]any{"error": wireError{id, en, tr}}
+	value := map[string]any{"error": wireError{id, en, tr}, "code": id, "error_tr": tr}
+	// Step 5 specifies flat ownership/profile errors. Preserve the existing
+	// trading error object for other failures, including risk_blocked's check.
+	if id == "risk_profile_not_allowed" || id == "account_not_found" {
+		value["error"] = en
+	}
 	if check != nil {
 		value["check"] = check
 	}
@@ -89,6 +94,8 @@ func checkJSON(e Execution) json.RawMessage {
 func respondError(w http.ResponseWriter, err error, e Execution) {
 	code, id, en, tr := 503, "trading_unavailable", "Paper trading is temporarily unavailable.", "Kağıt işlemler geçici olarak kullanılamıyor."
 	switch {
+	case errors.Is(err, ErrProfileNotAllowed):
+		code, id, en, tr = 400, "risk_profile_not_allowed", "Orders use the account's saved risk profile.", "Emirler hesabın kayıtlı risk profilini kullanır."
 	case errors.Is(err, risk.ErrAccountNotFound):
 		code, id, en, tr = 404, "account_not_found", "Account not found.", "Hesap bulunamadı."
 	case errors.Is(err, ErrNotFound):

@@ -26,8 +26,9 @@ proposed price, independent of Redis.
 
 These are provisional system defaults. Profile `risk_per_trade_percent`
 defaults to `"2"`, `target_risk_reward` to `"2"`. Empty/omitted decimal profile
-fields and absent count fields use defaults; explicit zero limits are invalid.
-Overrides are editable per request; profiles and checks are not persisted yet.
+fields and absent count fields retain saved limits (defaults on an unsaved
+account); explicit zero limits are invalid. Saving requires all eight fields.
+Profiles are saved per account; only previews accept per-request overrides.
 Effective risk is `min(profile risk, class cap)` in both markets.
 
 ```text
@@ -135,14 +136,51 @@ failed counts. Common checks also include `class_risk` (caution if capped),
 `atr_stop` (caution if tighter than suggested), `quantity_step` (fail if zero
 size), and `target_price` (fail if non-positive).
 
-**TODO(step 4): API activity is incomplete.** Public clients cannot supply
-activity counters, holdings, market, equity, class or ATR. Go currently passes
-explicit zeros for every activity counter/percentage and current class holdings
-because authoritative positions/fills do not exist yet. Discipline evaluates
-zero history plus the proposed trade; spot allocation evaluates zero existing
-holdings. These results do not establish the actual account's capacity.
-Replace zeros with owner-filtered positions/fills and UTC day/week aggregates
-in step 4. Never use this preview as execution authorization.
+Public clients cannot supply activity counters, holdings, market, equity, class
+or ATR. Go aggregates authoritative open and closed positions, including settled
+net PnL, for UTC day/week activity and spot class holdings. Equity is the settled
+paper balance, rounded down to eight decimals; activity percentages and class
+holdings round up to eight decimals so limits remain conservative. Unrealized
+PnL and mark-to-market equity are not included. Orders repeat evaluation under
+the account lock; a preview is never execution authorization.
+
+## Saved profiles and check history (step 5)
+
+`GET /v1/accounts/{id}/risk-profile` returns all eight profile fields and
+`updated_at` (null until first save). Defaults are the values in the discipline
+table plus trade risk `"2"` and target R:R `"2"`.
+`PUT /v1/accounts/{id}/risk-profile` requires all eight fields and rejects
+`updated_at`, unknown fields, missing/null fields, zero limits and invalid
+decimals/counts. Percentages and target R:R are positive and at most 100 with
+at most eight fractional digits; counts are positive uint32 integers. Database
+counts use bigint to represent the full uint32 range. Updates take the same
+account lock as orders so concurrent changes serialize with evaluation.
+
+`POST /v1/risk/check` loads the saved profile (or defaults). A non-null
+`risk_profile` is a what-if override: omitted/empty fields retain the saved
+limits, and no override is saved. Responses add `profile_source: "stored"` or
+`"preview"`; unsaved defaults also count as stored. Every completed engine
+response, including `allowed=false`, is recorded with source `"check"`.
+
+`POST /v1/orders` rejects every non-null `risk_profile` with HTTP 400 and code
+`risk_profile_not_allowed`. Orders load saved limits inside the account-locked
+transaction. Both filled and rejected opening orders record a source `"order"`
+check and its order ID in that same transaction. An audit write failure rolls
+back the order, fills and positions. Closing positions does not run a pre-trade
+check. Rule-blocked orders remain HTTP 422 `risk_blocked` with the full check;
+the existing protobuf field names and bilingual rule messages are preserved.
+
+`GET /v1/accounts/{id}/risk-checks?limit=N` returns `{"checks": [...]}` newest
+first, with default limit 20 and valid range 1..100 (invalid limits return 400
+`invalid_input`). Each record includes ID, source, nullable order ID, symbol,
+side, decimal-string entry price, allowed/verdict, failed/caution rule ID arrays,
+profile source and creation time. The full protojson engine response is stored
+in `app.risk_checks.result`; it is not expanded in the list response.
+
+All these endpoints require a full session and return `Cache-Control: no-store`.
+Unknown and foreign accounts return the same 404 `account_not_found` with
+`error`, `error_tr` and `code`. PUT/check bodies use strict JSON and a 4 KiB
+limit. Apply all app migrations through `00004_risk_profiles_checks.sql`.
 
 ## HTTP, generation and verification
 
@@ -193,7 +231,7 @@ Proto: `buf lint` or API `go tool -modfile=tools/go.mod buf lint ../proto`.
 Tests cover hand-calculated sizes, exact step and liquidation boundaries,
 allocation with existing holdings, all discipline thresholds, overrides,
 leverage, gRPC verdicts and HTTP ownership, trusted inputs and error policies.
-DB integration requires TEST_DATABASE_URL and both app migrations.
+DB integration requires TEST_DATABASE_URL and all app and market migrations.
 
 ## Türkçe
 
@@ -242,14 +280,25 @@ tam doldurmak uyarı, aşmak başarısızlıktır. Günlük 3 zararlı işleme v
 zarara ulaşılması gün sonuna kadar; haftalık 5 stop olan işleme veya %10
 zarara ulaşılması hafta sonuna kadar yeni işlemleri engeller. Gün UTC
 00:00'da, hafta pazartesi UTC 00:00'da başlar. Yüzde sınırının %75'inde, sayı
-sınırının bir eksiğinde uyarı verilir. Tüm profil sınırları istek başına
-değiştirilebilir; sıfır sınır geçersizdir. Her kural kimlik, durum, değerler ve
+sınırının bir eksiğinde uyarı verilir. Profil sınırları hesap başına kaydedilir;
+önizleme isteğinde geçici olarak değiştirilebilir. Sıfır sınır geçersizdir.
+Her kural kimlik, durum, değerler ve
 iki dilde metin döndürür; tek başarısızlık allowed=false yapar.
 
-**Adım 4 eksikliği:** API faaliyet sayaçları ve mevcut sınıf tutarını istemciden
-kabul etmez; pozisyon/dolum kayıtları olmadığından hepsini açıkça sıfır gönderir.
-Sonuç gerçek geçmişi doğrulamaz. Adım 4'te sahiplik filtreli pozisyon/dolumlardan
-UTC gün/hafta toplamları hesaplanmalıdır. Profil ve kontroller henüz kaydedilmez.
+API faaliyet sayaçlarını ve mevcut sınıf tutarını istemciden kabul etmez;
+sahiplik filtreli pozisyonlardan UTC gün/hafta toplamlarını hesaplar. Öz sermaye
+gerçekleşmiş kağıt bakiyesidir; gerçekleşmemiş kâr/zarar dahil edilmez.
+
+**Adım 5:** GET/PUT /v1/accounts/{id}/risk-profile kalıcı profili yönetir.
+Kaydedilmemiş hesap varsayılanları ve updated_at:null döndürür; PUT sekiz alanı
+zorunlu tutar. POST /v1/risk/check kayıtlı profili kullanır; risk_profile yalnızca
+geçici önizleme içindir. profile_source stored veya preview olur. Her tamamlanan
+kontrol kaydedilir. Emirlerde null olmayan risk_profile HTTP 400
+risk_profile_not_allowed ile reddedilir. Emirler kayıtlı profili hesap kilidi
+altında okur; kontrol ve gerçekleşen/reddedilen emir aynı işlemde kaydedilir.
+GET /v1/accounts/{id}/risk-checks?limit=20 en yeni kayıtları önce döndürür;
+limit 1–100 arasındadır. Yabancı veya bilinmeyen hesap 404 account_not_found olur.
+Tüm uç noktalar tam oturum gerektirir; JSON gövdeleri en fazla 4 KiB olabilir.
 
 POST /v1/risk/check tam oturum çerezi ve JSON gerektirir. Örnekteki alan adları
 dilden bağımsızdır; istemci piyasa, bakiye, faaliyet, sınıf veya ATR gönderemez.
@@ -259,4 +308,4 @@ bulunamayan hesap/çift 404, yanlış içerik türü 415, erişilemeyen/eski ver
 döndürür. Hatalar ve kural metinleri iki dillidir. Bir saatten eski veya bir
 dakikadan fazla gelecekteki veriyle hesap yapılmaz. Yukarıdaki üretim/test
 komutları her iki piyasa için geçerlidir; veritabanı testi TEST_DATABASE_URL
-ve her iki app geçişini gerektirir.
+ve 00004 dahil tüm app ve market geçişlerini gerektirir.

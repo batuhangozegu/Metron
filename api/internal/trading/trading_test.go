@@ -39,6 +39,9 @@ type memoryStore struct {
 	commits   int
 	failBegin int
 	onCommit  chan struct{}
+	checks    []string
+	failCheck bool
+	profile   *risk.Profile
 }
 
 type memoryTx struct {
@@ -48,6 +51,7 @@ type memoryTx struct {
 	fills     []Fill
 	positions map[string]Position
 	done      bool
+	checks    []string
 }
 
 func (s *memoryStore) Begin(_ context.Context, owner, account string) (Transaction, error) {
@@ -61,7 +65,7 @@ func (s *memoryStore) Begin(_ context.Context, owner, account string) (Transacti
 		s.mu.Unlock()
 		return nil, risk.ErrAccountNotFound
 	}
-	tx := &memoryTx{s: s, balance: s.balance, orders: append([]Order{}, s.orders...), fills: append([]Fill{}, s.fills...), positions: map[string]Position{}}
+	tx := &memoryTx{s: s, balance: s.balance, orders: append([]Order{}, s.orders...), fills: append([]Fill{}, s.fills...), checks: append([]string{}, s.checks...), positions: map[string]Position{}}
 	for id, p := range s.positions {
 		tx.positions[id] = p
 	}
@@ -90,7 +94,18 @@ func (s *memoryStore) Positions(_ context.Context, owner, account, state string)
 	return result, nil
 }
 func (tx *memoryTx) Account() risk.Account {
-	return risk.Account{Equity: tx.balance.String(), Market: tx.s.market}
+	return risk.Account{Equity: tx.balance.String(), Market: tx.s.market, Profile: tx.s.profile}
+}
+
+func (tx *memoryTx) RecordCheck(_ context.Context, body risk.Request, _ *enginev1.CheckResponse, orderID string) error {
+	if tx.s.failCheck {
+		return errors.New("private check write failure")
+	}
+	if body.EntryPrice != "100" || body.RiskProfile != nil {
+		return errors.New("unexpected audit input")
+	}
+	tx.checks = append(tx.checks, orderID)
+	return nil
 }
 func (tx *memoryTx) Snapshot(_ context.Context, _ string) (risk.Account, error) {
 	a := tx.Account()
@@ -154,6 +169,7 @@ func (tx *memoryTx) Close(ctx context.Context, e Execution, pnl decimal.Decimal)
 }
 func (tx *memoryTx) Commit(context.Context) error {
 	tx.s.balance, tx.s.orders, tx.s.fills, tx.s.positions = tx.balance, tx.orders, tx.fills, tx.positions
+	tx.s.checks = tx.checks
 	tx.s.commits++
 	if tx.s.onCommit != nil {
 		select {
@@ -251,12 +267,22 @@ func post(h http.Handler, path, body string) *httptest.ResponseRecorder {
 func assertError(t *testing.T, w *httptest.ResponseRecorder, code int, id string) {
 	t.Helper()
 	var result struct {
-		Error wireError `json:"error"`
+		Error json.RawMessage `json:"error"`
+		Code  string          `json:"code"`
+		TR    string          `json:"error_tr"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if w.Code != code || result.Error.ID != id || result.Error.EN == "" || result.Error.TR == "" {
+	var legacy wireError
+	var en string
+	if json.Unmarshal(result.Error, &en) != nil {
+		if err := json.Unmarshal(result.Error, &legacy); err != nil || legacy.ID != id || legacy.TR == "" {
+			t.Fatalf("invalid bilingual error: %s", w.Body)
+		}
+		en = legacy.EN
+	}
+	if w.Code != code || result.Code != id || en == "" || result.TR == "" {
 		t.Fatalf("want %d %s; got %d %s", code, id, w.Code, w.Body)
 	}
 }
@@ -335,6 +361,9 @@ func TestOrderFlow(t *testing.T) {
 			}
 			if !store.balance.Equal(balance) {
 				t.Fatal("open changed settled balance")
+			}
+			if len(store.checks) != 1 || store.checks[0] != store.orders[0].ID {
+				t.Fatal("order and risk check were not committed together")
 			}
 			if engine.requests[0].EntryPrice != "100" || engine.requests[0].AccountEquity != balance.String() {
 				t.Fatal("untrusted risk input")
@@ -523,5 +552,37 @@ func TestBalanceRejectionPrecedesExchangeExecution(t *testing.T) {
 	_, err := s.Open(context.Background(), "owner", Request{AccountID: testAccount, Symbol: "BTCUSDT", Side: "long"})
 	if !errors.Is(err, ErrBalance) || exchange.executions != 0 || len(store.orders) != 1 {
 		t.Fatalf("unexpected execution on rejection: executions=%d err=%v", exchange.executions, err)
+	}
+}
+
+func TestOrdersRejectClientProfiles(t *testing.T) {
+	for _, value := range []string{`{}`, `{"daily_loss_limit_percent":"100"}`, `"invalid"`, `0`, `false`, `[]`} {
+		_, store, _, engine, h := fixture(t)
+		w := post(h, "/v1/orders", strings.TrimSuffix(orderBody, "}")+`,"risk_profile":`+value+`}`)
+		assertError(t, w, 400, "risk_profile_not_allowed")
+		if len(engine.requests) != 0 || len(store.orders) != 0 || len(store.checks) != 0 {
+			t.Fatal("client profile reached execution")
+		}
+	}
+	_, _, _, _, h := fixture(t)
+	if w := post(h, "/v1/orders", strings.TrimSuffix(orderBody, "}")+`,"risk_profile":null}`); w.Code != 201 {
+		t.Fatalf("null profile should be omitted: %d %s", w.Code, w.Body)
+	}
+}
+
+func TestOrderUsesStoredProfileAndAuditFailureRollsBack(t *testing.T) {
+	for _, blocked := range []bool{false, true} {
+		_, store, _, engine, h := fixture(t)
+		p := risk.DefaultProfile()
+		p.DailyLossLimitPercent = "0.5"
+		store.profile, store.failCheck, engine.blocked = &p, true, blocked
+		w := post(h, "/v1/orders", orderBody)
+		assertError(t, w, 503, "trading_unavailable")
+		if len(store.orders) != 0 || len(store.fills) != 0 || len(store.positions) != 0 || store.commits != 0 || len(store.checks) != 0 {
+			t.Fatal("order escaped rollback after audit failure")
+		}
+		if engine.requests[0].RiskProfile.DailyLossLimitPercent != "0.5" {
+			t.Fatal("stored profile was not used")
+		}
 	}
 }

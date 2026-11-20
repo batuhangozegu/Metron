@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
+	"google.golang.org/grpc"
 )
 
 // Uses a dedicated migrated database. Cleanup is restricted to the unique test
@@ -101,7 +102,7 @@ func TestPostgresPaperSettlement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantLoss := decimal.RequireFromString("10.79").Mul(decimal.NewFromInt(100)).DivRound(decimal.RequireFromString("989.21"), 28).String()
+	wantLoss := decimal.RequireFromString("10.79").Mul(decimal.NewFromInt(100)).DivRound(decimal.RequireFromString("989.21"), 28).RoundCeil(8).String()
 	if a.Activity.OpenPositions != 0 || a.Activity.LosingTradesToday != 2 || a.Activity.StoppedTradesThisWeek != 1 || a.Activity.DailyLossPercent != wantLoss || a.Activity.WeeklyLossPercent != wantLoss {
 		t.Fatalf("wrong settled SQL activity %+v", a.Activity)
 	}
@@ -132,5 +133,99 @@ func TestPostgresPaperSettlement(t *testing.T) {
 		if _, err := (risk.Postgres{Pool: pool}).RiskAccount(ctx, owner, account.ID, "MISSINGPAPERUSDT"); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// The engine owns discipline decisions. This stub applies its daily-loss
+// threshold so integration tests exercise SQL history and saved-profile wiring.
+type dailyBrakeEngine struct{ testEngine }
+
+func (e *dailyBrakeEngine) Check(ctx context.Context, r *enginev1.CheckRequest, opts ...grpc.CallOption) (*enginev1.CheckResponse, error) {
+	result, err := e.testEngine.Check(ctx, r, opts...)
+	if err != nil {
+		return nil, err
+	}
+	result.Verdict = "pass"
+	if decimal.RequireFromString(r.Activity.DailyLossPercent).GreaterThanOrEqual(decimal.RequireFromString(r.RiskProfile.DailyLossLimitPercent)) {
+		result.Allowed, result.Verdict = false, "fail"
+		result.Checks = []*enginev1.RuleCheck{{RuleId: "daily_loss", Status: "fail", Values: map[string]string{
+			"current": r.Activity.DailyLossPercent, "limit": r.RiskProfile.DailyLossLimitPercent,
+		}, MessageEn: "Daily loss limit reached.", MessageTr: "Günlük zarar sınırına ulaşıldı."}}
+	}
+	return result, nil
+}
+
+func TestPostgresStoredDailyBrakeAndOrderChecks(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set TEST_DATABASE_URL to a migrated test Postgres database")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var owner string
+	if err := pool.QueryRow(ctx, `INSERT INTO app.users(email,password_hash) VALUES($1,'test-only') RETURNING id::text`, newID()+"@discipline.example.com").Scan(&owner); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if _, err := pool.Exec(context.Background(), `DELETE FROM app.users WHERE id=$1::uuid`, owner); err != nil {
+			t.Error(err)
+		}
+	}()
+	account, err := (accounts.Postgres{Pool: pool}).CreatePaper(ctx, owner, "Daily brake", "spot", decimal.NewFromInt(1000))
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := risk.Postgres{Pool: pool}
+	p := risk.DefaultProfile()
+	p.DailyLossLimitPercent = "0.5"
+	if _, err := store.SaveProfile(ctx, owner, account.ID, p); err != nil {
+		t.Fatal(err)
+	}
+	engine := &dailyBrakeEngine{}
+	s := Service{Store: Postgres{Pool: pool}, Exchange: Paper{Tickers: &ticker{value: "100"}}, Risk: risk.Service{Engine: engine}}
+	body := Request{AccountID: account.ID, Symbol: "BTCUSDT", Side: "long"}
+	opened, err := s.Open(ctx, owner, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Stop(ctx, &enginev1.StopHit{PositionId: opened.Position.ID}); err != nil {
+		t.Fatal(err)
+	}
+	// Net loss is 10.39 / 989.61 > 0.5%, but remains below the default 5%.
+	blocked, err := s.Open(ctx, owner, body)
+	if !errors.Is(err, ErrBlocked) || blocked.Check.GetAllowed() || engine.requests[1].RiskProfile.DailyLossLimitPercent != "0.5" {
+		t.Fatalf("stored daily brake: %+v %v", blocked, err)
+	}
+	checks, err := store.Checks(ctx, owner, account.ID, 20)
+	if err != nil || len(checks) != 2 || checks[0].Allowed || checks[0].Verdict != "fail" || checks[0].Source != "order" ||
+		checks[0].ProfileSource != "stored" || checks[0].OrderID == nil || len(checks[0].FailedRules) != 1 || checks[0].FailedRules[0] != "daily_loss" ||
+		!checks[1].Allowed || checks[1].OrderID == nil || *checks[1].OrderID != opened.Order.ID {
+		t.Fatalf("order audit: %+v %v", checks, err)
+	}
+	var orderState, storedRule string
+	if err := pool.QueryRow(ctx, `SELECT o.status,c.result->'checks'->0->>'rule_id' FROM app.risk_checks c
+		JOIN app.orders o ON o.id=c.order_id WHERE c.id=$1::uuid`, checks[0].ID).Scan(&orderState, &storedRule); err != nil || orderState != "rejected" || storedRule != "daily_loss" {
+		t.Fatalf("rejected order/check join: %s %s %v", orderState, storedRule, err)
+	}
+	body.RiskProfile = []byte(`{"daily_loss_limit_percent":"100"}`)
+	if _, err := s.Open(ctx, owner, body); !errors.Is(err, ErrProfileNotAllowed) || len(engine.requests) != 2 {
+		t.Fatalf("client profile: %v", err)
+	}
+	checks, err = store.Checks(ctx, owner, account.ID, 20)
+	if err != nil || len(checks) != 2 {
+		t.Fatalf("unevaluated client profile recorded: %+v %v", checks, err)
+	}
+	// Saving the default proves the same SQL history was blocked by the stored
+	// tighter limit, rather than an unrelated sizing or account error.
+	if _, err := store.SaveProfile(ctx, owner, account.ID, risk.DefaultProfile()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Open(ctx, owner, Request{AccountID: account.ID, Symbol: "BTCUSDT", Side: "long"}); err != nil {
+		t.Fatal(err)
 	}
 }

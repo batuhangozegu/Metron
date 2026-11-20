@@ -43,6 +43,12 @@ type fakeAccounts struct {
 	err           error
 	activity      *enginev1.Activity
 	holding       string
+	profile       *Profile
+	saved         SavedProfile
+	recorded      int
+	recordBody    Request
+	recordErr     error
+	limit         int
 }
 
 func (f *fakeAccounts) RiskAccount(_ context.Context, user, account, _ string) (Account, error) {
@@ -65,7 +71,44 @@ func (f *fakeAccounts) RiskAccount(_ context.Context, user, account, _ string) (
 	if holding == "" {
 		holding = "0"
 	}
-	return Account{Equity: "12345.12345678", Market: market, CurrentClassHolding: holding, Activity: activity}, nil
+	return Account{Equity: "12345.12345678", Market: market, CurrentClassHolding: holding, Activity: activity, Profile: f.profile}, nil
+}
+
+func (f *fakeAccounts) Profile(_ context.Context, owner, id string) (SavedProfile, error) {
+	if owner != "user-1" || id != accountID {
+		return SavedProfile{}, ErrAccountNotFound
+	}
+	if f.err != nil {
+		return SavedProfile{}, f.err
+	}
+	if f.saved.UpdatedAt == nil {
+		return SavedProfile{Profile: DefaultProfile()}, nil
+	}
+	return f.saved, nil
+}
+
+func (f *fakeAccounts) SaveProfile(ctx context.Context, owner, id string, p Profile) (SavedProfile, error) {
+	if _, err := f.Profile(ctx, owner, id); err != nil {
+		return SavedProfile{}, err
+	}
+	now := time.Now().UTC()
+	f.saved = SavedProfile{Profile: p, UpdatedAt: &now}
+	f.profile = &f.saved.Profile
+	return f.saved, nil
+}
+
+func (f *fakeAccounts) RecordCheck(_ context.Context, _, _ string, body Request, _ *enginev1.CheckResponse) error {
+	f.recorded++
+	f.recordBody = body
+	return f.recordErr
+}
+
+func (f *fakeAccounts) Checks(ctx context.Context, owner, id string, limit int) ([]CheckRecord, error) {
+	if _, err := f.Profile(ctx, owner, id); err != nil {
+		return nil, err
+	}
+	f.limit = limit
+	return nil, nil
 }
 
 type fakeEngine struct {
@@ -73,6 +116,7 @@ type fakeEngine struct {
 	calls    int
 	err      error
 	deadline bool
+	blocked  bool
 }
 
 func (f *fakeEngine) Check(ctx context.Context, request *enginev1.CheckRequest, _ ...grpc.CallOption) (*enginev1.CheckResponse, error) {
@@ -93,6 +137,11 @@ func (f *fakeEngine) Check(ctx context.Context, request *enginev1.CheckRequest, 
 		liquidation, margin := "90.45226130653266331658291457", "11.2345678"
 		result.LiquidationPrice, result.InitialMargin = &liquidation, &margin
 	}
+	if f.blocked {
+		result.Allowed, result.Verdict = false, "fail"
+		result.Failed, result.Cautions = 1, 0
+		result.Checks = []*enginev1.RuleCheck{{RuleId: "daily_loss", Status: "fail", MessageEn: "Daily loss limit reached.", MessageTr: "Günlük zarar sınırına ulaşıldı."}}
+	}
 	return result, nil
 }
 
@@ -104,7 +153,7 @@ func router(t *testing.T, accounts *fakeAccounts, engine *fakeEngine) http.Handl
 	}
 	r := chi.NewRouter()
 	h := auth.HTTP{Service: &auth.Service{Store: fakeAuth{}, Box: box, Now: time.Now}}
-	h.Mount(r, Service{Accounts: accounts, Engine: engine}.Mount)
+	h.Mount(r, Service{Accounts: accounts, Store: accounts, Engine: engine}.Mount)
 	return r
 }
 
@@ -132,8 +181,8 @@ func TestCheckForwardsOnlyOwnedBalanceAndDecimalStrings(t *testing.T) {
 			t.Fatalf("wrong engine input: %+v", e.request)
 		}
 		if extra == "" {
-			if e.request.ManualStop != nil || e.request.RiskProfile != nil {
-				t.Fatal("unexpected override")
+			if e.request.ManualStop != nil || e.request.RiskProfile.GetRiskPerTradePercent() != "2" {
+				t.Fatal("missing defaults")
 			}
 		} else if e.request.GetManualStop() != "90.12345678" || e.request.RiskProfile.RiskPerTradePercent != "0.5" || e.request.RiskProfile.TargetRiskReward != "2.5" {
 			t.Fatal("override lost")
