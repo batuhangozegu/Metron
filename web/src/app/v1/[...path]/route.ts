@@ -12,7 +12,7 @@ async function proxy(request: NextRequest, context: Context) {
     if (value) headers.set(name, value);
   }
   // Preserve the submitted content type; never turn a cross-site form into JSON.
-  const body = request.method === "POST" ? await request.text() : undefined;
+  const body = request.method === "POST" || request.method === "PUT" ? await request.text() : undefined;
   if (body && new TextEncoder().encode(body).length > 4096) {
     return Response.json({ error: "request too large" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
@@ -40,3 +40,4 @@ async function proxy(request: NextRequest, context: Context) {
 
 export const GET = proxy;
 export const POST = proxy;
+export const PUT = proxy;

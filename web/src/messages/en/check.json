@@ -136,5 +136,21 @@
   "rule.dailyLoss": "Daily loss",
   "rule.stoppedTradesThisWeek": "Stopped trades this week",
   "rule.weeklyLoss": "Weekly loss",
-  "rule.other": "Risk rule"
+  "rule.other": "Risk rule",
+  "profileSource.stored": "Saved profile",
+  "profileSource.preview": "Preview override",
+  "failedRulesTitle": "Rules blocking this order",
+  "blockedValues": "Current: {current} · Limit: {limit}",
+  "notApplicable": "—",
+  "ruleSeparator": ", ",
+  "history.title": "Recent risk checks",
+  "history.note": "Latest 20 checks and orders for this account. Times are UTC.",
+  "history.loading": "Loading risk check history…",
+  "history.empty": "No risk checks recorded yet.",
+  "history.source.check": "Check",
+  "history.source.order": "Order",
+  "history.time": "{time} UTC",
+  "history.failed": "Failed rules: {rules}",
+  "history.cautions": "Cautions: {rules}",
+  "history.passed": "All rules passed"
 }

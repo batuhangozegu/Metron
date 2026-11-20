@@ -136,5 +136,21 @@
   "rule.dailyLoss": "Günlük zarar",
   "rule.stoppedTradesThisWeek": "Bu hafta stop olan işlemler",
   "rule.weeklyLoss": "Haftalık zarar",
-  "rule.other": "Risk kuralı"
+  "rule.other": "Risk kuralı",
+  "profileSource.stored": "Kayıtlı profil",
+  "profileSource.preview": "Önizleme için özel profil",
+  "failedRulesTitle": "Bu emri engelleyen kurallar",
+  "blockedValues": "Mevcut: {current} · Limit: {limit}",
+  "notApplicable": "—",
+  "ruleSeparator": ", ",
+  "history.title": "Son risk kontrolleri",
+  "history.note": "Bu hesabın son 20 kontrolü ve emri. Saatler UTC'dir.",
+  "history.loading": "Risk kontrol geçmişi yükleniyor…",
+  "history.empty": "Henüz kayıtlı risk kontrolü yok.",
+  "history.source.check": "Kontrol",
+  "history.source.order": "Emir",
+  "history.time": "{time} UTC",
+  "history.failed": "Başarısız kurallar: {rules}",
+  "history.cautions": "Uyarılar: {rules}",
+  "history.passed": "Tüm kurallar geçti"
 }

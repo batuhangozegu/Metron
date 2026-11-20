@@ -26,9 +26,9 @@ export class ApiError extends Error {
 }
 
 /** Only same-origin requests: the proxy forwards HttpOnly cookies and refreshes them. */
-export async function apiRequest<T>(path: string, body?: object, signal?: AbortSignal): Promise<T> {
+export async function apiRequest<T>(path: string, body?: object, signal?: AbortSignal, method: "GET" | "POST" | "PUT" = body === undefined ? "GET" : "POST"): Promise<T> {
   const response = await fetch(`/v1${path}`, {
-    method: body === undefined ? "GET" : "POST",
+    method,
     credentials: "same-origin",
     cache: "no-store",
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },

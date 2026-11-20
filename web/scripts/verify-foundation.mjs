@@ -28,7 +28,7 @@ function load(path) {
 }
 const lib = (name) => load(resolve(root, "src/lib", name));
 const component = (name) => load(resolve(root, "src/components/metron", name));
-const { formatAmount, formatPrice, formatPercent, decimalProduct, decimalSum, reformatInput } = lib("format");
+const { formatAmount, formatPrice, formatPercent, formatTradePrice, decimalProduct, decimalSum, reformatInput } = lib("format");
 for (const [value, decimals, expected] of [
   ["1.005", 2, "1.01"], ["−1.005", 2, "−1.01"], ["999.995", 2, "1,000.00"],
   ["9007199254740993.125", 2, "9,007,199,254,740,993.13"], ["-0.004", 2, "0.00"],
@@ -55,7 +55,11 @@ assert.equal(decimalSum("0.1", "0.2"), "0.3");
 assert.equal(formatPrice("1e-7"), "0.0000001");
 assert.throws(() => formatAmount("not-money"), TypeError);
 
-const { riskState } = lib("risk");
+const { riskState, validRiskDecimal, validRiskCount, getRiskProfile, putRiskProfile, getRiskChecks, riskRuleName } = lib("risk");
+for (const value of ["0.00000001", "100", "100.00000000", "2.12345678"]) assert.equal(validRiskDecimal(value), true, value);
+for (const value of ["", "0", "-1", "+1", "1e1", "1,5", " 1", "1.", ".1", "100.00000001", "1.123456789"]) assert.equal(validRiskDecimal(value), false, value);
+for (const value of ["1", "5", "4294967295"]) assert.equal(validRiskCount(value), true, value);
+for (const value of ["", "0", "-1", "1.0", "1e2", "4294967296", " 1"]) assert.equal(validRiskCount(value), false, value);
 assert.equal(riskState(74.99, 100), "safe");
 assert.equal(riskState(75, 100), "caution");
 assert.equal(riskState(100, 100), "caution");
@@ -146,6 +150,7 @@ assert.equal(data.equitySeries.account.length, 13);
 const { LocaleProvider } = component("locale-provider");
 const { CheckResult } = load(resolve(root, "src/app/check/_components/check-result"));
 const liveCheck = {
+  profile_source: "stored",
   symbol: "BTCUSDT", side: "long", coin_class: "core", market: "spot", leverage: 1,
   entry_price: "100.12345678", stop: "95", target_price: "110.37037034",
   account_equity: "10000", atr: "3.415637853333333333", atr_multiplier: "1.5",
@@ -162,13 +167,44 @@ for (const locale of ["en", "tr"]) for (const status of ["pass", "caution", "fai
   const state = { pass: "safe", caution: "caution", fail: "limit" }[status];
   assert.ok(markup.includes(`data-verdict="${state}"`));
   assert.ok(text.includes(formatAmount(check.notional, 2, locale)));
-  assert.ok(text.includes(formatPrice(check.entry_price, undefined, locale)));
+  assert.ok(text.includes(formatTradePrice(check.entry_price, locale)));
+  assert.ok(text.includes(getMessages("check", locale)("profileSource.stored")));
   assert.ok(text.includes(formatPercent(check.risk_percent, 2, locale)));
   assert.ok(text.includes(check.checks[0][`message_${locale}`]));
   assert.equal(markup.includes('class="blocked-stamp"'), status === "fail");
   assert.doesNotMatch(markup, /measure-level/, "Check rows retain only the trailing verdict");
   assert.equal((markup.match(/class="risk-badge /g) ?? []).length, 1, "Exactly one status badge per rule row");
   assert.equal(/<button[^>]* disabled=""/.test(markup), status === "fail", "A failed check disables the order action");
+}
+for (const locale of ["en", "tr"]) {
+  const t = getMessages("check", locale);
+  const renderCheck = check => renderToStaticMarkup(createElement(LocaleProvider, { locale }, createElement(CheckResult, { locale, check, onOpen() {} })));
+  const allocation = { rule_id: "position_limit", status: "fail", message_en: "Allocation exceeded.", message_tr: "Dağılım limiti aşıldı.", values: { current_class_holding: "100.123456789123", total_class_notional: "4100.123456789123", equity: "10000.123456789123", max_percent: "40" } };
+  const markup = renderCheck({ ...liveCheck, checks: [allocation, { ...liveCheck.checks[0], status: "fail" }] });
+  assert.ok(markup.includes(t("failedRulesTitle")));
+  for (const row of [allocation, liveCheck.checks[0]]) {
+    assert.ok(markup.includes(riskRuleName(row.rule_id, locale)));
+    assert.ok(markup.includes(row[`message_${locale}`]));
+  }
+  assert.ok(markup.includes(t("usdt", { value: formatAmount(allocation.values.current_class_holding, 2, locale) })));
+  assert.ok(markup.includes(t("usdt", { value: formatAmount(allocation.values.total_class_notional, 2, locale) })));
+  assert.doesNotMatch(markup, /123456789123/, "Spot allocation displays rounded USDT amounts");
+  assert.ok(markup.includes(t("blockedValues", { current: formatPercent("1", 2, locale), limit: formatPercent("6", 2, locale) })));
+  for (const liquidation_price of [undefined, "0", "0.00000000", "75.12345678"]) {
+    const futures = renderCheck({ ...liveCheck, market: "futures", liquidation_price });
+    assert.ok(futures.includes(t("liquidationPrice")));
+    assert.ok(futures.includes(liquidation_price && Number(liquidation_price) !== 0 ? formatTradePrice(liquidation_price, locale) : t("notApplicable")));
+  }
+  assert.ok(renderCheck({ ...liveCheck, profile_source: "preview" }).includes(t("profileSource.preview")));
+  const { RiskCheckHistory } = load(resolve(root, "src/app/check/_components/risk-check-history"));
+  const history = renderToStaticMarkup(createElement(LocaleProvider, { locale }, createElement(RiskCheckHistory, {
+    error: null, onRetry() {}, checks: Array.from({ length: 21 }, (_, index) => ({ id: `risk-${index}`, source: index % 2 ? "order" : "check", symbol: `TEST${index}USDT`, side: index % 2 ? "short" : "long", allowed: false, verdict: "fail", failed_rules: ["daily_loss"], profile_source: "stored", created_at: "2026-11-20T10:00:00Z" })),
+  })));
+  assert.equal((history.match(/<time /g) ?? []).length, 20);
+  for (const source of ["check", "order"]) assert.ok(history.includes(t(`history.source.${source}`)));
+  assert.ok(history.includes(riskRuleName("daily_loss", locale)));
+  assert.ok(history.includes("10:00:00"), "History times use UTC");
+  assert.ok(history.includes(t("long")) && history.includes(t("short")));
 }
 const { PositionTable } = load(resolve(root, "src/app/portfolio/_components/positions"));
 const position = {
@@ -254,7 +290,9 @@ assert.equal(meterWidth("9007199254740993", "18014398509481986"), 50);
 assert.equal(meterWidth("0.00000001", "0.00000002"), 50);
 assert.equal(meterWidth("7", "6"), 100);
 assert.equal(meterWidth("1", "0"), 0);
-assert.equal(rejectedCheck(new ApiError(422, null, { check: liveCheck })).allowed, false);
+assert.equal(rejectedCheck(new ApiError(422, null, { code: "risk_blocked", check: liveCheck })).allowed, false);
+assert.equal(rejectedCheck(new ApiError(422, null, { code: "other", check: liveCheck })), null);
+assert.equal(rejectedCheck(new ApiError(422, null, { code: "risk_blocked", check: { ...liveCheck, profile_source: undefined } })).profile_source, "stored");
 assert.equal(rejectedCheck(new ApiError(503)), null);
 const bilingualError = new ApiError(422, null, { error: { id: "risk_blocked", message_en: "Risk blocked", message_tr: "Risk engeli" } });
 assert.equal(tradingError(bilingualError, "en"), "Risk blocked");
@@ -281,6 +319,34 @@ assert.equal(limited.seconds, "900");
 assert.ok(errorText(limited, "en").includes("900 seconds"));
 assert.ok(errorText(limited, "tr").includes("900 saniye"));
 try {
+  const profile = { risk_per_trade_percent: "0.12345678", target_risk_reward: "2", total_open_risk_limit_percent: "6", max_open_positions: 5, max_losing_trades_today: 3, daily_loss_limit_percent: "5", max_stopped_trades_this_week: 5, weekly_loss_limit_percent: "10" };
+  for (const [method, path, call] of [
+    ["GET", "/v1/accounts/account/risk-profile", () => getRiskProfile("account")],
+    ["PUT", "/v1/accounts/account/risk-profile", () => putRiskProfile("account", { ...profile, updated_at: null, unknown: true })],
+    ["GET", "/v1/accounts/account/risk-checks?limit=20", () => getRiskChecks("account")],
+  ]) {
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, path);
+      assert.equal(options.method, method);
+      assert.equal(options.credentials, "same-origin");
+      assert.equal(options.cache, "no-store");
+      if (method === "PUT") {
+        assert.deepEqual(JSON.parse(options.body), profile, "Only the eight profile fields are sent; decimals stay strings");
+        assert.equal(options.headers["Content-Type"], "application/json");
+      } else assert.equal(options.body, undefined);
+      return Response.json(path.includes("risk-checks") ? { checks: [] } : { ...profile, updated_at: null });
+    };
+    await call();
+  }
+  for (const [status, code] of [[400, "invalid_input"], [404, "account_not_found"], [400, "risk_profile_not_allowed"]]) {
+    globalThis.fetch = async () => Response.json({ error: "English error", error_tr: "Türkçe hata", code }, { status });
+    await assert.rejects(getRiskProfile("account"), error => {
+      assert.equal(error.data.code, code);
+      assert.equal(tradingError(error, "en"), "English error");
+      assert.equal(tradingError(error, "tr"), "Türkçe hata");
+      return true;
+    });
+  }
   for (const [path, body] of [["/auth/register", { email: "test@example.com", password: " password with spaces " }], ["/auth/login/2fa", { code: "000001" }], ["/auth/logout", {}], ["/auth/2fa/setup", {}], ["/accounts", { name: "Practice", paper_balance: "0.00000001" }]]) {
     globalThis.fetch = async (url, options) => {
       assert.equal(url, `/v1${path}`);
@@ -295,14 +361,14 @@ try {
   }
   globalThis.fetch = async () => Response.json({ error: "rate limited" }, { status: 429, headers: { "Retry-After": "120" } });
   await assert.rejects(apiRequest("/auth/login", {}), error => error instanceof ApiError && error.retryAfter === "120");
-  globalThis.fetch = async () => Response.json({ error: { id: "risk_blocked" }, check: liveCheck }, { status: 422 });
+  globalThis.fetch = async () => Response.json({ error: "Risk blocked", error_tr: "Risk engeli", code: "risk_blocked", check: liveCheck }, { status: 422 });
   await assert.rejects(apiRequest("/orders", { account_id: "account", symbol: "BTCUSDT", side: "long" }), error => {
     assert.equal(error.status, 422);
     assert.deepEqual(error.data.check, liveCheck, "Order rejection retains the authoritative check");
     assert.equal(rejectedCheck(error).allowed, false);
     return true;
   });
-  const { GET: proxyGet, POST: proxyPost } = load(resolve(root, "src/app/v1/[...path]/route"));
+  const { GET: proxyGet, POST: proxyPost, PUT: proxyPut } = load(resolve(root, "src/app/v1/[...path]/route"));
   const cookies = ["metron_session=full; Path=/; HttpOnly; SameSite=Lax", "metron_pending=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"];
   const request = { method: "POST", headers: new Headers({ cookie: "metron_pending=pending", "content-type": "application/json", "user-agent": "metron-test" }), text: async () => '{"code":"000001"}', nextUrl: { search: "" } };
   globalThis.fetch = async (url, options) => {
@@ -319,6 +385,16 @@ try {
   const completed = await proxyPost(request, { params: Promise.resolve({ path: ["auth", "login", "2fa"] }) });
   assert.deepEqual(completed.headers.getSetCookie(), cookies, "Full and pending cookies survive the proxy separately");
   assert.equal(completed.headers.get("Cache-Control"), "no-store");
+  globalThis.fetch = async (url, options) => {
+    assert.ok(url.endsWith("/v1/accounts/account/risk-profile"));
+    assert.equal(options.method, "PUT");
+    assert.equal(options.headers.get("cookie"), "metron_session=full");
+    assert.deepEqual(JSON.parse(options.body), profile);
+    return Response.json({ ...profile, updated_at: "2026-11-20T10:00:00Z" });
+  };
+  const put = await proxyPut({ ...request, method: "PUT", headers: new Headers({ cookie: "metron_session=full", "content-type": "application/json" }), text: async () => JSON.stringify(profile) }, { params: Promise.resolve({ path: ["accounts", "account", "risk-profile"] }) });
+  assert.equal(put.status, 200);
+  assert.equal(put.headers.get("Cache-Control"), "no-store");
   globalThis.fetch = async (_url, options) => {
     assert.equal(options.headers.get("content-type"), "text/plain", "Proxy does not upgrade cross-site form content to JSON");
     return Response.json({ error: "JSON required" }, { status: 400 });

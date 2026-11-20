@@ -1,63 +1,155 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Card } from "@/components/metron/card";
-import { decimalProduct, formatAmount, reformatInput } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/metron/auth-provider";
 import { useLocale } from "@/components/metron/locale-provider";
+import { ApiError } from "@/lib/auth";
 import { getMessages } from "@/lib/messages";
-import type { AccountLimits as Limits } from "@/lib/sample-data";
-import { NumericCopy } from "./numeric-copy";
+import { getRiskProfile, putRiskProfile, validRiskCount, validRiskDecimal, type RiskProfile, type RiskProfileInput } from "@/lib/risk";
+import { tradingError } from "@/lib/trading";
+import { usePaperAccounts } from "@/lib/use-paper-accounts";
 
-export function AccountLimits({ initialLimits }: { initialLimits: Limits }) {
+const control = "num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text";
+const fields = [
+  { key: "risk_per_trade_percent", label: "riskPerTrade" },
+  { key: "total_open_risk_limit_percent", label: "totalOpenRisk", hint: "limits.totalOpenRisk.hint" },
+  { key: "max_open_positions", label: "maxPositions", count: true },
+  { key: "max_losing_trades_today", label: "losingTradesPerDay", count: true },
+  { key: "daily_loss_limit_percent", label: "dailyLoss", hint: "limits.dailyLoss.hint" },
+  { key: "max_stopped_trades_this_week", label: "stoppedTradesPerWeek", count: true },
+  { key: "weekly_loss_limit_percent", label: "weeklyLoss", hint: "limits.weeklyLoss.hint" },
+  { key: "target_risk_reward", label: "targetRiskReward" },
+] as const;
+type Draft = Record<keyof RiskProfileInput, string>;
+const draftOf = (profile: RiskProfile): Draft => Object.fromEntries(fields.map(({ key }) => [key, String(profile[key])])) as Draft;
+
+export function AccountLimits() {
   const locale = useLocale();
   const t = getMessages("rules", locale);
+  const at = getMessages("accounts", locale);
+  const { accounts, account, setSelectedId, error, reload } = usePaperAccounts();
 
-  const [inputs, setInputs] = useState(() => ({ locale, values: {
-    riskPerTrade: formatAmount(initialLimits.riskPerTrade, 2, locale),
-    losingTradesPerDay: formatAmount(String(initialLimits.losingTradesPerDay), 0, locale),
-    stoppedTradesPerWeek: formatAmount(String(initialLimits.stoppedTradesPerWeek), 0, locale),
-    totalOpenRisk: formatAmount(initialLimits.totalOpenRisk, 2, locale),
-    dailyLoss: formatAmount(initialLimits.dailyLoss, 2, locale),
-    weeklyLoss: formatAmount(initialLimits.weeklyLoss, 2, locale),
-    maxPositions: formatAmount(String(initialLimits.maxPositions), 0, locale),
-    targetRiskReward: formatAmount(initialLimits.targetRiskReward, 1, locale),
-    cautionAt: formatAmount(decimalProduct(String(initialLimits.cautionAt), "100"), 0, locale),
-  } }));
-  if (inputs.locale !== locale) setInputs({ locale, values: Object.fromEntries(Object.entries(inputs.values).map(([field, value]) => [field, reformatInput(value, inputs.locale, locale)])) as typeof inputs.values });
+  return <section className="flex min-w-0 flex-col gap-6">
+    <div className="flex flex-col gap-2"><h1 className="text-title">{t("title")}</h1><p className="max-w-[620px] text-body text-muted">{t("description")}</p></div>
+    {error !== null ? <div className="flex flex-col items-start gap-3"><p role="alert" className="text-limit">{tradingError(error, locale)}</p><Button onClick={() => void reload()}>{t("retry")}</Button></div>
+      : accounts === null ? <p role="status" className="text-muted">{t("loadingAccounts")}</p>
+      : !account ? <p className="text-muted">{t("noAccounts")} <Link href="/accounts" className="inline-flex min-h-control items-center underline">{t("manageAccounts")}</Link></p>
+      : <>
+        <div className="flex max-w-md flex-col gap-2"><label htmlFor="rules-account" className="text-small text-muted">{t("account")}</label>
+          <select id="rules-account" className={control} value={account.id} onChange={event => setSelectedId(event.target.value)}>{accounts.map(item => <option key={item.id} value={item.id}>{item.name} · {at(item.market === "futures" ? "market.futures" : "market.spot")}</option>)}</select>
+        </div>
+        <ProfileLoader key={account.id} accountId={account.id} />
+      </>}
+  </section>;
+}
+
+function ProfileLoader({ accountId }: { accountId: string }) {
+  const locale = useLocale();
+  const t = getMessages("rules", locale);
+  const { refresh } = useAuth();
+  const [profile, setProfile] = useState<RiskProfile | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const load = useCallback((signal?: AbortSignal) => {
+    return getRiskProfile(accountId, signal).then(result => {
+      if (signal?.aborted) return;
+      setProfile(result);
+      setError(null);
+    }, error => {
+      if (signal?.aborted) return;
+      setError(error);
+      if (error instanceof ApiError && error.status === 401) void refresh();
+    });
+  }, [accountId, refresh]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+  if (error !== null) return <div className="flex flex-col items-start gap-3"><p role="alert" className="text-limit">{tradingError(error, locale)}</p><Button onClick={() => void load()}>{t("retry")}</Button></div>;
+  if (!profile) return <p role="status" className="text-muted">{t("loadingProfile")}</p>;
+  return <ProfileForm accountId={accountId} initialProfile={profile} />;
+}
+
+function ProfileForm({ accountId, initialProfile }: { accountId: string; initialProfile: RiskProfile }) {
+  const locale = useLocale();
+  const t = getMessages("rules", locale);
+  const { refresh } = useAuth();
+  const [profile, setProfile] = useState(initialProfile);
+  const [values, setValues] = useState(() => draftOf(initialProfile));
+  const [attempted, setAttempted] = useState(false);
   const [saved, setSaved] = useState(false);
-  const fields = ["riskPerTrade", "losingTradesPerDay", "stoppedTradesPerWeek", "totalOpenRisk", "dailyLoss", "weeklyLoss", "maxPositions", "targetRiskReward", "cautionAt"] as const;
-  const hints = {
-    totalOpenRisk: t("limits.totalOpenRisk.hint"),
-    dailyLoss: t("limits.dailyLoss.hint"),
-    weeklyLoss: t("limits.weeklyLoss.hint"),
-  };
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const pending = useRef(false);
+  const lifetime = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    return () => controller.abort();
+  }, []);
+  const invalid = (field: typeof fields[number]) => !("count" in field ? validRiskCount(values[field.key]) : validRiskDecimal(values[field.key]));
+  const dirty = fields.some(({ key }) => values[key] !== String(profile[key]));
 
-  return <form className="flex min-w-0 flex-col gap-6" onSubmit={(event) => { event.preventDefault(); setSaved(true); }}>
-    <section className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-title">{t("title")}</h1>
-        <p className="max-w-[620px] text-body text-muted">{t("description")}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <span role="status" className="text-small text-muted">{saved ? t("saved") : ""}</span>
-        <button type="submit" className="min-h-control rounded-control bg-text px-5 text-sm font-semibold text-inverse">{t("save")}</button>
-      </div>
-    </section>
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending.current) return;
+    setAttempted(true);
+    setSaved(false);
+    setError(null);
+    if (fields.some(invalid)) return;
+    const body: RiskProfileInput = {
+      ...values,
+      max_open_positions: Number(values.max_open_positions),
+      max_losing_trades_today: Number(values.max_losing_trades_today),
+      max_stopped_trades_this_week: Number(values.max_stopped_trades_this_week),
+    };
+    pending.current = true;
+    setBusy(true);
+    try {
+      const result = await putRiskProfile(accountId, body, AbortSignal.any([lifetime.current!.signal, AbortSignal.timeout(15_000)]));
+      if (lifetime.current?.signal.aborted) return;
+      setProfile(result);
+      setValues(draftOf(result));
+      setSaved(true);
+    } catch (error) {
+      if (lifetime.current?.signal.aborted) return;
+      setError(error);
+      if (error instanceof ApiError && error.status === 401) void refresh();
+    } finally {
+      pending.current = false;
+      if (!lifetime.current?.signal.aborted) setBusy(false);
+    }
+  }
+
+  const updatedAt = profile.updated_at === null ? null : new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", { dateStyle: "short", timeStyle: "medium", timeZone: "UTC" }).format(new Date(profile.updated_at));
+  return <form noValidate onSubmit={save} aria-busy={busy} className="flex min-w-0 flex-col gap-4">
     <Card className="flex flex-col gap-5 p-card" aria-labelledby="account-limits-title">
-      <div className="flex flex-col gap-1">
-        <h2 id="account-limits-title" className="text-heading">{t("limits.title")}</h2>
-        <p className="text-small text-subtle">{t("limits.description")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-1"><h2 id="account-limits-title" className="text-heading">{t("limits.title")}</h2><p className="text-small text-subtle">{t("limits.description")}</p></div>
+        <p role="status" className="text-small text-muted">{updatedAt === null ? t("notSaved") : t("updatedAt", { time: updatedAt })}</p>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-6 gap-y-5">
-        {fields.map((field) => {
-          const hint = field in hints ? hints[field as keyof typeof hints] : undefined;
-          return <div key={field} className="flex min-w-0 flex-col gap-2">
-            <label htmlFor={field} className="text-small text-muted">{t(`limits.${field}`)}</label>
-            <input id={field} name={field} inputMode={field === "maxPositions" || field === "cautionAt" || field === "losingTradesPerDay" || field === "stoppedTradesPerWeek" ? "numeric" : "decimal"} value={inputs.values[field]} aria-describedby={hint ? `${field}-hint` : undefined} onChange={(event) => { setInputs((previous) => ({ locale, values: { ...previous.values, [field]: event.target.value } })); setSaved(false); }} className="num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text" />
-            {hint && <span id={`${field}-hint`} className="text-xs leading-[17px] text-subtle"><NumericCopy text={hint} /></span>}
+      <p className="text-small text-subtle">{t("validationHint")}</p>
+      <fieldset disabled={busy} className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-x-6 gap-y-5">
+        {fields.map(field => {
+          const bad = attempted && invalid(field);
+          const hint = "hint" in field ? field.hint : null;
+          const id = `risk-${field.key}`;
+          return <div key={field.key} className="flex min-w-0 flex-col gap-2">
+            <label htmlFor={id} className="text-small text-muted">{t(`limits.${field.label}`)}</label>
+            <input id={id} name={field.key} inputMode={"count" in field ? "numeric" : "decimal"} value={values[field.key]} aria-invalid={bad} aria-describedby={[hint ? `${id}-hint` : "", bad ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined} onChange={event => { setValues(previous => ({ ...previous, [field.key]: event.target.value })); setSaved(false); setError(null); }} className={control} />
+            {hint && <span id={`${id}-hint`} className="text-xs leading-[17px] text-subtle">{t(hint)}</span>}
+            {bad && <p id={`${id}-error`} role="alert" className="text-small text-limit">{t("count" in field ? "invalidCount" : "invalidDecimal")}</p>}
           </div>;
         })}
-      </div>
+      </fieldset>
     </Card>
+    {error !== null && <p role="alert" className="text-limit">{tradingError(error, locale)}</p>}
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      <span role="status" className="text-small text-muted">{saved ? t("saved") : dirty ? t("unsavedChanges") : ""}</span>
+      <Button type="submit" disabled={busy}>{t(busy ? "saving" : "save")}</Button>
+    </div>
   </form>;
 }

@@ -1,6 +1,7 @@
 import { ApiError, apiError, errorText } from "@/lib/auth";
 import { compareDecimals } from "@/lib/format";
 import type { Locale } from "@/lib/messages";
+import type { ProfileSource } from "@/lib/risk";
 
 export interface RuleCheck {
   rule_id: string;
@@ -12,6 +13,7 @@ export interface RuleCheck {
 
 /** API decimals remain strings throughout forms, requests and result rendering. */
 export interface CheckResponse {
+  profile_source: ProfileSource;
   symbol: string;
   side: "long" | "short";
   coin_class: "core" | "large" | "small" | "stable";
@@ -74,9 +76,15 @@ export function checkBlocked(check: CheckResponse): boolean {
 }
 
 export function rejectedCheck(error: unknown): CheckResponse | null {
-  if (!(error instanceof ApiError) || error.status !== 422 || !error.data || typeof error.data !== "object") return null;
+  if (!(error instanceof ApiError) || error.status !== 422 || tradingErrorCode(error) !== "risk_blocked") return null;
   const check = (error.data as { check?: CheckResponse }).check;
-  return check && Array.isArray(check.checks) ? { ...check, allowed: false, verdict: "fail" } : null;
+  return check && Array.isArray(check.checks) ? { ...check, allowed: false, verdict: "fail", profile_source: "stored" } : null;
+}
+
+export function tradingErrorCode(error: unknown): string | null {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== "object") return null;
+  const code = (error.data as { code?: unknown }).code;
+  return typeof code === "string" ? code : null;
 }
 
 export function tradingError(error: unknown, locale: Locale): string {

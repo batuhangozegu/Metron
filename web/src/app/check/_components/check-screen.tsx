@@ -12,8 +12,10 @@ import { formatTradePrice } from "@/lib/format";
 import { getMessages } from "@/lib/messages";
 import { checkBlocked, rejectedCheck, tradingError, validStop, type CheckResponse, type OrderRequest } from "@/lib/trading";
 import { usePaperAccounts } from "@/lib/use-paper-accounts";
+import { useRiskChecks } from "@/lib/use-risk-checks";
 import type { Market } from "@/app/markets/_lib/market-data";
 import { CheckResult } from "./check-result";
+import { RiskCheckHistory } from "./risk-check-history";
 
 const control = "min-h-control w-full rounded-control border border-line bg-raised px-3 text-text";
 
@@ -24,6 +26,7 @@ export function CheckScreen() {
   const router = useRouter();
   const { refresh } = useAuth();
   const { accounts, account, setSelectedId, error: accountError, reload } = usePaperAccounts();
+  const history = useRiskChecks(account?.id);
   const [markets, setMarkets] = useState<Market[] | null>(null);
   const [marketError, setMarketError] = useState<unknown>(null);
   const [symbol, setSymbol] = useState("");
@@ -89,7 +92,11 @@ export function CheckScreen() {
       if (lifetime.current?.signal.aborted) return;
       setError(error);
       if (error instanceof ApiError && error.status === 401) void refresh();
-    } finally { pending.current = false; setBusy(null); }
+    } finally {
+      if (!lifetime.current?.signal.aborted) void history.reload(lifetime.current?.signal);
+      pending.current = false;
+      setBusy(null);
+    }
   }
 
   async function openOrder() {
@@ -99,6 +106,7 @@ export function CheckScreen() {
     setError(null);
     try {
       await apiRequest("/orders", checkedOrder, AbortSignal.any([lifetime.current!.signal, AbortSignal.timeout(15_000)]));
+      await history.reload(lifetime.current?.signal);
       if (!lifetime.current?.signal.aborted) {
         invalidate();
         router.push(`/portfolio?account=${encodeURIComponent(checkedOrder.account_id)}`);
@@ -108,6 +116,7 @@ export function CheckScreen() {
       const blocked = rejectedCheck(error);
       if (blocked) setCheck(blocked);
       else setError(error);
+      void history.reload(lifetime.current?.signal);
       if (error instanceof ApiError && error.status === 401) void refresh();
     } finally { pending.current = false; setBusy(null); }
   }
@@ -142,6 +151,7 @@ export function CheckScreen() {
     <section aria-label={t("results")} className="flex min-w-0 flex-[999_1_600px] flex-col gap-4">
       {error !== null && <p role="alert" className="text-limit">{tradingError(error, locale)}</p>}
       {check ? <CheckResult locale={locale} check={check} busy={busy === "order"} onOpen={() => void openOrder()} /> : <p role="status" className="rounded-card border border-line bg-surface p-card text-muted">{t(busy === "check" ? "checking" : "awaitingCheck")}</p>}
+      <RiskCheckHistory checks={history.checks} error={history.error} onRetry={() => void history.reload(lifetime.current?.signal)} />
     </section>
   </div>;
 }
