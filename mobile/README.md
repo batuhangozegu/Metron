@@ -1,78 +1,47 @@
-﻿# Metron mobile
+# Metron mobile
 
-Flutter foundation for risk monitoring and pre-trade checks. Screens are TODO placeholders. Dark is default; pass `ThemeMode.light` to `MetronApp` for light.
+Flutter app for the live Metron paper-trading API, with the war-room theme and English/Turkish copy. Supports registration, password/TOTP sign-in, persistent cookie sessions, paper account creation/selection, portfolio and positions, market quotes, pre-trade checks, orders, position close and saved risk limits. Price alarms are marked coming soon until a backend exists.
 
 ## Run
 
-Use Flutter 3.47.1 / Dart 3.13.1 or a compatible newer stable SDK. From `mobile/`:
+Use Flutter 3.47.1 / Dart 3.13.1 or a compatible newer stable SDK. Start the API and dependencies using the root README, apply all migrations, then from `mobile/`:
 
 ```sh
 flutter pub get
 flutter run
+```
+
+The default API is `http://10.0.2.2:8080` on Android (emulator host) and `http://127.0.0.1:8080` elsewhere (including the iOS simulator). For a physical phone, use a reachable API address on your LAN or an HTTPS deployment:
+
+```sh
+flutter run --dart-define=METRON_API_URL=http://192.168.1.20:8080
+# Deployment / release:
+flutter run --release --dart-define=METRON_API_URL=https://api.example.com
+```
+
+Allow local-network access when iOS asks. Android debug/profile allow local HTTP; release uses HTTPS. The iOS runner permits local networking. Both runners use `dev.metron.metron`; iOS builds require macOS/Xcode. The cookie transport targets native mobile; Flutter Web requires a same-origin cookie proxy and is not supported by this transport.
+
+At launch, `/v1/me` verifies the stored session before protected screens open. Full sessions (including refreshed expiry) use `flutter_secure_storage`; the five-minute pending TOTP cookie is memory-only. Logout/401 removes the full session. Account selection is remembered per user and API URL. HTTP errors and rule results display the API's EN/TR messages, with localized fallback messages for authentication/network failures. Amounts and quantities remain decimal strings through requests and rendering.
+
+Home portfolio/positions and visible market ticker quotes refresh every five seconds. Polling pauses for hidden routes/tabs and while the app is in the background. A pre-trade check uses the current quote; placing an order repeats the server's risk evaluation with the saved account profile and current execution price. Any failed rule routes to the blocked result, including an order rejected after a successful preview.
+
+## Checks
+
+```sh
+flutter pub get
+dart format --set-exit-if-changed lib test
 flutter analyze
 flutter test
 ```
 
-Android and iOS runners use `dev.metron.metron`. iOS builds require macOS/Xcode.
+The HTTP tests use `MockClient` and an in-memory secure-store substitute; they do not need a running backend or real credentials. They cover session persistence/refresh/clear, sign-in/TOTP, account selection/creation, check/order/blocked routing, close confirmation, risk-limit validation, polling, loading/error/empty states and localization. Shared widget/format tests remain offline.
 
-## Layout and ownership
+## Layout
 
-- `lib/main.dart`, `app.dart`: ProviderScope and app setup.
-- `lib/router.dart`: named routes and four persistent tab branches.
-- `lib/theme/`: hand-transcribed design tokens, dark/light themes and the `MetronColors` extension (`context.colors`).
-- `lib/widgets/`: Measure, RiskBadge, PnlText, Num, MetronCard, SectionHeader, PrimaryButton, SecondaryButton and FixedMainAction. Import individually or through `widgets.dart`.
-- `lib/data/`: immutable plain Dart models, fixtures and read-only Riverpod providers; no networking.
-- `lib/l10n/app_strings.dart`: shared English/Turkish translation interface and implementations.
-- `lib/features/<name>/<name>_screen.dart`: replaceable screen placeholders.
-- `assets/fonts/`: Inter 400/500/600 and JetBrains Mono 400/500, with OFL licenses. Runtime fetching is disabled.
-- `test/`: widget, layout, fixture and navigation tests.
-
-**Each screen owns only `lib/features/<name>/`.** Replace its screen and add helpers, feature copy and tests inside that folder; preserve its public constructor. Coordinate shared changes with the foundation owner. Run feature-local tests explicitly: `flutter test lib/features/<name>/`.
-
-Tab screens supply their own Scaffold, app bar and body. The shared shell owns the bottom bar and home fixed action. Check, blocked-check, position and sign-in supply their own Scaffold and actions, without a tab bar. Rules are read-only.
-
-## Languages
-
-English is the fallback; Turkish devices start in Turkish. The language selector
-on Rules switches between English and Türkçe and retains the choice for the app
-session. `localeProvider` owns the choice, and MaterialApp uses Flutter's official
-localization delegates for built-in controls.
-
-App and feature catalogs use abstract interfaces with concrete English and Turkish
-implementations. This preserves feature ownership and makes a missing translation
-a compile error. It also avoids gen-l10n's fallback to English for missing ARB
-entries. `stringsProvider` selects the implementations; `LocalizedCatalogs` exposes
-them through inherited scopes so existing widget types can stay the same.
-
-Read copy with `AppStrings.of(context).check` or the feature's equivalent. When
-adding copy, declare a getter/method on the interface and implement it in both
-locales. Keep numeric formatting in the existing helpers; pass formatted values
-to parameterized copy. Fixture-backed display copy is translated in the feature
-catalogs, while the underlying sample data remains unchanged.
-
-## Routes
-
-Use `AppRoutes` constants with `pushNamed` for details and `goNamed` for tabs:
-
-| Name | Path | Screen input |
-| --- | --- | --- |
-| `home` | `/` | — |
-| `markets` | `/markets` | — |
-| `alerts` | `/alerts` | — |
-| `rules` | `/rules` | — |
-| `check` | `/check` | Optional `pair` query |
-| `check-blocked` | `/check/blocked` | — |
-| `position` | `/positions/:id` | Required `positionId` constructor argument |
-| `sign-in` | `/sign-in` | — |
-
-Example: `context.pushNamed(AppRoutes.position, pathParameters: {'id': 'btc'})`. Blocked-check back returns to check; tabs retain their state.
-
-## Data and display
-
-Providers expose account, limits, positions (`btc`, `sol`, `eth`), nine prices, alerts, price alarms, class/discipline rules and caution/blocked order previews. `positionProvider(id)` and `coinPriceProvider(pair)` return null for unknown keys. Override providers in ProviderScope for tests.
-
-Fixtures match all eight mobile mockups' renderVals and static markup. UTC dates use 14 November 2026; only BTC has detailed position data. Samples are illustrative, never risk-engine defaults.
-
-Money/quantities are decimal strings; parse only for display, never financial arithmetic. Percentages are percentage points (`2.75` means `2.75%`). Measure takes finite, nonnegative usage and a finite positive limit in the same unit. Caution starts at 75%; exceeding 100% is limit. The fill clamps, while labels retain the actual value. Cooldown uses the explicit fixture verdict.
-
-Use Num for numbers, PnlText for results (arrow/sign/color), and RiskBadge for risk (icon/word/color). PnlText accepts a magnitude formatter and suffix. Num accepts token text styles such as `MetronType.figureLarge`; use bundled font weights. Cards have a one-pixel line and no shadow; buttons are 44 px. Keep shared copy in the translation catalog and feature copy in feature-local translation files.
+- `lib/data/api_client.dart`: injectable HTTP client, cookie jar and secure store.
+- `lib/data/live_models.dart`, `providers.dart`: live API data and Riverpod session/account state.
+- `lib/router.dart`: protected routes and startup session gate.
+- `lib/features/`: live screens and their existing translation catalogs.
+- `lib/l10n/live_strings.dart`: shared EN/TR copy for the API flows; Rules retains the language selector.
+- `lib/widgets/`: war-room scaffolds, live ticker, account gate, async states and existing visual primitives.
+- `assets/fonts/`: bundled fonts and licenses; runtime fetching is disabled.

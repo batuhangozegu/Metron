@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../data/providers.dart';
+import '../../data/live_models.dart';
+import '../../l10n/live_strings.dart';
+import '../../widgets/widgets.dart';
 import '../check/check_layout.dart';
 
-/// Reuses the check layout with a blocked preview and no placement action.
-class CheckBlockedScreen extends ConsumerWidget {
-  const CheckBlockedScreen({super.key});
+class CheckBlockedScreen extends StatelessWidget {
+  const CheckBlockedScreen({super.key, this.check});
+  final RiskCheck? check;
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      CheckLayout(preview: ref.watch(blockedOrderPreviewProvider));
+  Widget build(BuildContext context) => WarRoomScaffold(
+    appBar: AppBar(title: CommandTitle(LiveStrings.of(context).blocked)),
+    body: ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (check == null)
+          Text(LiveStrings.of(context).noCheck)
+        else
+          CheckLayout(check: check!),
+      ],
+    ),
+  );
 }

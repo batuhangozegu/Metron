@@ -6,11 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../data/providers.dart';
 import '../l10n/app_strings.dart';
+import '../l10n/live_strings.dart';
+import 'live_state.dart';
 import '../l10n/number_formatter.dart';
 import '../theme/metron_colors.dart';
 import '../theme/tokens.dart';
 
-/// Sample prices retain decimal strings. The band never claims a live feed.
+/// Live quotes retain decimal strings; only animation geometry is numeric.
 class MarketTicker extends ConsumerStatefulWidget {
   const MarketTicker({super.key});
 
@@ -66,121 +68,129 @@ class _MarketTickerState extends ConsumerState<MarketTicker> {
     final c = context.colors;
     final strings = AppStrings.of(context);
     final f = NumberFormatter.of(context);
-    final quotes = ref.watch(pricesProvider);
-    return Semantics(
-      label: strings.ticker,
-      container: true,
-      child: Container(
-        decoration: BoxDecoration(
-          color: c.surface,
-          border: Border(bottom: BorderSide(color: c.limitEdge)),
-        ),
-        height: 44 * MediaQuery.textScalerOf(context).scale(1).clamp(1, 2),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.only(left: 12),
-              decoration: BoxDecoration(
-                color: c.raised,
-                border: Border(right: BorderSide(color: c.line)),
-              ),
-              child: Row(
-                children: [
-                  Container(width: 5, height: 5, color: c.muted),
-                  const SizedBox(width: 6),
-                  Text(
-                    strings.sampleFeed,
-                    style: MetronType.label.copyWith(
-                      fontSize: 10,
-                      color: c.muted,
-                      letterSpacing: .7,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: _paused
-                        ? strings.resumeTicker
-                        : strings.pauseTicker,
-                    isSelected: _paused,
-                    iconSize: 16,
-                    onPressed: () {
-                      setState(() => _paused = !_paused);
-                      // Stop an in-flight scroll immediately as well.
-                      if (_scroll.hasClients) _scroll.jumpTo(_scroll.offset);
-                      _schedule();
-                    },
-                    icon: Icon(_paused ? Icons.play_arrow : Icons.pause),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                key: const ValueKey('ticker-quotes'),
-                controller: _scroll,
-                scrollDirection: Axis.horizontal,
-                itemCount: quotes.length,
-                itemBuilder: (context, index) {
-                  final quote = quotes[index];
-                  final change = quote.changePercent;
-                  final price = f.decimal(quote.price);
-                  final changeText =
-                      '${change < 0
-                          ? '▼ −'
-                          : change > 0
-                          ? '▲ +'
-                          : '— '}${f.percent(change.abs())}';
-                  return Semantics(
-                    label:
-                        '${quote.pair}, $price, ${strings.dailyChange} $changeText',
-                    excludeSemantics: true,
-                    child: Container(
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        border: Border(right: BorderSide(color: c.line)),
+    final feed = ref.watch(marketsProvider);
+    final quotes = feed.value ?? [];
+    final live = LiveStrings.of(context);
+    return VisibleRefresh(
+      refresh: () => ref.invalidate(marketsProvider),
+      child: Semantics(
+        label: strings.ticker,
+        container: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: c.surface,
+            border: Border(bottom: BorderSide(color: c.limitEdge)),
+          ),
+          height: 44 * MediaQuery.textScalerOf(context).scale(1).clamp(1, 2),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(left: 12),
+                decoration: BoxDecoration(
+                  color: c.raised,
+                  border: Border(right: BorderSide(color: c.line)),
+                ),
+                child: Row(
+                  children: [
+                    Container(width: 5, height: 5, color: c.muted),
+                    const SizedBox(width: 6),
+                    Text(
+                      feed.hasError
+                          ? live.unavailable
+                          : feed.isLoading
+                          ? live.loading
+                          : quotes.any((q) => q.price != null)
+                          ? live.feed
+                          : live.unavailable,
+                      style: MetronType.label.copyWith(
+                        fontSize: 10,
+                        color: c.muted,
+                        letterSpacing: .7,
                       ),
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '${quote.pair}   ',
-                              style: TextStyle(
-                                color: c.text,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '$price   ',
-                              style: GoogleFonts.jetBrainsMono(
-                                textStyle: MetronType.figure.copyWith(
-                                  fontSize: 12,
+                    ),
+                    IconButton(
+                      tooltip: _paused
+                          ? strings.resumeTicker
+                          : strings.pauseTicker,
+                      isSelected: _paused,
+                      iconSize: 16,
+                      onPressed: () {
+                        setState(() => _paused = !_paused);
+                        // Stop an in-flight scroll immediately as well.
+                        if (_scroll.hasClients) _scroll.jumpTo(_scroll.offset);
+                        _schedule();
+                      },
+                      icon: Icon(_paused ? Icons.play_arrow : Icons.pause),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  key: const ValueKey('ticker-quotes'),
+                  controller: _scroll,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: quotes.length,
+                  itemBuilder: (context, index) {
+                    final quote = quotes[index];
+                    final change = quote.change;
+                    final price = f.decimal(quote.price ?? '—');
+                    final changeText = change == null
+                        ? '—'
+                        : f.unit(f.decimal(change), '%');
+                    return Semantics(
+                      label:
+                          '${quote.pair}, $price, ${strings.dailyChange} $changeText',
+                      excludeSemantics: true,
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border(right: BorderSide(color: c.line)),
+                        ),
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${quote.pair}   ',
+                                style: TextStyle(
                                   color: c.text,
-                                ),
-                              ),
-                            ),
-                            TextSpan(
-                              text: changeText,
-                              style: GoogleFonts.jetBrainsMono(
-                                textStyle: MetronType.figure.copyWith(
                                   fontSize: 11,
-                                  color: change < 0
-                                      ? c.loss
-                                      : change > 0
-                                      ? c.profit
-                                      : c.muted,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
-                          ],
+                              TextSpan(
+                                text: '$price   ',
+                                style: GoogleFonts.jetBrainsMono(
+                                  textStyle: MetronType.figure.copyWith(
+                                    fontSize: 12,
+                                    color: c.text,
+                                  ),
+                                ),
+                              ),
+                              TextSpan(
+                                text: changeText,
+                                style: GoogleFonts.jetBrainsMono(
+                                  textStyle: MetronType.figure.copyWith(
+                                    fontSize: 11,
+                                    color: change?.startsWith('-') == true
+                                        ? c.loss
+                                        : change != null && change != '0'
+                                        ? c.profit
+                                        : c.muted,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

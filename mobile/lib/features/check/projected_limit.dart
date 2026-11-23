@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/number_formatter.dart';
-import '../../data/models.dart';
+import '../../data/api_client.dart';
 import '../../data/risk_level.dart';
+import '../../l10n/live_strings.dart';
+import '../../l10n/number_formatter.dart';
 import '../../theme/metron_colors.dart';
 import '../../widgets/widgets.dart';
+import '../../widgets/live_state.dart';
 import '../../widgets/segmented_bar.dart';
-import 'check_strings.dart';
+import 'visual_ratio.dart';
 
-/// Compact before/after projection; hatching distinguishes the proposed order.
+/// Server rule status drives color; meters visualize its returned values only.
 class ProjectedLimit extends StatelessWidget {
-  const ProjectedLimit({super.key, required this.check});
-  final LimitCheck check;
+  const ProjectedLimit({super.key, required this.rule});
+  final Json rule;
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final color = check.level.color(c);
+    final s = LiveStrings.of(context), f = NumberFormatter.of(context);
+    final level = rule['status'] == 'fail'
+        ? RiskLevel.limit
+        : rule['status'] == 'caution'
+        ? RiskLevel.caution
+        : RiskLevel.safe;
+    final values =
+        (rule['values'] as Map?)?.cast<String, String>() ?? <String, String>{};
+    final limit = values['limit'] ?? values['limit_percent'];
+    final current = values['current'] ?? values['current_percent'];
+    final proposed =
+        values['proposed'] ?? values['proposed_percent'] ?? current;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      key: ValueKey('rule-${rule['rule_id']}'),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: check.level == RiskLevel.limit ? c.limitTint : null,
-        border: Border(
-          top: BorderSide(color: c.line),
-          left: BorderSide(
-            color: check.level == RiskLevel.limit
-                ? c.limit
-                : Colors.transparent,
-            width: 3,
-          ),
-        ),
+        color: level == RiskLevel.limit ? context.colors.limitTint : null,
+        border: Border(top: BorderSide(color: context.colors.line)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -36,52 +41,35 @@ class ProjectedLimit extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  CheckStrings.of(context).limitName(check),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              Icon(level.icon, color: level.color(context.colors), size: 18),
               const SizedBox(width: 8),
-              if (check.brokenRule || check.level == RiskLevel.limit)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(check.level.icon, size: 14, color: color),
-                    const SizedBox(width: 5),
-                    Text(
-                      check.brokenRule
-                          ? CheckStrings.of(context).broken
-                          : CheckStrings.of(context).exceeded,
-                      style: TextStyle(fontSize: 12, color: color),
-                    ),
-                  ],
-                )
-              else
-                RiskBadge(check.level),
+              Text(s.status(rule['status'] as String)),
             ],
           ),
-          SizedBox(
-            height: 12,
-            child: CustomPaint(
-              painter: _ProjectionPainter(
-                before: (check.before / check.limit).clamp(0, 1),
-                after: (check.after / check.limit).clamp(0, 1),
-                color: color,
-                startColor: check.level == RiskLevel.limit ? c.caution : color,
-                track: c.raised,
+          Text(rule[s.tr ? 'message_tr' : 'message_en'] as String),
+          if (limit != null && proposed != null)
+            SizedBox(
+              height: 12,
+              child: CustomPaint(
+                painter: _ProjectionPainter(
+                  before: visualFraction(
+                    decimalTicks(current ?? '0'),
+                    decimalTicks(limit),
+                  ),
+                  after: visualFraction(
+                    decimalTicks(proposed),
+                    decimalTicks(limit),
+                  ),
+                  color: level.color(context.colors),
+                  startColor: level == RiskLevel.limit
+                      ? context.colors.caution
+                      : level.color(context.colors),
+                  track: context.colors.raised,
+                ),
               ),
             ),
-          ),
-          Num(
-            CheckStrings.of(context).limitValue(
-              NumberFormatter.of(context).fixtureText(check.valueLabel),
-            ),
-            style: TextStyle(fontSize: 12, color: c.muted),
-          ),
+          for (final value in values.entries)
+            ValueRow(s.ruleValue(value.key), f.decimal(value.value)),
         ],
       ),
     );
@@ -99,18 +87,15 @@ class _ProjectionPainter extends CustomPainter {
   final double before, after;
   final Color color, startColor, track;
   @override
-  void paint(Canvas canvas, Size size) {
-    paintSegmentedBar(
-      canvas,
-      Offset.zero & size,
-      fraction: after,
-      solidFraction: before,
-      color: color,
-      startColor: startColor,
-      track: track,
-    );
-  }
-
+  void paint(Canvas canvas, Size size) => paintSegmentedBar(
+    canvas,
+    Offset.zero & size,
+    fraction: after,
+    solidFraction: before,
+    color: color,
+    startColor: startColor,
+    track: track,
+  );
   @override
   bool shouldRepaint(covariant _ProjectionPainter old) =>
       before != old.before ||

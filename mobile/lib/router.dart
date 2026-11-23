@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'data/api_client.dart';
+import 'data/live_models.dart';
+import 'data/providers.dart';
+import 'widgets/live_state.dart';
+
 import 'features/alerts/alerts_screen.dart';
 import 'features/check/check_screen.dart';
 import 'features/check_blocked/check_blocked_screen.dart';
@@ -27,21 +32,46 @@ abstract final class AppRoutes {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final router = createRouter();
+  final refresh = ValueNotifier(0);
+  ref.listen(sessionProvider, (_, next) => refresh.value++);
+  final router = createRouter(
+    session: () => ref.read(sessionProvider),
+    refresh: refresh,
+  );
   ref.onDispose(router.dispose);
+  ref.onDispose(refresh.dispose);
   return router;
 });
 
 /// Detail/check flows sit above the tab shell, as in the mobile mockups.
 /// A separate factory supports deep-link and smoke tests without shared state.
-GoRouter createRouter({String initialLocation = '/'}) {
+GoRouter createRouter({
+  String initialLocation = '/',
+  AsyncValue<Json?> Function()? session,
+  Listenable? refresh,
+}) {
   final root = GlobalKey<NavigatorState>();
   return GoRouter(
     navigatorKey: root,
     initialLocation: initialLocation,
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      if (session == null) return null;
+      final auth = session();
+      final path = state.uri.path;
+      if (auth.isLoading || auth.hasError) {
+        return path == '/session' ? null : '/session';
+      }
+      if (auth.value == null) return path == '/sign-in' ? null : '/sign-in';
+      return path == '/sign-in' || path == '/session' ? '/' : null;
+    },
     errorBuilder: (context, state) =>
         FeaturePlaceholder(title: AppStrings.of(context).notFound),
     routes: [
+      GoRoute(
+        path: '/session',
+        builder: (context, state) => const _SessionScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
@@ -63,7 +93,11 @@ GoRouter createRouter({String initialLocation = '/'}) {
                         path: 'blocked',
                         name: AppRoutes.checkBlocked,
                         parentNavigatorKey: root,
-                        builder: (context, state) => const CheckBlockedScreen(),
+                        builder: (context, state) => CheckBlockedScreen(
+                          check: state.extra is RiskCheck
+                              ? state.extra as RiskCheck
+                              : null,
+                        ),
                       ),
                     ],
                   ),
@@ -113,5 +147,21 @@ GoRouter createRouter({String initialLocation = '/'}) {
         builder: (context, state) => const SignInScreen(),
       ),
     ],
+  );
+}
+
+class _SessionScreen extends ConsumerWidget {
+  const _SessionScreen();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: AsyncPanel(
+          value: ref.watch(sessionProvider),
+          retry: () => ref.invalidate(sessionProvider),
+          data: (_) => const SizedBox.shrink(),
+        ),
+      ),
+    ),
   );
 }

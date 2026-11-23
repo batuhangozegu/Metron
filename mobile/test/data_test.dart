@@ -1,64 +1,148 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:metron/data/providers.dart';
-import 'package:metron/data/models.dart';
-import 'package:metron/data/risk_level.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:metron/data/api_client.dart';
+
+import 'live_test_app.dart';
 
 void main() {
-  test('providers expose the shared mockup account and immutable rows', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    expect(container.read(accountProvider).equity, '25000.00');
-    expect(container.read(accountProvider).asOf.isUtc, isTrue);
-    expect(container.read(positionsProvider).map((p) => p.id), [
-      'btc',
-      'sol',
-      'eth',
-    ]);
-    expect(container.read(positionProvider('btc'))!.detail!.stop, '93508.00');
-    expect(container.read(positionProvider('missing')), isNull);
-    expect(container.read(coinPriceProvider('PENDLE/USDT'))!.atrPercent, 8);
-    expect(container.read(coinPriceProvider('missing')), isNull);
-    expect(container.read(pricesProvider), hasLength(9));
-    expect(container.read(alertsProvider), hasLength(5));
-    expect(container.read(priceAlarmsProvider), hasLength(2));
-    expect(container.read(coinClassRulesProvider), hasLength(3));
-    expect(container.read(disciplineRulesProvider), hasLength(3));
-    expect(
-      () => container.read(positionsProvider).clear(),
-      throwsUnsupportedError,
+  test(
+    'Cookies persist, refresh, restore, send, and clear on unauthorized',
+    () async {
+      final store = MemoryStore();
+      var step = 0;
+      final api = ApiClient(
+        store: store,
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          step++;
+          if (step == 1) {
+            return http.Response(
+              '{}',
+              200,
+              headers: {
+                'set-cookie': 'metron_session=first; Expires=Wed, 25 Nov 2026 12:00:00 GMT; Max-Age=2592000; HttpOnly, metron_pending=; Max-Age=0',
+              },
+            );
+          }
+          expect(request.headers['cookie'], 'metron_session=first');
+          return http.Response(
+            '{}',
+            200,
+            headers: {
+              'set-cookie':
+                  'metron_session=refreshed; Max-Age=2592000; HttpOnly',
+            },
+          );
+        }),
+      );
+      await api.request(
+        '/auth/login',
+        body: {'paper_balance': '10000.12345678'},
+      );
+      expect(jsonDecode(store.values[api.sessionKey]!)['value'], 'first');
+      await api.request('/me');
+      expect(jsonDecode(store.values[api.sessionKey]!)['value'], 'refreshed');
+      var unauthorized = false;
+      final restored = ApiClient(
+        store: store,
+        baseUrl: api.baseUrl,
+        client: MockClient((request) async {
+          expect(request.headers['cookie'], 'metron_session=refreshed');
+          return http.Response('{"error":"authentication required"}', 401);
+        }),
+      )..onUnauthorized = () => unauthorized = true;
+      await expectLater(
+        restored.request('/accounts'),
+        throwsA(isA<ApiError>().having((e) => e.status, 'status', 401)),
+      );
+      expect(unauthorized, isTrue);
+      expect(store.values[api.sessionKey], isNull);
+      api.close();
+      restored.close();
+    },
+  );
+  test('Pending cookie survives invalid 2FA, is not persisted and is deleted after verification', () async {
+    final store = MemoryStore();
+    var step = 0;
+    final api = ApiClient(
+      store: store,
+      client: MockClient((r) async {
+        step++;
+        if (step == 1) {
+          return http.Response(
+            '{}',
+            200,
+            headers: {'set-cookie': 'metron_pending=temporary; Max-Age=300'},
+          );
+        }
+        expect(r.headers['cookie'], 'metron_pending=temporary');
+        if (step == 2) return http.Response('{}', 401);
+        return http.Response(
+          '{}',
+          200,
+          headers: {
+            'set-cookie': 'metron_session=full; Max-Age=2592000, metron_pending=; Max-Age=-1',
+          },
+        );
+      }),
     );
-    expect(
-      () => container.read(pricesProvider).clear(),
-      throwsUnsupportedError,
+    await api.request('/auth/login', body: {});
+    expect(store.values, isEmpty);
+    await expectLater(
+      api.request('/auth/login/2fa', body: {'code': '000000'}),
+      throwsA(isA<ApiError>()),
     );
+    await api.request('/auth/login/2fa', body: {'code': '654321'});
+    expect(store.values.values.single, contains('full'));
+    api.close();
   });
-
-  test('caution and blocked previews retain independent explicit verdicts', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final caution = container.read(orderPreviewProvider);
-    final blocked = container.read(blockedOrderPreviewProvider);
-    expect(caution.verdict, RiskLevel.caution);
-    expect(caution.checks.first.brokenRule, isTrue);
-    expect(caution.checks.first.level, RiskLevel.caution);
-    expect(blocked.verdict, RiskLevel.limit);
-    expect(caution.market, AccountMarket.spot);
-    expect(blocked.market, AccountMarket.futures);
-    expect(blocked.checks.first.id, 'daily-losing-trades');
-    expect(blocked.checks.first.before, 3);
-    expect(blocked.checks.first.after, 3);
-    expect(blocked.checks.first.limit, 3);
-    expect(blocked.checks.first.brokenRule, isTrue);
-    expect(blocked.checks.any((check) => check.id == 'size'), isFalse);
-    expect(blocked.largestFittingOrderValue, isNull);
-    final limits = container.read(limitsProvider);
-    expect(limits.riskPerTradePercent, 2);
-    expect(limits.openRiskPercent, 6);
-    expect(limits.maxOpenPositions, 5);
-    expect(limits.maxLosingTradesPerDay, 3);
-    expect(limits.dailyLossPercent, 5);
-    expect(limits.maxStoppedTradesPerWeek, 5);
-    expect(limits.weeklyLossPercent, 10);
+  test('Logout clears cookies even when the service fails', () async {
+    final store = MemoryStore();
+    var step = 0;
+    final api = ApiClient(
+      store: store,
+      client: MockClient((r) async {
+        step++;
+        if (step == 1) {
+          return http.Response(
+            '{}',
+            200,
+            headers: {'set-cookie': 'metron_session=full; Max-Age=2592000'},
+          );
+        }
+        expect(r.method, 'POST');
+        expect(r.headers['content-type'], 'application/json');
+        return http.Response('{}', 503);
+      }),
+    );
+    await api.request('/auth/login', body: {});
+    await expectLater(api.logout(), throwsA(isA<ApiError>()));
+    expect(store.values, isEmpty);
+    api.close();
+  });
+  test('Late refresh cannot revive a cleared session', () async {
+    final completer = Completer<http.Response>();
+    final store = MemoryStore();
+    final api = ApiClient(
+      store: store,
+      client: MockClient((r) => completer.future),
+    );
+    final pending = api.request('/accounts');
+    await Future<void>.delayed(Duration.zero);
+    await api.clearSession();
+    completer.complete(
+      http.Response(
+        '{}',
+        200,
+        headers: {'set-cookie': 'metron_session=stale; Max-Age=2592000'},
+      ),
+    );
+    await expectLater(pending, throwsA(isA<ApiError>()));
+    expect(store.values, isEmpty);
+    api.close();
   });
 }
