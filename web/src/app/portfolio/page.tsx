@@ -1,16 +1,15 @@
 import { getLocale } from "@/lib/locale-server";
 import { getMessages } from "@/lib/messages";
-import { EquityChart } from "./_components/equity-chart";
-import { Positions } from "./_components/positions";
+import { parsePortfolioPeriod } from "@/lib/portfolio";
+import { PortfolioDashboard } from "./_components/portfolio-dashboard";
 
-export default async function PortfolioPage({ searchParams }: { searchParams: Promise<{ account?: string | string[] }> }) {
+export default async function PortfolioPage({ searchParams }: { searchParams: Promise<{ account?: string | string[]; period?: string | string[] }> }) {
   const locale = await getLocale();
   const t = getMessages("portfolio", locale);
-  const { account } = await searchParams;
+  const { account, period } = await searchParams;
   const accountId = typeof account === "string" ? account : undefined;
   return <>
     <h1 className="text-title">{t("title")}</h1>
-    <Positions key={accountId ?? "default"} initialAccountId={accountId} />
-    <EquityChart locale={locale} />
+    <PortfolioDashboard key={accountId ?? "default"} initialAccountId={accountId} period={parsePortfolioPeriod(period)} />
   </>;
 }

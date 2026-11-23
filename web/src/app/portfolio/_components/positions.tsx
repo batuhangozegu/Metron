@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardHeader, PnL } from "@/components/metron";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/components/metron/locale-provider";
@@ -11,30 +9,10 @@ import { ApiError, apiRequest } from "@/lib/auth";
 import { formatPrice, formatTradePrice } from "@/lib/format";
 import { getMessages, type Locale } from "@/lib/messages";
 import { tradingError, type Position } from "@/lib/trading";
-import { usePaperAccounts } from "@/lib/use-paper-accounts";
 
 const table = "w-full border-collapse whitespace-nowrap text-sm text-right [&_th]:border-t [&_th]:border-line [&_th]:px-3 [&_th]:py-2.5 [&_th]:font-medium [&_td]:border-t [&_td]:border-line [&_td]:px-3 [&_td]:py-3.5 [&_th:first-child]:px-6 [&_td:first-child]:px-6 [&_th:last-child]:pr-6 [&_td:last-child]:pr-6";
 
-export function Positions({ initialAccountId }: { initialAccountId?: string }) {
-  const locale = useLocale();
-  const t = getMessages("portfolio", locale);
-  const at = getMessages("accounts", locale);
-  const router = useRouter();
-  const [selecting, startTransition] = useTransition();
-  const { accounts, account, error, reload } = usePaperAccounts(initialAccountId);
-  if (error !== null) return <div className="flex flex-col items-start gap-4"><p role="alert" className="text-limit">{tradingError(error, locale)}</p><Button onClick={() => void reload()}>{t("retry")}</Button></div>;
-  if (accounts === null) return <p role="status" className="text-muted">{t("loading")}</p>;
-  if (!account) return <p className="text-muted">{t("noAccounts")} <Link href="/accounts" className="inline-flex min-h-control items-center underline">{t("createAccount")}</Link></p>;
-  return <section className="flex min-w-0 flex-col gap-6" aria-label={t("positions")}>
-    <div className="flex flex-wrap items-center gap-3"><label htmlFor="portfolio-account" className="text-small text-muted">{t("account")}</label><select id="portfolio-account" className="min-h-control max-w-full rounded-control border border-line bg-raised px-3 text-text" value={account.id} disabled={selecting} onChange={event => {
-      const id = event.target.value;
-      startTransition(() => router.replace(`/portfolio?account=${encodeURIComponent(id)}`, { scroll: false }));
-    }}>{accounts.map(item => <option key={item.id} value={item.id}>{item.name} · {at(item.market === "futures" ? "market.futures" : "market.spot")}</option>)}</select></div>
-    <AccountPositions key={account.id} accountId={account.id} />
-  </section>;
-}
-
-function AccountPositions({ accountId }: { accountId: string }) {
+export function Positions({ accountId, onClosed }: { accountId: string; onClosed: () => void }) {
   const locale = useLocale();
   const t = getMessages("portfolio", locale);
   const { refresh } = useAuth();
@@ -94,16 +72,17 @@ function AccountPositions({ accountId }: { accountId: string }) {
     setAlreadyClosed(false);
     try {
       await apiRequest(`/positions/${encodeURIComponent(positionId)}/close`, {}, AbortSignal.any([lifetime.current!.signal, AbortSignal.timeout(15_000)]));
-      if (!lifetime.current?.signal.aborted) await load(true);
+      if (!lifetime.current?.signal.aborted) { onClosed(); await load(true); }
     } catch (error) {
       if (lifetime.current?.signal.aborted) return;
       if (error instanceof ApiError && error.status === 409) {
         setAlreadyClosed(true);
+        onClosed();
         await load(true);
       } else setActionError(error);
       if (error instanceof ApiError && error.status === 401) void refresh();
     } finally { pendingClose.current = false; setClosingId(null); }
-  }, [load, refresh]);
+  }, [load, refresh, onClosed]);
 
   return <>
     {loadError !== null && <div className="flex flex-wrap items-center gap-3"><p role="alert" className="text-limit">{tradingError(loadError, locale)} {snapshot && t("stale")}</p><Button variant="outline" onClick={() => void load(true)}>{t("retry")}</Button></div>}

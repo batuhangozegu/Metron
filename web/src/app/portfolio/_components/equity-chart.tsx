@@ -1,44 +1,59 @@
 import { Card, PnL } from "@/components/metron";
 import { formatAmount, formatPercent } from "@/lib/format";
 import { getMessages, type Locale } from "@/lib/messages";
-import { account, getSampleData, portfolioStatistics as stats } from "@/lib/sample-data";
+import type { EquityPoint, Portfolio } from "@/lib/portfolio";
 
-export function EquityChart({ locale = "en" }: { locale?: Locale }) {
+/** Numeric conversion is confined to SVG geometry; displayed API amounts stay exact. */
+export function equityGeometry(account: EquityPoint[], benchmark: EquityPoint[]) {
+  const points = [...account, ...benchmark];
+  const times = points.map(point => Date.parse(point.at));
+  const values = points.map(point => Number(point.equity));
+  const start = Math.min(...times), end = Math.max(...times);
+  const minimum = Math.min(...values), maximum = Math.max(...values);
+  const padding = (maximum - minimum || Math.max(Math.abs(maximum), 1) * 0.02) * 0.1;
+  const low = minimum - padding, high = maximum + padding;
+  const x = (at: string | number) => 12 + ((typeof at === "number" ? at : Date.parse(at)) - start) / (end - start || 1) * 888;
+  const y = (equity: string | number) => 250 - (Number(equity) - low) / (high - low) * 226;
+  const line = (series: EquityPoint[]) => series.map(point => `${x(point.at)},${y(point.equity)}`).join(" ");
+  return { start, end, low, high, x, y, line };
+}
+
+export function EquityChart({ data, locale }: { data: Portfolio; locale: Locale }) {
   const t = getMessages("portfolio", locale);
-  const { equitySeries: series } = getSampleData(locale);
-  // The fixtures contain screen coordinates: smaller y means greater equity.
-  let peak = series.account[0];
-  let span = { start: peak.x, end: peak.x, fall: 0 };
-  for (const point of series.account) {
-    if (point.y < peak.y) peak = point;
-    if (point.y - peak.y > span.fall) span = { start: peak.x, end: point.x, fall: point.y - peak.y };
-  }
-  const last = series.account[series.account.length - 1];
-  const description = t("chartDescription", {
-    initial: formatAmount(stats.initialEquity, 0, locale), equity: formatAmount(stats.equity, 0, locale), currency: account.currency,
-    days: formatAmount(String(stats.periodDays), 0, locale), drawdown: formatAmount(stats.maxDrawdownPercent.replace("-", ""), 1, locale), benchmark: formatAmount(stats.benchmarkEndEquity, 0, locale),
-  });
+  const series = data.equity_series;
+  if (series.length < 2) return <Card className="p-card"><h2 className="text-heading">{t("chartTitle")}</h2><p className="mt-4 text-muted">{t("notEnoughHistory")}</p></Card>;
+  const g = equityGeometry(series, data.benchmark_series);
+  const last = series[series.length - 1];
+  const drawdown = data.max_drawdown;
+  const date = new Intl.DateTimeFormat(locale === "tr" ? "tr-TR" : "en-GB", { day: "numeric", month: "short", ...(g.end - g.start >= 31_536_000_000 ? { year: "numeric" } as const : {}), ...(g.end - g.start < 172_800_000 ? { hour: "2-digit", minute: "2-digit" } as const : {}), timeZone: "UTC" });
+  const description = t("chartDescription", { initial: formatAmount(series[0].equity, 2, locale), equity: formatAmount(last.equity, 2, locale), currency: data.currency, from: date.format(new Date(series[0].at)), to: date.format(new Date(last.at)) });
   return <Card className="p-card flex flex-col gap-4">
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-      <div><h2 className="text-heading">{t("chartTitle")}</h2><p className="mt-1 text-small text-subtle">{t("sampleChart")}</p></div>
+      <h2 className="text-heading">{t("chartTitle")}</h2>
       <div className="flex flex-wrap gap-5 text-small text-muted">
-        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5 bg-text" />{t("yourAccount")}<PnL locale={locale} value={stats.returnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
-        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed border-subtle" />{t("benchmark")}<PnL locale={locale} value={stats.benchmarkReturnPercent} decimals={1} suffix={t("percent")} className="text-text" /></span>
+        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="h-0.5 w-5 bg-text" />{t("yourAccount")}<PnL locale={locale} value={data.summary.return_percent} decimals={1} suffix="%" /></span>
+        <span className="flex flex-wrap items-center gap-2"><span aria-hidden="true" className="w-5 border-t-2 border-dashed border-subtle" />{t("benchmark")}{data.benchmark_return_percent === null ? t("nullValue") : <PnL locale={locale} value={data.benchmark_return_percent} decimals={1} suffix="%" />}</span>
       </div>
     </div>
-    <svg role="img" aria-labelledby="portfolio-equity-title portfolio-equity-description" viewBox={series.viewBox} className="block h-auto w-full">
-      <title id="portfolio-equity-title">{t("chartTitle")}</title>
-      <desc id="portfolio-equity-description">{description}</desc>
-      <rect x={span.start} y={20} width={span.end - span.start} height={240} className="fill-loss-tint" />
-      {series.valueTicks.map(tick => <line key={tick.y} x1={0} y1={tick.y - 4} x2={last.x} y2={tick.y - 4} className="stroke-line" />)}
-      <line x1={0} y1={260} x2={last.x} y2={260} className="stroke-subtle" />
-      {series.account.map((point, index) => <line key={point.x} x1={point.x} y1={260} x2={point.x} y2={index % 4 === 0 ? 268 : 264} className="stroke-subtle" />)}
-      <polyline points={series.benchmark.map(point => `${point.x},${point.y}`).join(" ")} fill="none" strokeWidth={2} strokeDasharray="6 5" className="stroke-subtle" />
-      <polyline points={series.account.map(point => `${point.x},${point.y}`).join(" ")} fill="none" strokeWidth={2.5} strokeLinejoin="round" className="stroke-text" />
-      <circle cx={last.x} cy={last.y} r={4.5} className="fill-text" />
-      <text x={span.start + 8} y={38} className="fill-loss text-[13px] font-medium">{t("drawdownLabel")}<tspan className="num">{formatPercent(stats.maxDrawdownPercent, 1, locale)}</tspan></text>
-      {series.valueTicks.map(tick => <text key={tick.y} x={last.x + 12} y={tick.y} className="num fill-subtle text-xs">{tick.label}</text>)}
-      {series.dates.map((date, index) => <text key={date.x} x={date.x} y={288} textAnchor={index === 0 ? "start" : index === series.dates.length - 1 ? "end" : "middle"} className="num fill-subtle text-xs">{date.label}</text>)}
-    </svg>
+    <div role="region" aria-label={t("chartTitle")} tabIndex={0} className="overflow-x-auto">
+      <svg role="img" aria-labelledby="portfolio-equity-title portfolio-equity-description" viewBox="0 0 1060 300" className="block h-auto w-full min-w-[600px]">
+        <title id="portfolio-equity-title">{t("chartTitle")}</title>
+        <desc id="portfolio-equity-description">{description}{drawdown && ` ${t("maxDrawdown")}: ${formatPercent(drawdown.percent, 1, locale)}.`}</desc>
+        {drawdown && <rect x={g.x(drawdown.peak_at)} y={20} width={Math.max(0, g.x(drawdown.trough_at) - g.x(drawdown.peak_at))} height={230} className="fill-loss-tint" />}
+        {[0, 1, 2, 3].map(index => {
+          const value = g.low + (g.high - g.low) * index / 3;
+          return <g key={index}><line x1={12} y1={g.y(value)} x2={900} y2={g.y(value)} className="stroke-line" /><text x={914} y={g.y(value) + 4} className="num fill-subtle text-xs">{formatAmount(String(value), 2, locale)}</text></g>;
+        })}
+        <line x1={12} y1={250} x2={900} y2={250} className="stroke-subtle" />
+        {data.benchmark_series.length >= 2 && <polyline points={g.line(data.benchmark_series)} fill="none" strokeWidth={2} strokeDasharray="6 5" className="stroke-subtle" />}
+        <polyline points={g.line(series)} fill="none" strokeWidth={2.5} strokeLinejoin="round" className="stroke-text" />
+        <circle cx={g.x(last.at)} cy={g.y(last.equity)} r={4.5} className="fill-text" />
+        {drawdown && <text x={Math.min(g.x(drawdown.peak_at) + 8, 650)} y={16} className="fill-loss text-[13px] font-medium">{t("drawdownLabel")}<tspan className="num">{formatPercent(drawdown.percent, 1, locale)}</tspan></text>}
+        {[0, 1, 2, 3].map(index => {
+          const at = g.start + (g.end - g.start) * index / 3;
+          return <g key={index}><line x1={g.x(at)} y1={250} x2={g.x(at)} y2={258} className="stroke-subtle" /><text x={g.x(at)} y={286} textAnchor={index === 0 ? "start" : index === 3 ? "end" : "middle"} className="num fill-subtle text-xs">{date.format(new Date(at))}</text></g>;
+        })}
+      </svg>
+    </div>
   </Card>;
 }

@@ -62,7 +62,7 @@ export function validRiskCount(value: string): boolean {
 
 const ruleNames: Record<string, MessageKey<"check">> = {
   class_risk: "rule.classRisk", atr_stop: "rule.atrStop", quantity_step: "rule.quantityStep",
-  target_price: "rule.targetPrice", position_limit: "rule.positionLimit", spot_side: "rule.spotSide",
+  target_price: "rule.targetPrice", position_limit: "rule.positionLimit", class_allocation: "rule.positionLimit", spot_side: "rule.spotSide",
   initial_margin: "rule.initialMargin", liquidation_stop: "rule.liquidationStop",
   total_open_risk: "rule.totalOpenRisk", open_positions: "rule.openPositions",
   losing_trades_today: "rule.losingTradesToday", daily_loss: "rule.dailyLoss",

@@ -14,17 +14,8 @@ export interface OpenPosition { pair: string; cls: string; coinClass: CoinClass;
 export interface MarketRow { pair: string; cls: string; coinClass: CoinClass; price: string; change: string; changePercent: string; chColor: DisplayTone; atr: string; atrFill: string; stop: string; vol: string }
 export interface ClassRule { cls: string; coinClass: CoinClass; who: string; mult: string; risk: string; maxPos: string; total: string; source: string }
 export interface DisciplineRule { name: string; detail: string; mode: string; modeBg: TintTone; modeColor: DisplayTone; history: string }
-export interface JournalEntry { pair: string; closed: string; how: string; r: string; pl: string; plAmount: string; color: DisplayTone; rules: string; ruleColor: DisplayTone }
-export interface ClassStatistic { cls: string; coinClass: CoinClass; trades: string; win: string; net: string; netAmount: string; color: DisplayTone }
-export interface Holding { asset: string; qty: string; cost: string; fees: string }
 export interface LimitCheck { name: string; detail: string; before: string; add: string; value: string; state: string; color: DisplayTone; ok: boolean; warn: boolean; over?: boolean }
 export interface PreTradeCheck { market: "spot" | "futures"; verdict: "caution" | "limit"; pair: string; coinClass: CoinClass; orderType: "limit"; atr: string; last: string; entry: string; stop: string; target: string; stopPercent: string; targetPercent: string; stopAtr: string; targetAtr: string; riskPercent: string; atrMultiplier: string; targetRiskReward: string; quantity: string; asset: string; orderValue: string; moneyAtRisk: string; stopResult: string; targetResult: string; passed: number; cautions: number; blocked: number; checks: LimitCheck[] }
-export interface PortfolioStatistics { periodDays: number; initialEquity: string; equity: string; returnPercent: string; netResult: string; maxDrawdownPercent: string; drawdownPeak: string; drawdownTrough: string; winRate: string; wins: number; trades: number; averageWinLoss: string; averageWin: string; averageLoss: string; feesPaid: string; benchmarkReturnPercent: string; benchmarkEndEquity: string }
-/** The source provides SVG geometry rather than dated monetary observations; points are copied exactly. */
-export interface EquityPoint { x: number; y: number }
-export interface EquityAxisLabel { x: number; label: string }
-export interface EquityValueTick { y: number; label: string }
-export interface EquitySeries { viewBox: string; account: EquityPoint[]; benchmark: EquityPoint[]; dates: EquityAxisLabel[]; valueTicks: EquityValueTick[] }
 
 /** Build translated fixture copy per locale; exported constants below remain English. */
 export function getSampleData(locale: Locale = "en") {
@@ -71,68 +62,6 @@ export function getSampleData(locale: Locale = "en") {
   { name: t("sample.disciplineRules.2.name"), detail: t("sample.disciplineRules.2.detail"), mode: t("sample.disciplineRules.2.mode"), modeBg: "limit-tint", modeColor: "limit", history: t("sample.disciplineRules.2.history") }
   ];
 
-  const journal: JournalEntry[] = [
-  { pair: "AVAX/USDT", closed: t("sample.journal.0.closed"), how: t("sample.journal.0.how"), r: "−1.0R", pl: "▼ −187.50", color: "loss", rules: t("sample.journal.0.rules"), ruleColor: "muted", plAmount: "-187.50" },
-  { pair: "INJ/USDT", closed: t("sample.journal.1.closed"), how: t("sample.journal.1.how"), r: "−1.0R", pl: "▼ −125.00", color: "loss", rules: t("sample.journal.1.rules"), ruleColor: "muted", plAmount: "-125.00" },
-  { pair: "LINK/USDT", closed: t("sample.journal.2.closed"), how: t("sample.journal.2.how"), r: "+1.6R", pl: "▲ +300.00", color: "profit", rules: t("sample.journal.2.rules"), ruleColor: "muted", plAmount: "300.00" },
-  { pair: "ETH/USDT", closed: t("sample.journal.3.closed"), how: t("sample.journal.3.how"), r: "−1.0R", pl: "▼ −250.00", color: "loss", rules: t("sample.journal.3.rules"), ruleColor: "muted", plAmount: "-250.00" },
-  { pair: "SOL/USDT", closed: t("sample.journal.4.closed"), how: t("sample.journal.4.how"), r: "−1.0R", pl: "▼ −187.50", color: "loss", rules: t("sample.journal.4.rules"), ruleColor: "caution", plAmount: "-187.50" }
-  ];
-
-  const classStatistics: ClassStatistic[] = [
-  { cls: t("sample.classStatistics.0.cls"), trades: "22", win: "54.5%", net: "▲ +3,140.00", color: "profit", coinClass: "core", netAmount: "3140.00" },
-  { cls: t("sample.classStatistics.1.cls"), trades: "26", win: "46.2%", net: "▲ +2,480.00", color: "profit", coinClass: "large", netAmount: "2480.00" },
-  { cls: t("sample.classStatistics.2.cls"), trades: "16", win: "37.5%", net: "▼ −620.00", color: "loss", coinClass: "small", netAmount: "-620.00" }
-  ];
-
-  const holdings: Holding[] = [
-  { asset: "BTC", qty: "0.08645", cost: "96,400.00", fees: "8.33" },
-  { asset: "ETH", qty: "1.7405", cost: "3,420.00", fees: "5.95" },
-  { asset: "SOL", qty: "15.229", cost: "182.40", fees: "2.78" }
-  ];
-
-  const portfolioStatistics: PortfolioStatistics = { periodDays: 90, initialEquity: "20000.00", equity: "25000.00", returnPercent: "25.0", netResult: "5000.00", maxDrawdownPercent: "-8.4", drawdownPeak: "23400", drawdownTrough: "21434", winRate: "46.9", wins: 30, trades: 64, averageWinLoss: "1.91", averageWin: "410.33", averageLoss: "-215.00", feesPaid: "186.40", benchmarkReturnPercent: "14.2", benchmarkEndEquity: "22840" };
-
-  const equitySeries: EquitySeries = { viewBox: "0 0 1060 300", account: [
-  { x: 0, y: 225.7 },
-  { x: 83, y: 210.3 },
-  { x: 167, y: 188 },
-  { x: 250, y: 198.3 },
-  { x: 333, y: 160.6 },
-  { x: 417, y: 136.6 },
-  { x: 500, y: 109.1 },
-  { x: 583, y: 146.9 },
-  { x: 667, y: 176.5 },
-  { x: 750, y: 140 },
-  { x: 833, y: 102.3 },
-  { x: 917, y: 78.3 },
-  { x: 1000, y: 54.3 }
-  ], benchmark: [
-  { x: 0, y: 225.7 },
-  { x: 83, y: 205.1 },
-  { x: 167, y: 174.3 },
-  { x: 250, y: 194.9 },
-  { x: 333, y: 181.1 },
-  { x: 417, y: 143.4 },
-  { x: 500, y: 126.3 },
-  { x: 583, y: 184.6 },
-  { x: 667, y: 215.4 },
-  { x: 750, y: 191.4 },
-  { x: 833, y: 160.6 },
-  { x: 917, y: 146.9 },
-  { x: 1000, y: 128.3 }
-  ], dates: [
-  { x: 0, label: t("sample.equitySeries.dates.0.label") },
-  { x: 333, label: t("sample.equitySeries.dates.1.label") },
-  { x: 667, label: t("sample.equitySeries.dates.2.label") },
-  { x: 1000, label: t("sample.equitySeries.dates.3.label") }
-  ], valueTicks: [
-  { y: 24, label: t("sample.equitySeries.valueTicks.0.label") },
-  { y: 92.6, label: t("sample.equitySeries.valueTicks.1.label") },
-  { y: 161.1, label: t("sample.equitySeries.valueTicks.2.label") },
-  { y: 229.7, label: t("sample.equitySeries.valueTicks.3.label") }
-  ] };
-
   const preTradeCaution: PreTradeCheck = { market: "spot", orderType: "limit", atrMultiplier: "1.5", targetRiskReward: "2.0", stopAtr: "1.5", targetAtr: "3", cautions: 2, verdict: "caution", pair: "PENDLE/USDT", coinClass: "small", atr: "8.0", last: "5.204", entry: "5.200", stop: "4.576", target: "6.448", stopPercent: "-12.0", targetPercent: "24.0", riskPercent: "0.50", quantity: "200.32", asset: "PENDLE", orderValue: "1041.67", moneyAtRisk: "125.00", stopResult: "-125.00", targetResult: "250.00", passed: 4, blocked: 0, checks: [
   { name: t("sample.preTradeCaution.checks.0.name"), detail: t("sample.preTradeCaution.checks.0.detail"), before: "45.8%", add: "8.4%", value: "2.75% → 3.25% of 6.00%", state: t("sample.preTradeCaution.checks.0.state"), color: "safe", ok: true, warn: false },
   { name: t("sample.preTradeCaution.checks.1.name"), detail: t("sample.preTradeCaution.checks.1.detail"), before: "25%", add: "10%", value: "1.25% → 1.75% of 5.00%", state: t("sample.preTradeCaution.checks.1.state"), color: "safe", ok: true, warn: false },
@@ -150,9 +79,9 @@ export function getSampleData(locale: Locale = "en") {
   { name: t("sample.preTradeBlocked.checks.4.name"), detail: t("sample.preTradeBlocked.checks.4.detail"), before: "63.3%", add: "0%", value: "38 of 60 min waited", state: t("sample.preTradeBlocked.checks.4.state"), color: "caution", ok: false, warn: true, over: false }
   ] };
 
-  return { account, limits, openPositions, gauges, markets, classRules, disciplineRules, journal, classStatistics, holdings, portfolioStatistics, equitySeries, preTradeCaution, preTradeBlocked };
+  return { account, limits, openPositions, gauges, markets, classRules, disciplineRules, preTradeCaution, preTradeBlocked };
 }
 
 export const sampleData = getSampleData();
-export const { account, limits, openPositions, gauges, markets, classRules, disciplineRules, journal, classStatistics, holdings, portfolioStatistics, equitySeries, preTradeCaution, preTradeBlocked } = sampleData;
+export const { account, limits, openPositions, gauges, markets, classRules, disciplineRules, preTradeCaution, preTradeBlocked } = sampleData;
 export type SampleData = typeof sampleData;
