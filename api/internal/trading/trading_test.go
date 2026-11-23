@@ -147,6 +147,24 @@ func (tx *memoryTx) OpeningFee(_ context.Context, id string) (decimal.Decimal, e
 	}
 	return fee, nil
 }
+func (tx *memoryTx) Capital(ctx context.Context) ([]Capital, error) {
+	var capital []Capital
+	for _, p := range tx.positions {
+		if p.Status != "open" {
+			continue
+		}
+		fee, err := tx.OpeningFee(ctx, p.ID)
+		if err != nil {
+			return nil, err
+		}
+		leverage := uint32(1)
+		if p.Leverage != nil {
+			leverage = *p.Leverage
+		}
+		capital = append(capital, Capital{Notional: decimal.RequireFromString(p.Quantity).Mul(decimal.RequireFromString(p.EntryPrice)), Fee: fee, Leverage: leverage})
+	}
+	return capital, nil
+}
 func (tx *memoryTx) Reject(_ context.Context, o Order) error {
 	tx.orders = append(tx.orders, o)
 	return nil

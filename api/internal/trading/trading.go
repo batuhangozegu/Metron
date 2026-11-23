@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
@@ -106,6 +107,7 @@ type Transaction interface {
 	Snapshot(context.Context, string) (risk.Account, error)
 	Position(context.Context, string) (Position, error)
 	OpeningFee(context.Context, string) (decimal.Decimal, error)
+	Capital(context.Context) ([]Capital, error)
 	Reject(context.Context, Order) error
 	Open(context.Context, Execution) error
 	Close(context.Context, Execution, decimal.Decimal) error
@@ -115,10 +117,29 @@ type Transaction interface {
 }
 
 type Service struct {
-	Store    Store
-	Exchange Exchange
-	Risk     risk.Service
-	Now      func() time.Time
+	Store     Store
+	Exchange  Exchange
+	Risk      risk.Service
+	Now       func() time.Time
+	Snapshots interface {
+		Snapshot(context.Context, string) error
+	}
+	Log *slog.Logger
+}
+
+func (s Service) snapshot(ctx context.Context, accountID string) {
+	if s.Snapshots == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	if err := s.Snapshots.Snapshot(ctx, accountID); err != nil {
+		log := s.Log
+		if log == nil {
+			log = slog.Default()
+		}
+		log.Warn("equity snapshot skipped after trade", "account_id", accountID, "err", err)
+	}
 }
 
 func (s Service) now() time.Time {
@@ -230,17 +251,15 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 		return result, err
 	}
 	notional := price.Mul(quantity)
-	equity, err := decimal.NewFromString(account.Equity)
+	capital, err := tx.Capital(ctx)
 	if err != nil {
 		return result, ErrUnavailable
 	}
-	// Cross-products avoid rounding a repeating futures margin downward.
-	needed, available := notional.Add(fee), equity
-	if account.Market == "futures" {
-		l := decimal.NewFromInt(int64(leverage))
-		needed, available = notional.Add(fee.Mul(l)), equity.Mul(l)
+	balance, err := decimal.NewFromString(tx.Account().Equity)
+	if err != nil {
+		return result, ErrUnavailable
 	}
-	if available.LessThan(needed) {
+	if !affordable(balance, account.Market, capital, notional, fee, leverage) {
 		return reject(ErrBalance)
 	}
 	fill, err := s.Exchange.Execute(ctx, fillRequest)
@@ -263,6 +282,7 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 	if err := tx.Commit(ctx); err != nil {
 		return Execution{}, err
 	}
+	s.snapshot(ctx, body.AccountID)
 	return result, nil
 }
 
@@ -368,5 +388,6 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	if err := tx.Commit(ctx); err != nil {
 		return Execution{}, err
 	}
+	s.snapshot(ctx, accountID)
 	return result, nil
 }

@@ -28,7 +28,7 @@ func scanAccount(row pgx.Row) (Account, error) {
 }
 
 func (p Postgres) CreatePaper(ctx context.Context, userID, name, market string, balance decimal.Decimal) (Account, error) {
-	return scanAccount(p.Pool.QueryRow(ctx, `INSERT INTO app.accounts(user_id,type,name,market,paper_balance) VALUES($1,'paper',$2,$3,$4::numeric) RETURNING `+columns, userID, name, market, balance.String()))
+	return scanAccount(p.Pool.QueryRow(ctx, `INSERT INTO app.accounts(user_id,type,name,market,paper_balance,starting_balance) VALUES($1,'paper',$2,$3,$4::numeric,$4::numeric) RETURNING `+columns, userID, name, market, balance.String()))
 }
 
 func (p Postgres) List(ctx context.Context, userID string) ([]Account, error) {

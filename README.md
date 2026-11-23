@@ -63,7 +63,7 @@ Replace sample codes with current authenticator codes; a code cannot be used twi
 
 ## Paper trading with curl
 
-After applying app migrations through `00004`, sign in with the cookie jar above and
+After applying app migrations through `00005`, sign in with the cookie jar above and
 copy an account ID from `GET /v1/accounts`. The engine must have a fresh class/ATR
 snapshot and Redis must have a latest ticker for the symbol. The API chooses the
 entry price and runs the risk check against the account's actual open positions
@@ -92,8 +92,9 @@ with `error.id = "risk_blocked"`, the full `check`, and a rejected order record.
 Other trading errors use `{error:{id,message_en,message_tr}}`.
 
 The paper exchange charges 0.1% of notional per spot fill and 0.05% per futures
-fill, in USDT. Opening requires balance to cover notional (spot) or initial
-margin (futures), plus the opening fee. The balance changes only on close, by
+fill, in USDT. Opening requires available cash to cover notional (spot) or initial
+margin (futures), plus the opening fee. Cash reserves the cost basis or margin
+and opening fees of every open position. The balance changes only on close, by
 directional PnL minus both fill fees in one transaction. Open-position
 `unrealized_pnl` is directional PnL before settlement fees; it and `last_price`
 are null if Redis has no price. Closed positions omit these fields and list
@@ -137,6 +138,38 @@ or rejected order records commit together. Loss brakes use settled net PnL
 over UTC days and Monday-start weeks. A tighter daily limit such as 0.5% blocks
 new orders once that loss percentage is reached. Preview overrides cannot
 authorize orders or change saved limits. See [RISK.md](docs/RISK.md).
+
+## Portfolio tracking and journal with curl
+
+Apply app migration `00005_portfolio.sql`, then use the same full session cookie
+and owned paper account ID as positions. Other users' accounts return 404.
+All amounts and percentages are decimal strings; timestamps are UTC.
+
+```sh
+# Default period is 30d; the other valid choices are 90d and all.
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/portfolio?period=30d"
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/portfolio?period=all"
+# Settled trades, newest first; limit defaults to 50 and accepts 1..200.
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/journal?limit=50"
+# Copy next_before from the previous page; null means there is no next page.
+BEFORE=replace-with-next_before-UTC-timestamp
+curl -b cookies.txt --get --data-urlencode 'limit=50' \
+  --data-urlencode "before=$BEFORE" "$API/v1/accounts/$ACCOUNT_ID/journal"
+```
+
+Portfolio responses include starting/realized balance, reserved cash, live
+unrealized PnL and equity, period fees, grouped holdings and closed-trade
+statistics by coin class. Equity history keeps at most 200 bucketed observations,
+including a live point, and reports maximum drawdown. The BTC benchmark scales
+stored BTCUSDT daily candle closes to the first equity point; missing candles
+produce an empty benchmark and null return. Journal entries include both fill
+fees, net PnL, R multiples and caution/fail rules from the opening order's check.
+
+The API snapshots all paper accounts at startup and each full UTC hour, plus
+after successful opens and closes. Missing Redis prices for any open position
+skip that account's snapshot and log the failure; trades remain successful.
+Live portfolio valuation returns 503 until all open positions have prices.
+Starting balances for existing accounts are backfilled from settled net PnL.
 
 ## Target technology
 

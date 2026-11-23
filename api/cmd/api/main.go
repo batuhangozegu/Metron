@@ -25,6 +25,7 @@ import (
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
 	"github.com/batuhangozegu/metron/api/internal/health"
 	"github.com/batuhangozegu/metron/api/internal/market"
+	"github.com/batuhangozegu/metron/api/internal/portfolio"
 	"github.com/batuhangozegu/metron/api/internal/risk"
 	"github.com/batuhangozegu/metron/api/internal/trading"
 )
@@ -59,6 +60,7 @@ func run(log *slog.Logger) error {
 	var riskAccounts risk.Accounts
 	var riskStore risk.Store
 	var tradingStore trading.Store
+	var portfolioStore *portfolio.Postgres
 	// No implicit database password. With no URL, health and the HTTP server
 	// remain available while markets and authentication report 503.
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
@@ -87,6 +89,7 @@ func run(log *slog.Logger) error {
 				riskAccounts = risk.Postgres{Pool: pool}
 				riskStore = risk.Postgres{Pool: pool}
 				tradingStore = trading.Postgres{Pool: pool}
+				portfolioStore = &portfolio.Postgres{Pool: pool}
 			}
 		}
 	} else {
@@ -126,17 +129,22 @@ func run(log *slog.Logger) error {
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
 	riskService := risk.Service{Accounts: riskAccounts, Store: riskStore, Engine: enginev1.NewRiskServiceClient(conn)}
-	tradingService := trading.Service{Store: tradingStore, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService}
+	portfolioService := portfolio.Service{Store: portfolioStore, Prices: trading.Paper{Tickers: tickers}, Log: log}
+	tradingService := trading.Service{Store: tradingStore, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService, Snapshots: portfolioService, Log: log}
 	if tradingStore != nil {
 		stopsDone := make(chan struct{})
 		go func() { defer close(stopsDone); tradingService.WatchStops(ctx, engine, log) }()
 		// Stop workers before deferred database/Redis/engine connection cleanup.
 		defer func() { stop(); <-stopsDone }()
+		snapshotsDone := make(chan struct{})
+		go func() { defer close(snapshotsDone); portfolioService.RunSnapshots(ctx) }()
+		defer func() { stop(); <-snapshotsDone }()
 	}
 	authHTTP.Mount(r, func(r chi.Router) {
 		accounts.Service{Store: accountStore}.Mount(r)
 		riskService.Mount(r)
 		tradingService.Mount(r)
+		portfolioService.Mount(r)
 	})
 
 	srv := &http.Server{Addr: apiAddr, Handler: r, ReadHeaderTimeout: 5 * time.Second}

@@ -34,6 +34,9 @@ func (p Postgres) Begin(ctx context.Context, owner, accountID string) (Transacti
 }
 
 func (p *postgresTx) Account() risk.Account { return p.account }
+func (p *postgresTx) Capital(ctx context.Context) ([]Capital, error) {
+	return LoadCapital(ctx, p.Tx, p.accountID)
+}
 func (p *postgresTx) Snapshot(ctx context.Context, symbol string) (risk.Account, error) {
 	profile, err := risk.LoadProfile(ctx, p.Tx, p.accountID)
 	if err != nil {
@@ -180,6 +183,36 @@ func (p Postgres) Positions(ctx context.Context, owner, accountID, state string)
 			return nil, err
 		}
 		positions = append(positions, position)
+	}
+	return positions, rows.Err()
+}
+
+// LoadCapital uses the same locked account and transaction as order evaluation.
+func LoadCapital(ctx context.Context, q risk.Querier, accountID string) ([]Capital, error) {
+	rows, err := q.Query(ctx, `SELECT (p.quantity*p.entry_price)::text,COALESCE(p.leverage,1),
+		COALESCE((SELECT sum(f.fee) FROM app.orders o JOIN app.fills f ON f.order_id=o.id
+		WHERE o.position_id=p.id AND o.account_id=p.account_id AND o.purpose='open' AND o.status='filled'),0)::text
+		FROM app.positions p WHERE p.account_id=$1::uuid AND p.status='open'`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var positions []Capital
+	for rows.Next() {
+		var p Capital
+		var notional, fee string
+		if err := rows.Scan(&notional, &p.Leverage, &fee); err != nil {
+			return nil, err
+		}
+		p.Notional, err = decimal.NewFromString(notional)
+		if err != nil {
+			return nil, err
+		}
+		p.Fee, err = decimal.NewFromString(fee)
+		if err != nil {
+			return nil, err
+		}
+		positions = append(positions, p)
 	}
 	return positions, rows.Err()
 }
