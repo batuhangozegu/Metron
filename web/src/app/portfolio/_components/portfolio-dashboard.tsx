@@ -11,7 +11,9 @@ import { getMessages, type Locale, type MessageKey } from "@/lib/messages";
 import type { Portfolio, PortfolioPeriod } from "@/lib/portfolio";
 import { riskRuleName } from "@/lib/risk";
 import { tradingError } from "@/lib/trading";
-import { usePaperAccounts } from "@/lib/use-paper-accounts";
+import { accountLabel } from "@/lib/accounts";
+import { AccountBadges } from "@/components/metron/account-badges";
+import { useTradingAccounts } from "@/lib/use-trading-accounts";
 import { useJournal, usePortfolio } from "@/lib/use-portfolio";
 import { EquityChart } from "./equity-chart";
 import { NumberText } from "./number-text";
@@ -23,11 +25,10 @@ const table = "w-full border-collapse whitespace-nowrap text-right text-sm [&_th
 export function PortfolioDashboard({ initialAccountId, period }: { initialAccountId?: string; period: PortfolioPeriod }) {
   const locale = useLocale();
   const t = getMessages("portfolio", locale);
-  const at = getMessages("accounts", locale);
   const router = useRouter();
   const params = useSearchParams();
   const [selecting, startTransition] = useTransition();
-  const { accounts, account, error, reload } = usePaperAccounts(initialAccountId);
+  const { accounts, account, error, reload } = useTradingAccounts(initialAccountId);
   const navigate = (accountId: string | undefined, nextPeriod: PortfolioPeriod) => {
     const query = new URLSearchParams(params.toString());
     if (accountId) query.set("account", accountId);
@@ -36,7 +37,7 @@ export function PortfolioDashboard({ initialAccountId, period }: { initialAccoun
   };
   return <div className="flex min-w-0 flex-col gap-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
-      {account && <div className="flex min-w-0 flex-wrap items-center gap-3"><label htmlFor="portfolio-account" className="text-small text-muted">{t("account")}</label><select id="portfolio-account" className="min-h-control max-w-full rounded-control border border-line bg-raised px-3 text-text" value={account.id} disabled={selecting} onChange={event => navigate(event.target.value, period)}>{accounts!.map(item => <option key={item.id} value={item.id}>{item.name}{t("separator")}{at(item.market === "futures" ? "market.futures" : "market.spot")}</option>)}</select></div>}
+      {account && <div className="flex min-w-0 flex-wrap items-center gap-3"><label htmlFor="portfolio-account" className="text-small text-muted">{t("account")}</label><select id="portfolio-account" className="min-h-control max-w-full rounded-control border border-line bg-raised px-3 text-text" value={account.id} disabled={selecting} onChange={event => navigate(event.target.value, period)}>{accounts!.map(item => <option key={item.id} value={item.id}>{accountLabel(item, locale)}</option>)}</select><AccountBadges account={account} locale={locale} /></div>}
       <PeriodSelector period={period} disabled={selecting} onChange={value => navigate(account?.id, value)} />
     </div>
     {error !== null ? <BlockState error={error} retry={() => void reload()} locale={locale} />

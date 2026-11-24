@@ -147,5 +147,6 @@
   "sample.preTradeBlocked.checks.4.state": "İhlal edildi",
   "language.label": "Dil",
   "language.english": "English",
-  "language.turkish": "Türkçe"
+  "language.turkish": "Türkçe",
+  "nav.alerts": "Alarmlar"
 }

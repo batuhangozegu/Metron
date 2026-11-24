@@ -97,6 +97,9 @@ class FakeBackend {
     {...accountJson},
   ];
   final requests = <http.Request>[];
+  final alerts = <Json>[];
+  Json position = {...positionJson};
+  bool confirmationRequired = false, alertLimit = false, alertsFail = false;
   final store = MemoryStore();
   late final api = ApiClient(
     client: MockClient(handle),
@@ -112,6 +115,40 @@ class FakeBackend {
   Future<http.Response> handle(http.Request request) async {
     requests.add(request);
     final path = request.url.path;
+    if (path == '/v1/alerts') {
+      if (alertsFail) return response({'error': 'unavailable'}, 503);
+      if (request.method == 'POST') {
+        if (alertLimit) return response({'error': 'limit'}, 409);
+        final alert = <String, dynamic>{
+          ...jsonDecode(request.body) as Json,
+          'id': 'alert-${alerts.length}',
+          'status': 'active',
+          'created_at': '2026-11-24T00:00:00Z',
+          'triggered_at': null,
+          'triggered_price': null,
+        };
+        alerts.insert(0, alert);
+        return response(alert, 201);
+      }
+      if (request.url.queryParameters.containsKey('triggered_since')) {
+        return response(
+          alerts.where((a) => a['status'] == 'triggered').toList(),
+        );
+      }
+      return response(alerts);
+    }
+    if (path.startsWith('/v1/alerts/') && request.method == 'DELETE') {
+      alerts.firstWhere((a) => a['id'] == path.split('/').last)['status'] =
+          'cancelled';
+      return http.Response('', 204);
+    }
+    if (path.endsWith('/stop/retry')) {
+      position = {
+        ...position,
+        'exchange_stop': {'status': 'placed', 'order_id': '123', 'error': null},
+      };
+      return response(position);
+    }
     if (path == '/v1/me') {
       await sessionWait?.future;
       if (sessionFail) return response({'error': 'unavailable'}, 503);
@@ -200,7 +237,7 @@ class FakeBackend {
     }
     if (path.endsWith('/positions')) {
       return response({
-        'positions': closed ? [] : [positionJson],
+        'positions': closed ? [] : [position],
       });
     }
     if (path.endsWith('/close')) {
@@ -213,6 +250,9 @@ class FakeBackend {
       return response(checkJson(blocked: blocked));
     }
     if (path == '/v1/orders') {
+      if (confirmationRequired) {
+        return response({'code': 'live_confirmation_required'}, 400);
+      }
       if (rejectOrder) {
         return response({
           'error': {

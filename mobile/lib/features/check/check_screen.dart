@@ -29,6 +29,7 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
   Json? _checkedOrder;
   String? _error;
   bool _busy = false;
+  bool _confirming = false;
   @override
   void dispose() {
     _leverage.dispose();
@@ -88,17 +89,54 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
   }
 
   Future<void> _place() async {
-    if (_busy || _checkedOrder == null) return;
+    if (_busy || _confirming || _checkedOrder == null) return;
     final s = LiveStrings.of(context);
+    final order = Map<String, dynamic>.from(_checkedOrder!);
+    final account = ref.read(selectedAccountProvider);
+    if (account?.id != order['account_id']) return;
+    if (account!.mainnet) {
+      setState(() => _confirming = true);
+      final confirmed = await showModalBottomSheet<bool>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 16,
+              children: [
+                Text(s.realMoney, style: const TextStyle(color: Colors.red)),
+                Text(s.confirmLive),
+                FilledButton(
+                  key: const ValueKey('confirm-live'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(s.placeLive),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(s.cancel),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _confirming = false);
+      if (confirmed != true ||
+          ref.read(selectedAccountProvider)?.id != account.id) {
+        return;
+      }
+      order['confirm_live'] = true;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       final result =
-          await ref
-                  .read(apiClientProvider)
-                  .request('/orders', body: _checkedOrder)
+          await ref.read(apiClientProvider).request('/orders', body: order)
               as Json;
       if (!mounted) return;
       refreshPortfolio(ref);
@@ -115,6 +153,9 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
           AppRoutes.checkBlocked,
           extra: RiskCheck(e.data['check'] as Json),
         );
+      } else if (e is ApiError && e.id == 'live_confirmation_required') {
+        setState(() => _error = s.confirmLive);
+        ref.invalidate(accountsProvider);
       } else {
         setState(() => _error = s.error(e));
       }
@@ -140,7 +181,9 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
           : SafeArea(
               top: false,
               child: FixedMainAction(
-                label: CheckStrings.of(context).place,
+                label: account?.live == true
+                    ? s.placeLive
+                    : CheckStrings.of(context).place,
                 onPressed: _busy ? null : _place,
               ),
             ),
@@ -159,6 +202,14 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (account.live && account.environment == 'testnet')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      s.testnetNotice,
+                      style: const TextStyle(color: Colors.amber),
+                    ),
+                  ),
                 DropdownButtonFormField<String>(
                   key: ValueKey(quote.symbol),
                   initialValue: quote.symbol,

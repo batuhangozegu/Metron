@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const routes = [
   ["/", "nav.overview"], ["/check", "nav.check"], ["/markets", "nav.markets"],
-  ["/portfolio", "nav.portfolio"], ["/rules", "nav.rules"],
+  ["/portfolio", "nav.portfolio"], ["/alerts", "nav.alerts"], ["/rules", "nav.rules"],
 ] as const;
 
 /** Wrapping app navigation with an accessible active-route indicator. */

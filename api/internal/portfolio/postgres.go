@@ -16,14 +16,14 @@ import (
 type Postgres struct{ Pool *pgxpool.Pool }
 
 type account struct {
-	market, currency  string
-	balance, starting decimal.Decimal
+	market, currency, kind string
+	balance, starting      decimal.Decimal
 }
 
 func loadAccount(ctx context.Context, tx pgx.Tx, owner *string, id string, lock bool) (account, error) {
-	query := `SELECT market,quote_asset,paper_balance::text,COALESCE(starting_balance,paper_balance)::text
+	query := `SELECT market,quote_asset,COALESCE(paper_balance,0)::text,COALESCE(starting_balance,paper_balance,0)::text,type
 		FROM app.accounts WHERE id=$1::uuid AND ($2::uuid IS NULL OR user_id=$2::uuid)
-		AND type='paper'`
+		AND type IN ('paper','live')`
 	if owner != nil {
 		query += ` AND quote_asset='USDT'`
 	}
@@ -32,7 +32,7 @@ func loadAccount(ctx context.Context, tx pgx.Tx, owner *string, id string, lock 
 	}
 	var a account
 	var balance, starting string
-	err := tx.QueryRow(ctx, query, id, owner).Scan(&a.market, &a.currency, &balance, &starting)
+	err := tx.QueryRow(ctx, query, id, owner).Scan(&a.market, &a.currency, &balance, &starting, &a.kind)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return a, risk.ErrAccountNotFound
 	}
@@ -130,13 +130,26 @@ func (s Service) Portfolio(ctx context.Context, owner, id, period string) (Portf
 	if err != nil {
 		return result, err
 	}
-	unrealized, err := s.value(ctx, positions)
+	unrealized := decimal.Zero
+	if a.kind != "live" {
+		unrealized, err = s.value(ctx, positions)
+	}
 	if err != nil {
 		return result, err
 	}
 	now := s.now()
 	start := periodStart(period, now)
 	equity := a.balance.Add(unrealized)
+	var liveCash decimal.Decimal
+	if a.kind == "live" {
+		b, e := s.liveBalance(ctx, id)
+		if e != nil {
+			return result, e
+		}
+		a.balance = b.Total
+		equity = b.Total
+		liveCash = b.Free
+	}
 	capital := make([]trading.Capital, 0, len(positions))
 	for _, p := range positions {
 		capital = append(capital, trading.Capital{Notional: p.Quantity.Mul(p.Entry), Fee: p.Fee, Leverage: p.Leverage})
@@ -156,6 +169,9 @@ func (s Service) Portfolio(ctx context.Context, owner, id, period string) (Portf
 			UnrealizedPNL: unrealized.String(), Equity: equity.String(), NetResult: equity.Sub(a.starting).String(),
 			ReturnPercent: ratio(equity.Sub(a.starting).Mul(decimal.NewFromInt(100)), a.starting, 2), FeesPaid: fee.String()},
 		EquitySeries: []Point{}, BenchmarkSeries: []Point{}, Holdings: holdings(positions)}
+	if a.kind == "live" {
+		result.Summary.Cash = liveCash.String()
+	}
 	rows, err := tx.Query(ctx, `SELECT taken_at,equity::text FROM app.equity_snapshots
 		WHERE account_id=$1::uuid AND ($2::timestamptz IS NULL OR taken_at >= $2) AND taken_at <= $3 ORDER BY taken_at`, id, start, now)
 	if err != nil {

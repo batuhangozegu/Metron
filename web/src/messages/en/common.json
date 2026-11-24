@@ -147,5 +147,6 @@
   "sample.preTradeBlocked.checks.4.state": "Broken",
   "language.label": "Language",
   "language.english": "English",
-  "language.turkish": "Türkçe"
+  "language.turkish": "Türkçe",
+  "nav.alerts": "Alerts"
 }

@@ -16,6 +16,10 @@ import (
 )
 
 var (
+	ErrConfirmation      = errors.New("live confirmation required")
+	ErrSpotShort         = errors.New("live spot accounts cannot open short positions")
+	ErrMinimum           = errors.New("below exchange minimum")
+	ErrStopState         = errors.New("exchange stop cannot be retried")
 	ErrNotFound          = errors.New("position not found")
 	ErrClosed            = errors.New("position closed")
 	ErrBlocked           = errors.New("risk blocked")
@@ -53,24 +57,26 @@ type Fill struct {
 }
 
 type Position struct {
-	ID            string     `json:"id"`
-	AccountID     string     `json:"account_id"`
-	Symbol        string     `json:"symbol"`
-	Side          string     `json:"side"`
-	Quantity      string     `json:"quantity"`
-	EntryPrice    string     `json:"entry_price"`
-	Stop          string     `json:"stop"`
-	Leverage      *uint32    `json:"leverage"`
-	CoinClass     string     `json:"coin_class"`
-	InitialRisk   string     `json:"initial_risk"`
-	Status        string     `json:"status"`
-	OpenedAt      time.Time  `json:"opened_at"`
-	ClosedAt      *time.Time `json:"closed_at"`
-	ExitPrice     *string    `json:"exit_price"`
-	RealizedPNL   *string    `json:"realized_pnl"`
-	CloseReason   *string    `json:"close_reason"`
-	LastPrice     *string    `json:"last_price,omitempty"`
-	UnrealizedPNL *string    `json:"unrealized_pnl,omitempty"`
+	ExchangeEntryOrderID *int64        `json:"-"`
+	ExchangeStop         *ExchangeStop `json:"exchange_stop"`
+	ID                   string        `json:"id"`
+	AccountID            string        `json:"account_id"`
+	Symbol               string        `json:"symbol"`
+	Side                 string        `json:"side"`
+	Quantity             string        `json:"quantity"`
+	EntryPrice           string        `json:"entry_price"`
+	Stop                 string        `json:"stop"`
+	Leverage             *uint32       `json:"leverage"`
+	CoinClass            string        `json:"coin_class"`
+	InitialRisk          string        `json:"initial_risk"`
+	Status               string        `json:"status"`
+	OpenedAt             time.Time     `json:"opened_at"`
+	ClosedAt             *time.Time    `json:"closed_at"`
+	ExitPrice            *string       `json:"exit_price"`
+	RealizedPNL          *string       `json:"realized_pnl"`
+	CloseReason          *string       `json:"close_reason"`
+	LastPrice            *string       `json:"last_price,omitempty"`
+	UnrealizedPNL        *string       `json:"unrealized_pnl,omitempty"`
 }
 
 // Execution is persisted atomically. Check is encoded with protobuf JSON by HTTP.
@@ -82,6 +88,7 @@ type Execution struct {
 }
 
 type Request struct {
+	ConfirmLive bool            `json:"confirm_live"`
 	AccountID   string          `json:"account_id"`
 	Symbol      string          `json:"symbol"`
 	Side        string          `json:"side"`
@@ -118,6 +125,7 @@ type Transaction interface {
 
 type Service struct {
 	Store     Store
+	Live      LiveProvider
 	Exchange  Exchange
 	Risk      risk.Service
 	Now       func() time.Time
@@ -166,10 +174,16 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 	if !risk.ValidID(body.AccountID) {
 		return result, risk.ErrAccountNotFound
 	}
-	if owner == "" || !body.riskRequest("1").Valid() || (body.Quantity != nil && !risk.ValidQuantity(*body.Quantity)) {
+	if owner == "" || (body.Quantity != nil && !risk.ValidQuantity(*body.Quantity)) {
 		return result, ErrInput
 	}
-	if s.Store == nil || s.Exchange == nil {
+	validRisk := body.riskRequest("1").Valid()
+	normalized := body
+	normalized.Symbol = pair(body.Symbol)
+	if !validRisk && !normalized.riskRequest("1").Valid() {
+		return result, ErrInput
+	}
+	if s.Store == nil {
 		return result, ErrUnavailable
 	}
 	tx, err := s.Store.Begin(ctx, owner, body.AccountID)
@@ -177,6 +191,19 @@ func (s Service) Open(ctx context.Context, owner string, body Request) (Executio
 		return result, err
 	}
 	defer tx.Rollback(context.WithoutCancel(ctx))
+	if isLive(tx) {
+		body.Symbol = pair(body.Symbol)
+		if !body.riskRequest("1").Valid() {
+			return result, ErrInput
+		}
+		return s.openLive(ctx, tx, body)
+	}
+	if !body.riskRequest("1").Valid() {
+		return result, ErrInput
+	}
+	if s.Exchange == nil {
+		return result, ErrUnavailable
+	}
 	price, err := s.Exchange.Price(ctx, body.Symbol)
 	if err != nil {
 		return result, err
@@ -326,7 +353,7 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	if !risk.ValidID(id) {
 		return result, ErrNotFound
 	}
-	if s.Store == nil || s.Exchange == nil {
+	if s.Store == nil {
 		return result, ErrUnavailable
 	}
 	accountID, userID, err := s.Store.PositionAccount(ctx, owner, id)
@@ -345,6 +372,19 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	if p.Status != "open" {
 		return result, ErrClosed
 	}
+	if isLive(tx) {
+		result, err := s.closeLive(ctx, tx, p, reason)
+		if err != nil {
+			return result, liveExecutionError{err}
+		}
+		return result, nil
+	}
+	if reason == "reconcile" {
+		return result, ErrInput
+	}
+	if s.Exchange == nil {
+		return result, ErrUnavailable
+	}
 	var price decimal.Decimal
 	if reason == "stop" {
 		price, err = decimal.NewFromString(p.Stop)
@@ -362,6 +402,12 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	if err != nil {
 		return result, err
 	}
+	return s.settle(ctx, tx, p, fill, price, reason)
+}
+
+func (s Service) settle(ctx context.Context, tx Transaction, p Position, fill Fill, price decimal.Decimal, reason string) (Execution, error) {
+	var result Execution
+	id := p.ID
 	openingFee, err := tx.OpeningFee(ctx, id)
 	if err != nil {
 		return result, err
@@ -378,7 +424,7 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	now, exit, net := s.now(), price.String(), pnl.String()
 	p.Status, p.ClosedAt, p.ExitPrice, p.RealizedPNL, p.CloseReason = "closed", &now, &exit, &net, &reason
 	stop := p.Stop
-	order := Order{ID: newID(), AccountID: accountID, Symbol: p.Symbol, Side: p.Side, Kind: "market", Purpose: "close", Quantity: p.Quantity,
+	order := Order{ID: newID(), AccountID: p.AccountID, Symbol: p.Symbol, Side: p.Side, Kind: "market", Purpose: "close", Quantity: p.Quantity,
 		Leverage: p.Leverage, Stop: &stop, Status: "filled", PositionID: &id, CreatedAt: now}
 	fill.ID, fill.OrderID, fill.CreatedAt = newID(), order.ID, now
 	result = Execution{Order: order, Fill: fill, Position: p}
@@ -388,6 +434,6 @@ func (s Service) close(ctx context.Context, owner *string, id, reason string) (E
 	if err := tx.Commit(ctx); err != nil {
 		return Execution{}, err
 	}
-	s.snapshot(ctx, accountID)
+	s.snapshot(ctx, p.AccountID)
 	return result, nil
 }

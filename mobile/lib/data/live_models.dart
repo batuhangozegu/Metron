@@ -5,8 +5,15 @@ class TradingAccount {
   TradingAccount.fromJson(Json json)
     : id = json['id'] as String,
       name = json['name'] as String,
-      market = json['market'] as String? ?? 'spot';
+      market = json['market'] as String? ?? 'spot',
+      type = json['type'] as String? ?? 'paper',
+      environment = json['environment'] as String?,
+      keyHint = json['key_hint'] as String?;
   final String id, name, market;
+  final String type;
+  final String? environment, keyHint;
+  bool get live => type == 'live';
+  bool get mainnet => live && environment == 'mainnet';
   bool get futures => market == 'futures';
 }
 
@@ -29,7 +36,36 @@ class LivePosition {
   String get id => json['id'] as String;
   String get symbol => json['symbol'] as String;
   String get side => json['side'] as String;
+  ExchangeStop? get exchangeStop => json['exchange_stop'] is Json
+      ? ExchangeStop.fromJson(json['exchange_stop'] as Json)
+      : null;
   String value(String key) => json[key] as String? ?? '—';
+}
+
+class ExchangeStop {
+  ExchangeStop.fromJson(Json json)
+    : status = json['status'] as String,
+      orderId = json['order_id'] as String?,
+      error = json['error'] as String?;
+  final String status;
+  final String? orderId, error;
+}
+
+class Alert {
+  Alert.fromJson(Json json)
+    : id = json['id'] as String,
+      symbol = json['symbol'] as String,
+      direction = json['direction'] as String,
+      price = json['price'] as String,
+      note = json['note'] as String?,
+      status = json['status'] as String,
+      createdAt = DateTime.parse(json['created_at'] as String),
+      triggeredAt = DateTime.tryParse(json['triggered_at'] as String? ?? ''),
+      triggeredPrice = json['triggered_price'] as String?;
+  final String id, symbol, direction, price, status;
+  final String? note, triggeredPrice;
+  final DateTime createdAt;
+  final DateTime? triggeredAt;
 }
 
 class RiskCheck {

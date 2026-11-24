@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/metron/auth-provider";
+import { selectTradingAccount, tradableAccounts } from "@/lib/accounts";
 import { ApiError, apiRequest, type TradingAccount } from "@/lib/auth";
 
-export function usePaperAccounts(initialId = "") {
+export function useTradingAccounts(initialId = "") {
   const { refresh } = useAuth();
   const [accounts, setAccounts] = useState<TradingAccount[] | null>(null);
   const [selectedId, setSelectedId] = useState(initialId);
@@ -12,7 +13,7 @@ export function usePaperAccounts(initialId = "") {
   const load = useCallback((signal?: AbortSignal) => {
     return apiRequest<TradingAccount[]>("/accounts", undefined, signal).then(result => {
       if (signal?.aborted) return;
-      setAccounts(result.filter(account => account.type === "paper" && account.quote_asset === "USDT"));
+      setAccounts(tradableAccounts(result));
       setError(null);
     }, error => {
       if (signal?.aborted) return;
@@ -25,6 +26,6 @@ export function usePaperAccounts(initialId = "") {
     void load(controller.signal);
     return () => controller.abort();
   }, [load]);
-  const account = accounts?.find(account => account.id === selectedId) ?? accounts?.[0];
+  const account = accounts ? selectTradingAccount(accounts, selectedId) : undefined;
   return { accounts, account, setSelectedId, error, reload: load };
 }

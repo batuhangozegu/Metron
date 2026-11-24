@@ -10,8 +10,11 @@ import { useLocale } from "@/components/metron/locale-provider";
 import { ApiError, apiRequest } from "@/lib/auth";
 import { formatTradePrice } from "@/lib/format";
 import { getMessages } from "@/lib/messages";
-import { checkBlocked, rejectedCheck, tradingError, validStop, type CheckResponse, type OrderRequest } from "@/lib/trading";
-import { usePaperAccounts } from "@/lib/use-paper-accounts";
+import { checkBlocked, rejectedCheck, tradingError, tradingErrorCode, validStop, type CheckResponse, type OrderRequest } from "@/lib/trading";
+import { LiveConfirmation } from "./live-confirmation";
+import { accountLabel, orderForExecution, requiresLiveConfirmation } from "@/lib/accounts";
+import { AccountBadges } from "@/components/metron/account-badges";
+import { useTradingAccounts } from "@/lib/use-trading-accounts";
 import { useRiskChecks } from "@/lib/use-risk-checks";
 import type { Market } from "@/app/markets/_lib/market-data";
 import { CheckResult } from "./check-result";
@@ -22,10 +25,9 @@ const control = "min-h-control w-full rounded-control border border-line bg-rais
 export function CheckScreen() {
   const locale = useLocale();
   const t = getMessages("check", locale);
-  const at = getMessages("accounts", locale);
   const router = useRouter();
   const { refresh } = useAuth();
-  const { accounts, account, setSelectedId, error: accountError, reload } = usePaperAccounts();
+  const { accounts, account, setSelectedId, error: accountError, reload } = useTradingAccounts();
   const history = useRiskChecks(account?.id);
   const [markets, setMarkets] = useState<Market[] | null>(null);
   const [marketError, setMarketError] = useState<unknown>(null);
@@ -38,6 +40,7 @@ export function CheckScreen() {
   const [busy, setBusy] = useState<"check" | "order" | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [invalid, setInvalid] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const pending = useRef(false);
   const lifetime = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -64,7 +67,7 @@ export function CheckScreen() {
     ?? markets?.find(market => market.symbol === "BTCUSDT") ?? markets?.[0];
   const futures = account?.market === "futures";
 
-  function invalidate() { setCheck(null); setCheckedOrder(null); setError(null); setInvalid(false); }
+  function invalidate() { setConfirming(false); setCheck(null); setCheckedOrder(null); setError(null); setInvalid(false); }
 
   async function runCheck(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,13 +102,16 @@ export function CheckScreen() {
     }
   }
 
-  async function openOrder() {
-    if (pending.current || !check || !checkedOrder || checkBlocked(check)) return;
+  async function openOrder(confirmed = false) {
+    if (pending.current || !account || !check || !checkedOrder || checkBlocked(check)) return;
+    const order = orderForExecution(account, checkedOrder, confirmed);
+    if (!order) { setConfirming(true); return; }
+    setConfirming(false);
     pending.current = true;
     setBusy("order");
     setError(null);
     try {
-      await apiRequest("/orders", checkedOrder, AbortSignal.any([lifetime.current!.signal, AbortSignal.timeout(15_000)]));
+      await apiRequest("/orders", order, AbortSignal.any([lifetime.current!.signal, AbortSignal.timeout(15_000)]));
       await history.reload(lifetime.current?.signal);
       if (!lifetime.current?.signal.aborted) {
         invalidate();
@@ -115,7 +121,10 @@ export function CheckScreen() {
       if (lifetime.current?.signal.aborted) return;
       const blocked = rejectedCheck(error);
       if (blocked) setCheck(blocked);
-      else setError(error);
+      else {
+        setError(error);
+        if (tradingErrorCode(error) === "live_confirmation_required" && requiresLiveConfirmation(account)) setConfirming(true);
+      }
       void history.reload(lifetime.current?.signal);
       if (error instanceof ApiError && error.status === 401) void refresh();
     } finally { pending.current = false; setBusy(null); }
@@ -131,8 +140,10 @@ export function CheckScreen() {
     <form aria-label={t("order")} onSubmit={runCheck} aria-busy={busy !== null} className="min-w-0 flex-[1_1_320px] rounded-card border border-line bg-surface p-card">
       <fieldset disabled={busy !== null} className="flex min-w-0 flex-col gap-5">
         <h1 className="text-heading">{t("order")}</h1>
+        {account.type === "live" && account.environment === "testnet" && <p role="status" className="border border-caution bg-caution-tint p-3 text-small text-caution">{t("testnetNotice")}</p>}
         <div className="flex flex-col gap-2"><label htmlFor="check-account" className="text-small text-muted">{t("account")}</label>
-          <select id="check-account" className={control} value={account.id} onChange={event => { setSelectedId(event.target.value); setSide("long"); invalidate(); }}>{accounts.map(item => <option key={item.id} value={item.id}>{item.name} · {at(item.market === "futures" ? "market.futures" : "market.spot")}</option>)}</select>
+          <select id="check-account" className={control} value={account.id} onChange={event => { setSelectedId(event.target.value); setSide("long"); invalidate(); }}>{accounts.map(item => <option key={item.id} value={item.id}>{accountLabel(item, locale)}</option>)}</select>
+          <AccountBadges account={account} locale={locale} />
         </div>
         <div className="flex flex-col gap-2"><label htmlFor="pair" className="text-small text-muted">{t("pair")}</label>
           <select id="pair" className={control} value={market.symbol} onChange={event => { setSymbol(event.target.value); invalidate(); }}>{markets.map(item => <option key={item.symbol}>{item.symbol}</option>)}</select>
@@ -150,8 +161,9 @@ export function CheckScreen() {
     </form>
     <section aria-label={t("results")} className="flex min-w-0 flex-[999_1_600px] flex-col gap-4">
       {error !== null && <p role="alert" className="text-limit">{tradingError(error, locale)}</p>}
-      {check ? <CheckResult locale={locale} check={check} busy={busy === "order"} onOpen={() => void openOrder()} /> : <p role="status" className="rounded-card border border-line bg-surface p-card text-muted">{t(busy === "check" ? "checking" : "awaitingCheck")}</p>}
+      {check ? <CheckResult live={account.type === "live"} locale={locale} check={check} busy={busy === "order"} onOpen={() => void openOrder()} /> : <p role="status" className="rounded-card border border-line bg-surface p-card text-muted">{t(busy === "check" ? "checking" : "awaitingCheck")}</p>}
       <RiskCheckHistory checks={history.checks} error={history.error} onRetry={() => void history.reload(lifetime.current?.signal)} />
     </section>
+    {confirming && check && <LiveConfirmation check={check} locale={locale} onCancel={() => setConfirming(false)} onConfirm={() => void openOrder(true)} />}
   </div>;
 }

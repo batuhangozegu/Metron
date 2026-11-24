@@ -10,7 +10,9 @@ import { ApiError } from "@/lib/auth";
 import { getMessages } from "@/lib/messages";
 import { getRiskProfile, putRiskProfile, validRiskCount, validRiskDecimal, type RiskProfile, type RiskProfileInput } from "@/lib/risk";
 import { tradingError } from "@/lib/trading";
-import { usePaperAccounts } from "@/lib/use-paper-accounts";
+import { accountLabel } from "@/lib/accounts";
+import { AccountBadges } from "@/components/metron/account-badges";
+import { useTradingAccounts } from "@/lib/use-trading-accounts";
 
 const control = "num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text";
 const fields = [
@@ -29,8 +31,7 @@ const draftOf = (profile: RiskProfile): Draft => Object.fromEntries(fields.map((
 export function AccountLimits() {
   const locale = useLocale();
   const t = getMessages("rules", locale);
-  const at = getMessages("accounts", locale);
-  const { accounts, account, setSelectedId, error, reload } = usePaperAccounts();
+  const { accounts, account, setSelectedId, error, reload } = useTradingAccounts();
 
   return <section className="flex min-w-0 flex-col gap-6">
     <div className="flex flex-col gap-2"><h1 className="text-title">{t("title")}</h1><p className="max-w-[620px] text-body text-muted">{t("description")}</p></div>
@@ -39,7 +40,8 @@ export function AccountLimits() {
       : !account ? <p className="text-muted">{t("noAccounts")} <Link href="/accounts" className="inline-flex min-h-control items-center underline">{t("manageAccounts")}</Link></p>
       : <>
         <div className="flex max-w-md flex-col gap-2"><label htmlFor="rules-account" className="text-small text-muted">{t("account")}</label>
-          <select id="rules-account" className={control} value={account.id} onChange={event => setSelectedId(event.target.value)}>{accounts.map(item => <option key={item.id} value={item.id}>{item.name} · {at(item.market === "futures" ? "market.futures" : "market.spot")}</option>)}</select>
+          <select id="rules-account" className={control} value={account.id} onChange={event => setSelectedId(event.target.value)}>{accounts.map(item => <option key={item.id} value={item.id}>{accountLabel(item, locale)}</option>)}</select>
+          <AccountBadges account={account} locale={locale} />
         </div>
         <ProfileLoader key={account.id} accountId={account.id} />
       </>}

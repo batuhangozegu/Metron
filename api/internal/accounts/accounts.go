@@ -1,5 +1,4 @@
-// Package accounts manages user-owned trading accounts. Only paper accounts
-// can be created until exchange credentials are implemented in step 8.
+// Package accounts manages user-owned paper and live trading accounts.
 package accounts
 
 import (
@@ -26,6 +25,8 @@ type Account struct {
 	Name         string    `json:"name"`
 	QuoteAsset   string    `json:"quote_asset"`
 	PaperBalance *string   `json:"paper_balance"`
+	Environment  *string   `json:"environment"`
+	KeyHint      *string   `json:"key_hint"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -34,7 +35,10 @@ type Store interface {
 	List(context.Context, string) ([]Account, error)
 }
 
-type Service struct{ Store Store }
+type Service struct {
+	Store Store
+	Live  *LiveService
+}
 
 var balancePattern = regexp.MustCompile(`^[0-9]{1,8}(\.[0-9]{1,8})?$`)
 
@@ -68,6 +72,7 @@ func (s Service) Create(ctx context.Context, userID, name, value, market string)
 }
 
 func (s Service) Mount(r chi.Router) {
+	s.mountLive(r)
 	r.Post("/v1/accounts", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Name         string `json:"name"`

@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { AccountBadges } from "@/components/metron/account-badges";
+import { LiveAccountForm } from "./live-account-form";
+import { tradingError } from "@/lib/trading";
 import { WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,9 @@ export default function AccountsPage() {
   const [balance, setBalance] = useState("10000");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
 
   const load = useCallback((signal?: AbortSignal) => {
     return apiRequest<TradingAccount[]>("/accounts", undefined, signal).then(result => {
@@ -35,7 +41,7 @@ export default function AccountsPage() {
       setLoadError(apiError(error, "accounts"));
       if (error instanceof ApiError && error.status === 401) void refresh();
     });
-  }, [refresh]);
+  }, [refresh, setAccounts, setLoadError]);
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
@@ -65,18 +71,34 @@ export default function AccountsPage() {
     } finally { setBusy(false); }
   }
 
+  async function deleteAccount(id: string) {
+    if (deleting) return;
+    setDeleting(id); setDeleteError(null); setDeleted(false);
+    try {
+      await apiRequest(`/accounts/${encodeURIComponent(id)}`, undefined, undefined, "DELETE");
+      setAccounts(previous => previous?.filter(account => account.id !== id) ?? null);
+      setDeleted(true);
+    } catch (error) {
+      setDeleteError(error instanceof ApiError && error.status === 409 ? t("delete.conflict") : tradingError(error, locale));
+      if (error instanceof ApiError && error.status === 401) void refresh();
+    } finally { setDeleting(null); }
+  }
+
   return <section className="auth-layout flex flex-col gap-6">
     <div><p className="micro-label mb-3 flex items-center gap-2 text-subtle"><WalletCards aria-hidden="true" className="size-4" />{t("eyebrow")}</p><h1>{t("title")}</h1><p className="mt-3 text-muted">{t("note")}</p></div>
     <div className="grid items-start gap-6 lg:grid-cols-2">
       <Card className="auth-card">
         <CardHeader title={t("list")} />
         <div className="border-t border-line">
+          {deleteError && <p role="alert" className="p-6 text-limit">{deleteError}</p>}
+          {deleted && <p role="status" className="p-6 text-muted">{t("delete.done")}</p>}
           {loadError ? <div className="flex flex-col items-start gap-3 p-6"><FormError error={loadError} /><Button variant="outline" onClick={() => void load()}>{auth("retry")}</Button></div>
             : accounts === null ? <p role="status" className="p-6 text-muted">{t("loading")}</p>
             : accounts.length === 0 ? <p className="p-6 text-muted">{t("empty")}</p>
             : <ul className="divide-y divide-line">{accounts.map(account => <li key={account.id} className="flex flex-wrap items-center justify-between gap-4 p-6">
-              <div className="min-w-0"><h2 className="break-all font-semibold">{account.name}</h2><p className="micro-label mt-1 text-subtle">{t(account.type === "paper" ? "paper" : "live")} <span className="ml-2 inline-flex border border-line px-2 py-1">{t(account.market === "futures" ? "market.futures" : "market.spot")}</span></p></div>
+              <div className="min-w-0"><h2 className="break-all font-semibold">{account.name}</h2><p className="micro-label mt-1 text-subtle"><AccountBadges account={account} locale={locale} /> <span className="ml-2 inline-flex border border-line px-2 py-1">{t(account.market === "futures" ? "market.futures" : "market.spot")}</span></p></div>
               <div className="min-w-0"><p className="micro-label text-subtle">{t("balance.label")}</p><p className="num break-all text-xl">{account.paper_balance === null ? t("balance.unavailable") : formatAmount(account.paper_balance, Math.max(2, account.paper_balance.split(".")[1]?.length ?? 0), locale)} <span className="text-small text-muted">{account.quote_asset}</span></p></div>
+              {account.type === "live" && <Button variant="outline" disabled={deleting !== null} onClick={() => void deleteAccount(account.id)}>{deleting === account.id ? auth("working") : t("delete")}</Button>}
             </li>)}</ul>}
         </div>
       </Card>
@@ -110,6 +132,7 @@ export default function AccountsPage() {
           </fieldset>
         </form>
       </Card>
+      <LiveAccountForm onCreated={account => { setAccounts(previous => previous ? [...previous, account] : previous); if (accounts === null) void load(); }} />
     </div>
   </section>;
 }

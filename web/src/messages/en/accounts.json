@@ -1,7 +1,7 @@
 {
   "title": "Accounts",
-  "eyebrow": "Paper trading",
-  "note": "Practice with a virtual USDT balance before putting real capital at risk.",
+  "eyebrow": "Trading accounts",
+  "note": "Practice with paper funds or connect a Binance account.",
   "list": "Your accounts",
   "empty": "No accounts yet. Create your first paper account below.",
   "loading": "Loading accounts…",
@@ -19,5 +19,20 @@
   "created": "Paper account created.",
   "market": "Market",
   "market.spot": "Spot",
-  "market.futures": "Futures"
+  "market.futures": "Futures",
+  "badge.live": "LIVE",
+  "testnet": "TESTNET",
+  "mainnet": "MAINNET",
+  "keyHint": "Key {hint}",
+  "connect": "Connect Binance",
+  "environment": "Environment",
+  "apiKey": "API key",
+  "apiSecret": "API secret",
+  "safety": "Use keys without withdrawal permission and with an IP restriction.",
+  "live.created": "Binance account connected.",
+  "live.invalid": "Enter a name of 1?100 characters, an API key and a secret.",
+  "live.keys": "Binance rejected the API keys. Check the key, secret, environment and trading permissions.",
+  "delete": "Delete live account",
+  "delete.conflict": "This live account cannot be deleted while it has open positions.",
+  "delete.done": "Live account deleted."
 }

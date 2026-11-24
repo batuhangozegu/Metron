@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/batuhangozegu/metron/api/internal/accounts"
+	"github.com/batuhangozegu/metron/api/internal/alerts"
 	"github.com/batuhangozegu/metron/api/internal/auth"
 	"github.com/batuhangozegu/metron/api/internal/cryptobox"
 	enginev1 "github.com/batuhangozegu/metron/api/internal/gen/metron/engine/v1"
@@ -61,6 +62,7 @@ func run(log *slog.Logger) error {
 	var riskStore risk.Store
 	var tradingStore trading.Store
 	var portfolioStore *portfolio.Postgres
+	var alertStore alerts.Store
 	// No implicit database password. With no URL, health and the HTTP server
 	// remain available while markets and authentication report 503.
 	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
@@ -90,6 +92,7 @@ func run(log *slog.Logger) error {
 				riskStore = risk.Postgres{Pool: pool}
 				tradingStore = trading.Postgres{Pool: pool}
 				portfolioStore = &portfolio.Postgres{Pool: pool}
+				alertStore = alerts.Postgres{Pool: pool}
 			}
 		}
 	} else {
@@ -129,9 +132,19 @@ func run(log *slog.Logger) error {
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
 	riskService := risk.Service{Accounts: riskAccounts, Store: riskStore, Engine: enginev1.NewRiskServiceClient(conn)}
-	portfolioService := portfolio.Service{Store: portfolioStore, Prices: trading.Paper{Tickers: tickers}, Log: log}
-	tradingService := trading.Service{Store: tradingStore, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService, Snapshots: portfolioService, Log: log}
+	liveService := &accounts.LiveService{Box: box}
+	if store, ok := accountStore.(accounts.LiveStore); ok {
+		liveService.Store = store
+	}
+	if portfolioStore != nil {
+		riskService.Accounts = trading.RiskAccounts{Store: trading.Postgres{Pool: portfolioStore.Pool}, Live: liveService}
+	}
+	portfolioService := portfolio.Service{Store: portfolioStore, Live: liveService, Prices: trading.Paper{Tickers: tickers}, Log: log}
+	tradingService := trading.Service{Store: tradingStore, Live: liveService, Exchange: trading.Paper{Tickers: tickers}, Risk: riskService, Snapshots: portfolioService, Log: log}
 	if tradingStore != nil {
+		reconcilerDone := make(chan struct{})
+		go func() { defer close(reconcilerDone); tradingService.RunReconciler(ctx) }()
+		defer func() { stop(); <-reconcilerDone }()
 		stopsDone := make(chan struct{})
 		go func() { defer close(stopsDone); tradingService.WatchStops(ctx, engine, log) }()
 		// Stop workers before deferred database/Redis/engine connection cleanup.
@@ -140,8 +153,16 @@ func run(log *slog.Logger) error {
 		go func() { defer close(snapshotsDone); portfolioService.RunSnapshots(ctx) }()
 		defer func() { stop(); <-snapshotsDone }()
 	}
+	// Price alerts share the configured market symbols and ticker source.
+	alertsDone := make(chan struct{})
+	go func() {
+		defer close(alertsDone)
+		(alerts.Checker{Store: alertStore, Tickers: tickers, Log: log}).Run(ctx)
+	}()
+	defer func() { stop(); <-alertsDone }()
 	authHTTP.Mount(r, func(r chi.Router) {
-		accounts.Service{Store: accountStore}.Mount(r)
+		alerts.Service{Store: alertStore, Symbols: symbols}.Mount(r)
+		accounts.Service{Store: accountStore, Live: liveService}.Mount(r)
 		riskService.Mount(r)
 		tradingService.Mount(r)
 		portfolioService.Mount(r)

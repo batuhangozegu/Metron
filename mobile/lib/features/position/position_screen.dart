@@ -20,13 +20,40 @@ class PositionScreen extends ConsumerStatefulWidget {
 class _PositionScreenState extends ConsumerState<PositionScreen> {
   bool _busy = false;
   String? _error;
+  Future<void> _retryStop() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(apiClientProvider)
+          .request(
+            '/positions/${Uri.encodeComponent(widget.positionId)}/stop/retry',
+            body: {},
+          );
+      if (mounted) refreshPortfolio(ref);
+    } catch (e) {
+      if (mounted) setState(() => _error = LiveStrings.of(context).error(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _close() async {
     final s = LiveStrings.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(s.close),
-        content: Text(s.confirmClose),
+        content: Text(
+          ref.read(selectedAccountProvider)?.live == true
+              ? s.text(
+                  'Close this live position at market price?',
+                  'Bu canlı pozisyon piyasa fiyatından kapatılsın mı?',
+                )
+              : s.confirmClose,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -114,12 +141,32 @@ class _PositionScreenState extends ConsumerState<PositionScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (p.exchangeStop case final stop?) ...[
+                    ValueRow(s.exchangeStop, s.stopStatus(stop.status)),
+                    if (stop.orderId != null)
+                      ValueRow(
+                        s.text('Order ID', 'Emir kimliği'),
+                        stop.orderId!,
+                      ),
+                    if (stop.error != null) Text(stop.error!),
+                    if (stop.status == 'failed' && p.value('status') == 'open')
+                      TextButton(
+                        onPressed: _busy ? null : _retryStop,
+                        child: Text(s.retry),
+                      ),
+                  ],
+                  if (p.json['close_reason'] case final String reason)
+                    ValueRow(
+                      s.text('Close reason', 'Kapanış nedeni'),
+                      s.closeReason(reason),
+                    ),
                   if (_error != null) Text(_error!),
                   if (_busy) const LinearProgressIndicator(),
-                  PrimaryButton(
-                    label: s.close,
-                    onPressed: _busy ? null : _close,
-                  ),
+                  if (p.value('status') == 'open')
+                    PrimaryButton(
+                      label: s.close,
+                      onPressed: _busy ? null : _close,
+                    ),
                 ],
               );
             },

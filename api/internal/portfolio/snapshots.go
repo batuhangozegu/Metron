@@ -5,11 +5,14 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/batuhangozegu/metron/api/internal/binance"
+	"github.com/batuhangozegu/metron/api/internal/trading"
 	"github.com/shopspring/decimal"
 )
 
 type Service struct {
 	Store  *Postgres
+	Live   trading.LiveProvider
 	Prices interface {
 		Price(context.Context, string) (decimal.Decimal, error)
 	}
@@ -47,7 +50,16 @@ func (s Service) Snapshot(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	unrealized, err := s.value(ctx, positions)
+	unrealized := decimal.Zero
+	if a.kind == "live" {
+		b, e := s.liveBalance(ctx, id)
+		if e != nil {
+			return e
+		}
+		a.balance = b.Total
+	} else {
+		unrealized, err = s.value(ctx, positions)
+	}
 	if err != nil {
 		return err
 	}
@@ -64,7 +76,7 @@ func (s Service) Snapshot(ctx context.Context, id string) error {
 
 func (s Service) snapshotAll(ctx context.Context) {
 	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	rows, err := s.Store.Pool.Query(queryCtx, `SELECT id::text FROM app.accounts WHERE type='paper' ORDER BY id`)
+	rows, err := s.Store.Pool.Query(queryCtx, `SELECT id::text FROM app.accounts WHERE type IN ('paper','live') ORDER BY id`)
 	if err != nil {
 		cancel()
 		s.logger().Warn("equity snapshot accounts unavailable", "err", err)
@@ -119,4 +131,19 @@ func (s Service) RunSnapshots(ctx context.Context) {
 		case <-timer.C:
 		}
 	}
+}
+
+func (s Service) liveBalance(ctx context.Context, id string) (binance.Balance, error) {
+	if s.Live == nil {
+		return binance.Balance{}, trading.ErrUnavailable
+	}
+	client, _, err := s.Live.Client(ctx, id)
+	if err != nil {
+		return binance.Balance{}, err
+	}
+	balance, err := client.Balance(ctx, "USDT")
+	if err != nil {
+		return binance.Balance{}, trading.ErrUnavailable
+	}
+	return balance, nil
 }

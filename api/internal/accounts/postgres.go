@@ -10,11 +10,13 @@ import (
 
 type Postgres struct{ Pool *pgxpool.Pool }
 
-const columns = `id::text,user_id::text,type,market,name,quote_asset,paper_balance::text,created_at`
+const columns = `id::text,user_id::text,type,market,name,quote_asset,paper_balance::text,created_at,
+ (SELECT environment FROM app.exchange_credentials WHERE account_id=app.accounts.id),
+ (SELECT key_hint FROM app.exchange_credentials WHERE account_id=app.accounts.id)`
 
 func scanAccount(row pgx.Row) (Account, error) {
 	var a Account
-	err := row.Scan(&a.ID, &a.UserID, &a.Type, &a.Market, &a.Name, &a.QuoteAsset, &a.PaperBalance, &a.CreatedAt)
+	err := row.Scan(&a.ID, &a.UserID, &a.Type, &a.Market, &a.Name, &a.QuoteAsset, &a.PaperBalance, &a.CreatedAt, &a.Environment, &a.KeyHint)
 	a.CreatedAt = a.CreatedAt.UTC()
 	if a.PaperBalance != nil {
 		balance, parseErr := decimal.NewFromString(*a.PaperBalance)

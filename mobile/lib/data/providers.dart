@@ -85,7 +85,7 @@ class Accounts extends AsyncNotifier<List<TradingAccount>> {
     final api = ref.read(apiClientProvider);
     final data = await api.request('/accounts') as List;
     final accounts = data
-        .where((a) => a['type'] == 'paper')
+        .where((a) => a['type'] == 'paper' || a['type'] == 'live')
         .map((a) => TradingAccount.fromJson(a as Json))
         .toList();
     final remembered = await api.store.read(_key(user['id'] as String));
@@ -175,3 +175,8 @@ void refreshPortfolio(WidgetRef ref) {
   ref.invalidate(portfolioProvider);
   ref.invalidate(positionsProvider);
 }
+
+final alertsProvider = FutureProvider.autoDispose<List<Alert>>((ref) async {
+  final data = await ref.watch(apiClientProvider).request('/alerts') as List;
+  return data.map((a) => Alert.fromJson(a as Json)).toList();
+});

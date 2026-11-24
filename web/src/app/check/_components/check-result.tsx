@@ -45,7 +45,7 @@ function failedValues(row: RuleCheck, locale: Locale): string | null {
   });
 }
 
-export function CheckResult({ check, locale = "en", busy = false, onOpen }: { check: CheckResponse; locale?: Locale; busy?: boolean; onOpen: () => void }) {
+export function CheckResult({ check, locale = "en", busy = false, live = false, onOpen }: { check: CheckResponse; locale?: Locale; busy?: boolean; live?: boolean; onOpen: () => void }) {
   const t = getMessages("check", locale);
   const blocked = checkBlocked(check);
   const state = blocked ? "limit" : check.checks.some(rule => rule.status === "caution") ? "caution" : "safe";
@@ -103,6 +103,6 @@ export function CheckResult({ check, locale = "en", busy = false, onOpen }: { ch
         </li>;
       })}</ul>
     </Card>
-    <CheckActions blocked={blocked} busy={busy} onOpen={onOpen} />
+    <CheckActions live={live} blocked={blocked} busy={busy} onOpen={onOpen} />
   </div>;
 }

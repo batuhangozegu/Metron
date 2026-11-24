@@ -40,7 +40,7 @@ func failure(w http.ResponseWriter, code int, id, en, tr string, check any) {
 func ErrorShape(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		if path == "/v1/orders" || (strings.HasPrefix(path, "/v1/positions/") && strings.HasSuffix(path, "/close")) ||
+		if path == "/v1/orders" || (strings.HasPrefix(path, "/v1/positions/") && (strings.HasSuffix(path, "/close") || strings.HasSuffix(path, "/stop/retry"))) ||
 			(strings.HasPrefix(path, "/v1/accounts/") && strings.HasSuffix(path, "/positions")) {
 			w = contractWriter{w}
 		}
@@ -81,6 +81,7 @@ func (s Service) Mount(r chi.Router) {
 	r.Post("/v1/orders", s.openHTTP)
 	r.Get("/v1/accounts/{id}/positions", s.positionsHTTP)
 	r.Post("/v1/positions/{id}/close", s.closeHTTP)
+	r.Post("/v1/positions/{id}/stop/retry", s.retryStopHTTP)
 }
 
 func checkJSON(e Execution) json.RawMessage {
@@ -94,6 +95,14 @@ func checkJSON(e Execution) json.RawMessage {
 func respondError(w http.ResponseWriter, err error, e Execution) {
 	code, id, en, tr := 503, "trading_unavailable", "Paper trading is temporarily unavailable.", "Kağıt işlemler geçici olarak kullanılamıyor."
 	switch {
+	case errors.Is(err, ErrConfirmation):
+		code, id, en, tr = 400, "live_confirmation_required", "Confirm this mainnet order with confirm_live: true.", "Ana ağ emrini confirm_live: true ile onaylayın."
+	case errors.Is(err, ErrSpotShort):
+		code, id, en, tr = 422, "spot_short_not_supported", "Live spot accounts can only open long positions.", "Canlı spot hesaplarda yalnızca long pozisyon açılabilir."
+	case errors.Is(err, ErrMinimum):
+		code, id, en, tr = 422, "exchange_minimum", "Quantity or notional is below the exchange minimum.", "Miktar veya emir değeri borsa alt sınırının altında."
+	case errors.Is(err, ErrStopState):
+		code, id, en, tr = 409, "exchange_stop_not_failed", "Only failed stops on open live positions can be retried.", "Yalnızca açık canlı pozisyonlardaki başarısız stoplar yeniden denenebilir."
 	case errors.Is(err, ErrProfileNotAllowed):
 		code, id, en, tr = 400, "risk_profile_not_allowed", "Orders use the account's saved risk profile.", "Emirler hesabın kayıtlı risk profilini kullanır."
 	case errors.Is(err, risk.ErrAccountNotFound):
@@ -133,7 +142,7 @@ func (s Service) openHTTP(w http.ResponseWriter, r *http.Request) {
 		respondError(w, ErrInput, Execution{})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 	e, err := s.Open(ctx, auth.UserFromContext(ctx).ID, *body)
 	if err != nil {
@@ -144,7 +153,7 @@ func (s Service) openHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Service) closeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 	e, err := s.Close(ctx, auth.UserFromContext(ctx).ID, chi.URLParam(r, "id"))
 	if err != nil {
@@ -172,7 +181,7 @@ func (s Service) positionsHTTP(w http.ResponseWriter, r *http.Request) {
 		respondError(w, ErrUnavailable, Execution{})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 	positions, err := s.Store.Positions(ctx, owner, id, state)
 	if err != nil {
@@ -199,4 +208,15 @@ func (s Service) positionsHTTP(w http.ResponseWriter, r *http.Request) {
 		p.LastPrice, p.UnrealizedPNL = &last, &unrealized
 	}
 	httpjson.Write(w, 200, map[string]any{"positions": positions})
+}
+
+func (s Service) retryStopHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+	p, err := s.RetryStop(ctx, auth.UserFromContext(ctx).ID, chi.URLParam(r, "id"))
+	if err != nil {
+		respondError(w, err, Execution{})
+		return
+	}
+	httpjson.Write(w, 200, p)
 }

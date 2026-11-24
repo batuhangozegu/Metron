@@ -31,53 +31,80 @@ class AccountPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accounts = ref.watch(accountsProvider).value ?? [];
+    final selected = ref.watch(selectedAccountProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              key: ValueKey(ref.watch(selectedAccountIdProvider)),
-              initialValue: ref.watch(selectedAccountIdProvider),
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: LiveStrings.of(context).account,
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey(ref.watch(selectedAccountIdProvider)),
+                  initialValue: ref.watch(selectedAccountIdProvider),
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: LiveStrings.of(context).account,
+                    helperText: LiveStrings.of(context).connectWeb,
+                  ),
+                  items: accounts
+                      .map(
+                        (a) => DropdownMenuItem(
+                          value: a.id,
+                          child: Text(
+                            '${a.name} · ${a.market}${a.live ? ' · LIVE · ${a.environment?.toUpperCase() ?? ''}' : ''}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (id) async {
+                    if (id == null) return;
+                    try {
+                      await ref.read(accountsProvider.notifier).select(id);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(LiveStrings.of(context).error(e)),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
               ),
-              items: accounts
-                  .map(
-                    (a) => DropdownMenuItem(
-                      value: a.id,
-                      child: Text(
-                        '${a.name} · ${a.market}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
+              IconButton(
+                tooltip: LiveStrings.of(context).create,
+                icon: const Icon(Icons.add),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => const Dialog(
+                    child: SizedBox(
+                      width: 400,
+                      child: AccountForm(dialog: true),
                     ),
-                  )
-                  .toList(),
-              onChanged: (id) async {
-                if (id == null) return;
-                try {
-                  await ref.read(accountsProvider.notifier).select(id);
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(LiveStrings.of(context).error(e))),
-                    );
-                  }
-                }
-              },
-            ),
-          ),
-          IconButton(
-            tooltip: LiveStrings.of(context).create,
-            icon: const Icon(Icons.add),
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => const Dialog(
-                child: SizedBox(width: 400, child: AccountForm(dialog: true)),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
+          if (selected?.live == true)
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Chip(label: Text('LIVE')),
+                Chip(
+                  label: Text(selected!.environment?.toUpperCase() ?? ''),
+                  backgroundColor: selected.mainnet
+                      ? Colors.red.shade900
+                      : Colors.amber.shade900,
+                ),
+                if (selected.keyHint != null) Text(selected.keyHint!),
+              ],
+            ),
         ],
       ),
     );
@@ -140,6 +167,7 @@ class _AccountFormState extends ConsumerState<AccountForm> {
         spacing: 16,
         children: [
           Text(s.noAccounts),
+          Text(s.connectWeb),
           TextField(
             key: const ValueKey('account-name'),
             controller: _name,

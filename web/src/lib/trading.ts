@@ -1,6 +1,6 @@
 import { ApiError, apiError, errorText } from "@/lib/auth";
 import { compareDecimals } from "@/lib/format";
-import type { Locale } from "@/lib/messages";
+import { getMessages, type Locale } from "@/lib/messages";
 import type { ProfileSource } from "@/lib/risk";
 
 export interface RuleCheck {
@@ -44,6 +44,7 @@ export interface CheckResponse {
 }
 
 export interface OrderRequest {
+  confirm_live?: boolean;
   account_id: string;
   symbol: string;
   side: "long" | "short";
@@ -66,7 +67,8 @@ export interface Position {
   closed_at: string | null;
   exit_price: string | null;
   realized_pnl: string | null;
-  close_reason: "manual" | "stop" | null;
+  close_reason: "manual" | "stop" | "exchange_stop" | null;
+  exchange_stop?: { status: "placed" | "failed" | "filled" | "cancelled"; order_id: string | null; error: string | null } | null;
   last_price?: string | null;
   unrealized_pnl?: string | null;
 }
@@ -83,11 +85,21 @@ export function rejectedCheck(error: unknown): CheckResponse | null {
 
 export function tradingErrorCode(error: unknown): string | null {
   if (!(error instanceof ApiError) || !error.data || typeof error.data !== "object") return null;
-  const code = (error.data as { code?: unknown }).code;
+  const data = error.data as { code?: unknown; error?: { code?: unknown } };
+  const code = data.code ?? (typeof data.error === "object" && data.error ? data.error.code : null);
   return typeof code === "string" ? code : null;
 }
 
 export function tradingError(error: unknown, locale: Locale): string {
+  const code = tradingErrorCode(error);
+  const known = {
+    live_confirmation_required: "error.live_confirmation_required",
+    exchange_rejected: "error.exchange_rejected", binance_rejected: "error.exchange_rejected",
+    exchange_unavailable: "error.exchange_unavailable", binance_unavailable: "error.exchange_unavailable",
+    invalid_keys: "error.invalid_keys", binance_invalid_keys: "error.invalid_keys",
+    exchange_stop_failed: "error.exchange_stop_failed",
+  } as const;
+  if (code && Object.hasOwn(known, code)) return getMessages("check", locale)(known[code as keyof typeof known]);
   if (error instanceof ApiError && error.data && typeof error.data === "object") {
     const data = error.data as { error?: { message_en?: string; message_tr?: string } | string; error_tr?: string };
     const message = typeof data.error === "object" && data.error

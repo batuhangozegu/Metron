@@ -16,6 +16,8 @@ export interface TradingAccount {
   name: string;
   quote_asset: string;
   paper_balance: string | null;
+  environment?: "testnet" | "mainnet" | null;
+  key_hint?: string | null;
   created_at: string;
 }
 
@@ -26,7 +28,7 @@ export class ApiError extends Error {
 }
 
 /** Only same-origin requests: the proxy forwards HttpOnly cookies and refreshes them. */
-export async function apiRequest<T>(path: string, body?: object, signal?: AbortSignal, method: "GET" | "POST" | "PUT" = body === undefined ? "GET" : "POST"): Promise<T> {
+export async function apiRequest<T>(path: string, body?: object, signal?: AbortSignal, method: "GET" | "POST" | "PUT" | "DELETE" = body === undefined ? "GET" : "POST"): Promise<T> {
   const response = await fetch(`/v1${path}`, {
     method,
     credentials: "same-origin",
@@ -36,6 +38,7 @@ export async function apiRequest<T>(path: string, body?: object, signal?: AbortS
     signal: signal ?? AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new ApiError(response.status, response.headers.get("Retry-After"), await response.json().catch(() => null));
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 

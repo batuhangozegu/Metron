@@ -1,7 +1,7 @@
 {
   "title": "Hesaplar",
-  "eyebrow": "Sanal işlem",
-  "note": "Gerçek sermayenizi riske atmadan önce sanal USDT bakiyesiyle pratik yapın.",
+  "eyebrow": "??lem hesaplar?",
+  "note": "Sanal bakiye ile pratik yap?n veya bir Binance hesab? ba?lay?n.",
   "list": "Hesaplarınız",
   "empty": "Henüz hesap yok. Aşağıdan ilk sanal hesabınızı oluşturun.",
   "loading": "Hesaplar yükleniyor…",
@@ -19,5 +19,20 @@
   "created": "Sanal hesap oluşturuldu.",
   "market": "Piyasa",
   "market.spot": "Spot",
-  "market.futures": "Vadeli"
+  "market.futures": "Vadeli",
+  "badge.live": "LIVE",
+  "testnet": "TESTNET",
+  "mainnet": "MAINNET",
+  "keyHint": "Anahtar {hint}",
+  "connect": "Binance ba?la",
+  "environment": "Ortam",
+  "apiKey": "API anahtar?",
+  "apiSecret": "API gizli anahtar?",
+  "safety": "Para ?ekme izni olmayan ve IP k?s?tlamas? bulunan anahtarlar kullan?n.",
+  "live.created": "Binance hesab? ba?land?.",
+  "live.invalid": "1?100 karakterlik bir ad, API anahtar? ve gizli anahtar girin.",
+  "live.keys": "Binance API anahtarlar?n? reddetti. Anahtar?, gizli anahtar?, ortam? ve i?lem izinlerini kontrol edin.",
+  "delete": "Canl? hesab? sil",
+  "delete.conflict": "A??k pozisyonlar? olan bu canl? hesap silinemez.",
+  "delete.done": "Canl? hesap silindi."
 }

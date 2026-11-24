@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/providers.dart';
+import '../features/alerts/alert_notifications.dart';
 import '../l10n/live_strings.dart';
 
 import '../l10n/app_strings.dart';
@@ -40,7 +41,7 @@ class AppShell extends ConsumerWidget {
         ),
       ],
     ),
-    body: shell,
+    body: AlertNotifications(child: shell),
     bottomNavigationBar: Column(
       mainAxisSize: MainAxisSize.min,
       children: [

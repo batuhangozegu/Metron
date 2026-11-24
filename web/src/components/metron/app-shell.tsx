@@ -7,6 +7,7 @@ import { LanguageSwitch } from "./language-switch";
 import { ThemeToggle } from "./theme-toggle";
 import { MarketTicker } from "./market-ticker";
 import { AuthGate } from "./auth-provider";
+import { AlertPoller } from "./alert-poller";
 import { SessionActions } from "./session-actions";
 
 export interface AppShellProps { locale?: Locale; children: ReactNode }
@@ -30,6 +31,7 @@ export function AppShell({ children, locale = "en" }: AppShellProps) {
       </div>
     </header>
     <MarketTicker />
+    <AlertPoller />
     <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-canvas flex-col gap-6 p-page outline-none"><AuthGate>{children}</AuthGate></main>
   </>;
 }

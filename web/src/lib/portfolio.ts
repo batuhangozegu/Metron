@@ -30,7 +30,7 @@ export interface Portfolio {
 
 export interface JournalTrade {
   position_id: string; symbol: string; side: "long" | "short"; coin_class: CoinClass;
-  opened_at: string; closed_at: string; close_reason: "manual" | "stop";
+  opened_at: string; closed_at: string; close_reason: "manual" | "stop" | "exchange_stop";
   quantity: string; entry_price: string; exit_price: string; fees: string; net_pnl: string;
   r_multiple: string | null;
   rules: { rule: string; status: "caution" | "fail" }[];

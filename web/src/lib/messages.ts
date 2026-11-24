@@ -15,8 +15,11 @@ import trRules from "@/messages/tr/rules.json";
 import trAuth from "@/messages/tr/auth.json";
 import trAccounts from "@/messages/tr/accounts.json";
 
-const messages = { common, overview, check, markets, portfolio, rules, auth, accounts };
-const turkish = { common: trCommon, overview: trOverview, check: trCheck, markets: trMarkets, portfolio: trPortfolio, rules: trRules, auth: trAuth, accounts: trAccounts };
+import alerts from "@/messages/en/alerts.json";
+import trAlerts from "@/messages/tr/alerts.json";
+
+const messages = { common, overview, check, markets, portfolio, rules, auth, accounts, alerts };
+const turkish = { common: trCommon, overview: trOverview, check: trCheck, markets: trMarkets, portfolio: trPortfolio, rules: trRules, auth: trAuth, accounts: trAccounts, alerts: trAlerts };
 export type Locale = "en" | "tr";
 export const localeCookie = "metron-locale";
 export function parseLocale(value: string | undefined): Locale { return value === "tr" ? "tr" : "en"; }
@@ -26,7 +29,7 @@ type SameKeys = { [N in keyof typeof messages]:
   Exclude<keyof (typeof messages)[N], keyof (typeof turkish)[N]> extends never
     ? Exclude<keyof (typeof turkish)[N], keyof (typeof messages)[N]> extends never ? true : false
     : false };
-const sameKeys: SameKeys = { common: true, overview: true, check: true, markets: true, portfolio: true, rules: true, auth: true, accounts: true };
+const sameKeys: SameKeys = { common: true, overview: true, check: true, markets: true, portfolio: true, rules: true, auth: true, accounts: true, alerts: true };
 void sameKeys;
 export type MessageNamespace = keyof typeof messages;
 export type MessageKey<N extends MessageNamespace> = keyof (typeof messages)[N] & string;

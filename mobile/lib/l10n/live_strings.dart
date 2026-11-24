@@ -14,8 +14,32 @@ class LiveStrings {
   String get save => text('Save changes', 'Değişiklikleri kaydet');
   String get saved => text('Changes saved.', 'Değişiklikler kaydedildi.');
   String get cancel => text('Cancel', 'İptal');
+  String get connectWeb => text(
+    'Connect Binance keys on the web.',
+    'Binance anahtarlarını web üzerinden bağlayın.',
+  );
+  String get placeLive => text('Place live order', 'Canlı emir ver');
+  String get realMoney => text('Real money order', 'Gerçek para emri');
+  String get confirmLive => text(
+    'This MAINNET order uses real money. Confirm to send it to Binance.',
+    'Bu MAINNET emri gerçek para kullanır. Binance’e göndermek için onaylayın.',
+  );
+  String get testnetNotice => text(
+    'TESTNET: orders use test funds.',
+    'TESTNET: emirler test bakiyesi kullanır.',
+  );
+  String get exchangeStop => text('Exchange stop', 'Borsa stopu');
+  String stopStatus(String value) => switch (value) {
+    'placed' => text('Placed', 'Yerleştirildi'),
+    'failed' => text('Failed', 'Başarısız'),
+    'filled' => text('Filled', 'Gerçekleşti'),
+    'cancelled' => text('Cancelled', 'İptal edildi'),
+    _ => value,
+  };
+  String closeReason(String value) =>
+      value == 'exchange_stop' ? exchangeStop : value;
   String get signOut => text('Sign out', 'Çıkış yap');
-  String get account => text('Paper account', 'Kağıt hesap');
+  String get account => text('Account', 'Hesap');
   String get create => text('Create paper account', 'Kağıt hesap oluştur');
   String get name => text('Account name', 'Hesap adı');
   String get balance =>
@@ -47,12 +71,6 @@ class LiveStrings {
       text('No market data available yet.', 'Henüz piyasa verisi yok.');
   String get feed => text('LIVE', 'CANLI');
   String get unavailable => text('Data unavailable', 'Veri kullanılamıyor');
-  String get comingSoon =>
-      text('Price alarms — coming soon', 'Fiyat alarmları — yakında');
-  String get alarmsNote => text(
-    'Price alarms and alert history are not available yet.',
-    'Fiyat alarmları ve bildirim geçmişi henüz kullanılamıyor.',
-  );
   String get runCheck => text('Run risk check', 'Risk kontrolü yap');
   String get side => text('Side', 'Yön');
   String get long => text('Long', 'Uzun');

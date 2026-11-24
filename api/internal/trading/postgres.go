@@ -18,6 +18,7 @@ type postgresTx struct {
 	pgx.Tx
 	accountID string
 	account   risk.Account
+	live      bool
 }
 
 func (p Postgres) Begin(ctx context.Context, owner, accountID string) (Transaction, error) {
@@ -25,12 +26,12 @@ func (p Postgres) Begin(ctx context.Context, owner, accountID string) (Transacti
 	if err != nil {
 		return nil, err
 	}
-	a, err := risk.LoadAccount(ctx, tx, owner, accountID, true)
+	a, live, err := loadTradingAccount(ctx, tx, owner, accountID, true)
 	if err != nil {
 		_ = tx.Rollback(context.WithoutCancel(ctx))
 		return nil, err
 	}
-	return &postgresTx{Tx: tx, accountID: accountID, account: a}, nil
+	return &postgresTx{Tx: tx, accountID: accountID, account: a, live: live}, nil
 }
 
 func (p *postgresTx) Account() risk.Account { return p.account }
@@ -44,7 +45,19 @@ func (p *postgresTx) Snapshot(ctx context.Context, symbol string) (risk.Account,
 	}
 	a := p.account
 	a.Profile = &profile.Profile
-	return risk.LoadActivity(ctx, p.Tx, p.accountID, symbol, a, time.Now())
+	// Exchange-triggered stops count toward the same discipline limit.
+	now := time.Now()
+	a, err = risk.LoadActivity(ctx, p.Tx, p.accountID, symbol, a, now)
+	if err != nil {
+		return a, err
+	}
+	if p.live {
+		_, week := risk.UTCWindows(now)
+		var stopped uint32
+		err = p.QueryRow(ctx, `SELECT count(*) FROM app.positions WHERE account_id=$1::uuid AND status='closed' AND close_reason='exchange_stop' AND closed_at >= $2 AND closed_at <= $3`, p.accountID, week, now).Scan(&stopped)
+		a.Activity.StoppedTradesThisWeek += stopped
+	}
+	return a, err
 }
 
 func (p *postgresTx) RecordCheck(ctx context.Context, body risk.Request, result *enginev1.CheckResponse, orderID string) error {
@@ -56,7 +69,7 @@ func (p Postgres) PositionAccount(ctx context.Context, owner *string, id string)
 	var accountID, userID string
 	err := p.Pool.QueryRow(ctx, `SELECT a.id::text,a.user_id::text FROM app.positions p
 		JOIN app.accounts a ON a.id=p.account_id WHERE p.id=$1::uuid AND ($2::uuid IS NULL OR a.user_id=$2::uuid)
-		AND a.type='paper' AND a.quote_asset='USDT'`, id, owner).Scan(&accountID, &userID)
+		AND a.type IN ('paper','live') AND a.quote_asset='USDT'`, id, owner).Scan(&accountID, &userID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = ErrNotFound
 	}
@@ -64,14 +77,19 @@ func (p Postgres) PositionAccount(ctx context.Context, owner *string, id string)
 }
 
 const positionColumns = `id::text,account_id::text,symbol,side,quantity::text,entry_price::text,stop::text,
-	leverage,coin_class,initial_risk::text,status,opened_at,closed_at,exit_price::text,realized_pnl::text,close_reason`
+	leverage,coin_class,initial_risk::text,status,opened_at,closed_at,exit_price::text,realized_pnl::text,close_reason,exchange_entry_order_id,exchange_stop_order_id::text,exchange_stop_status,exchange_stop_error`
 
 func scanPosition(row pgx.Row) (Position, error) {
 	var p Position
+	var stopID *string
+	var stopStatus, stopError *string
 	err := row.Scan(&p.ID, &p.AccountID, &p.Symbol, &p.Side, &p.Quantity, &p.EntryPrice, &p.Stop,
-		&p.Leverage, &p.CoinClass, &p.InitialRisk, &p.Status, &p.OpenedAt, &p.ClosedAt, &p.ExitPrice, &p.RealizedPNL, &p.CloseReason)
+		&p.Leverage, &p.CoinClass, &p.InitialRisk, &p.Status, &p.OpenedAt, &p.ClosedAt, &p.ExitPrice, &p.RealizedPNL, &p.CloseReason, &p.ExchangeEntryOrderID, &stopID, &stopStatus, &stopError)
 	if err != nil {
 		return p, err
+	}
+	if stopStatus != nil {
+		p.ExchangeStop = &ExchangeStop{Status: *stopStatus, OrderID: stopID, Error: stopError}
 	}
 	p.OpenedAt = p.OpenedAt.UTC()
 	if p.ClosedAt != nil {
@@ -136,17 +154,17 @@ func (p *postgresTx) Open(ctx context.Context, e Execution) error {
 	}
 	v := e.Position
 	_, err := p.Exec(ctx, `INSERT INTO app.positions
-		(id,account_id,symbol,side,quantity,entry_price,stop,leverage,coin_class,initial_risk,status,opened_at)
-		VALUES($1::uuid,$2::uuid,$3,$4,$5::numeric,$6::numeric,$7::numeric,$8,$9,$10::numeric,$11,$12)`,
-		v.ID, p.accountID, v.Symbol, v.Side, v.Quantity, v.EntryPrice, v.Stop, v.Leverage, v.CoinClass, v.InitialRisk, v.Status, v.OpenedAt)
+		(id,account_id,symbol,side,quantity,entry_price,stop,leverage,coin_class,initial_risk,status,opened_at,exchange_entry_order_id,exchange_stop_order_id,exchange_stop_status,exchange_stop_error)
+		VALUES($1::uuid,$2::uuid,$3,$4,$5::numeric,$6::numeric,$7::numeric,$8,$9,$10::numeric,$11,$12,$13,$14::bigint,$15,$16)`,
+		v.ID, p.accountID, v.Symbol, v.Side, v.Quantity, v.EntryPrice, v.Stop, v.Leverage, v.CoinClass, v.InitialRisk, v.Status, v.OpenedAt, v.ExchangeEntryOrderID, stopOrderID(v), stopStatus(v), stopError(v))
 	return err
 }
 
 func (p *postgresTx) Close(ctx context.Context, e Execution, pnl decimal.Decimal) error {
 	v := e.Position
 	tag, err := p.Exec(ctx, `UPDATE app.positions SET status='closed',closed_at=$3,exit_price=$4::numeric,
-		realized_pnl=$5::numeric,close_reason=$6 WHERE id=$1::uuid AND account_id=$2::uuid AND status='open'`,
-		v.ID, p.accountID, v.ClosedAt, v.ExitPrice, v.RealizedPNL, v.CloseReason)
+		realized_pnl=$5::numeric,close_reason=$6,exchange_stop_status=$7,exchange_stop_error=$8 WHERE id=$1::uuid AND account_id=$2::uuid AND status='open'`,
+		v.ID, p.accountID, v.ClosedAt, v.ExitPrice, v.RealizedPNL, v.CloseReason, stopStatus(v), stopError(v))
 	if err != nil {
 		return err
 	}
@@ -156,13 +174,13 @@ func (p *postgresTx) Close(ctx context.Context, e Execution, pnl decimal.Decimal
 	if err := p.execution(ctx, e); err != nil {
 		return err
 	}
-	_, err = p.Exec(ctx, `UPDATE app.accounts SET paper_balance=paper_balance+$2::numeric WHERE id=$1::uuid`, p.accountID, pnl.String())
+	_, err = p.Exec(ctx, `UPDATE app.accounts SET paper_balance=paper_balance+$2::numeric WHERE id=$1::uuid AND type='paper'`, p.accountID, pnl.String())
 	return err
 }
 
 func (p Postgres) Positions(ctx context.Context, owner, accountID, state string) ([]Position, error) {
 	// Check account existence independently so an owned empty account returns [].
-	if _, err := risk.LoadAccount(ctx, p.Pool, owner, accountID, false); err != nil {
+	if _, _, err := loadTradingAccount(ctx, p.Pool, owner, accountID, false); err != nil {
 		return nil, err
 	}
 	query := `SELECT ` + positionColumns + ` FROM app.positions WHERE account_id=$1::uuid AND status=$2`

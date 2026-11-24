@@ -181,6 +181,7 @@ class ApiClient {
       await clearSession();
       if (!path.startsWith('/auth/')) onUnauthorized?.call();
     }
+    if (response.statusCode == 204) return null;
     dynamic data;
     try {
       data = jsonDecode(utf8.decode(response.bodyBytes));
