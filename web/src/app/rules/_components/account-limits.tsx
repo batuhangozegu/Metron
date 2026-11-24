@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Card } from "@/components/metron/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { tradingError } from "@/lib/trading";
 import { accountLabel } from "@/lib/accounts";
 import { AccountBadges } from "@/components/metron/account-badges";
 import { useTradingAccounts } from "@/lib/use-trading-accounts";
+import { DisciplineMode } from "./discipline-mode";
 
 const control = "num min-h-control w-full min-w-0 rounded-control border border-line bg-raised px-3 text-base text-text";
 const fields = [
@@ -28,10 +30,18 @@ const fields = [
 type Draft = Record<keyof RiskProfileInput, string>;
 const draftOf = (profile: RiskProfile): Draft => Object.fromEntries(fields.map(({ key }) => [key, String(profile[key])])) as Draft;
 
-export function AccountLimits() {
+export function AccountLimits({ initialAccountId }: { initialAccountId?: string }) {
   const locale = useLocale();
   const t = getMessages("rules", locale);
-  const { accounts, account, setSelectedId, error, reload } = useTradingAccounts();
+  const { accounts, account, setSelectedId, error, reload } = useTradingAccounts(initialAccountId);
+  const router = useRouter();
+  const params = useSearchParams();
+  const selectAccount = (id: string) => {
+    setSelectedId(id);
+    const query = new URLSearchParams(params.toString());
+    query.set("account", id);
+    router.replace(`/rules?${query}`, { scroll: false });
+  };
 
   return <section className="flex min-w-0 flex-col gap-6">
     <div className="flex flex-col gap-2"><h1 className="text-title">{t("title")}</h1><p className="max-w-[620px] text-body text-muted">{t("description")}</p></div>
@@ -40,10 +50,11 @@ export function AccountLimits() {
       : !account ? <p className="text-muted">{t("noAccounts")} <Link href="/accounts" className="inline-flex min-h-control items-center underline">{t("manageAccounts")}</Link></p>
       : <>
         <div className="flex max-w-md flex-col gap-2"><label htmlFor="rules-account" className="text-small text-muted">{t("account")}</label>
-          <select id="rules-account" className={control} value={account.id} onChange={event => setSelectedId(event.target.value)}>{accounts.map(item => <option key={item.id} value={item.id}>{accountLabel(item, locale)}</option>)}</select>
+          <select id="rules-account" className={control} value={account.id} onChange={event => selectAccount(event.target.value)}>{accounts.map(item => <option key={item.id} value={item.id}>{accountLabel(item, locale)}</option>)}</select>
           <AccountBadges account={account} locale={locale} />
         </div>
         <ProfileLoader key={account.id} accountId={account.id} />
+        <DisciplineMode key={`discipline:${account.id}`} accountId={account.id} locale={locale} />
       </>}
   </section>;
 }

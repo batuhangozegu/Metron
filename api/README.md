@@ -23,6 +23,7 @@ curl -b cookies.txt -H 'Content-Type: application/json' "$API/v1/orders" \
 # omission returns HTTP 400 with code live_confirmation_required.
 curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/positions"
 curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/portfolio?period=all"
+curl -b cookies.txt "$API/v1/accounts/$ACCOUNT_ID/risk-status"
 
 POSITION_ID=REPLACE_WITH_POSITION_ID
 # A failed protective stop leaves the real fill open and visible. Inspect

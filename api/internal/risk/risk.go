@@ -23,7 +23,7 @@ import (
 var ErrAccountNotFound = errors.New("account not found")
 
 type Accounts interface {
-	// RiskAccount must filter by BOTH owner and account, and only accept paper/USDT.
+	// RiskAccount must filter by BOTH owner and account, and only accept USDT accounts.
 	RiskAccount(context.Context, string, string, string) (Account, error)
 }
 
@@ -33,6 +33,7 @@ type Account struct {
 	Activity            *enginev1.Activity
 	CurrentClassHolding string
 	Profile             *Profile
+	Snapshot            *ActivitySnapshot
 }
 
 type Engine interface {
@@ -43,6 +44,7 @@ type Service struct {
 	Accounts Accounts
 	Engine   Engine
 	Store    Store
+	Prices   Prices
 }
 
 type Profile struct {
@@ -133,6 +135,7 @@ func (s Service) Mount(r chi.Router) {
 	r.Get("/v1/accounts/{id}/risk-profile", s.profileHTTP)
 	r.Put("/v1/accounts/{id}/risk-profile", s.profileHTTP)
 	r.Get("/v1/accounts/{id}/risk-checks", s.checksHTTP)
+	r.Get("/v1/accounts/{id}/risk-status", s.statusHTTP)
 }
 
 func (s Service) check(w http.ResponseWriter, r *http.Request) {

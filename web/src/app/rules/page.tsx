@@ -13,13 +13,15 @@ const classRules = [
   { coinClass: "stable", multiplier: null, risk: null, allocation: null },
 ] as const;
 
-export default async function RulesPage() {
+export default async function RulesPage({ searchParams }: { searchParams: Promise<{ account?: string | string[] }> }) {
+  const { account } = await searchParams;
+  const accountId = typeof account === "string" ? account : undefined;
   const locale = await getLocale();
   const t = getMessages("rules", locale);
   const columns = ["class", "multiplier", "risk", "position"] as const;
 
   return <>
-    <AccountLimits />
+    <AccountLimits key={accountId ?? "default"} initialAccountId={accountId} />
     <Card aria-labelledby="class-rules-title">
       <CardHeader title={<span id="class-rules-title">{t("classes.title")}</span>} note={t("classes.description")} />
       <div className="overflow-x-auto rounded-b-card" role="region" aria-label={t("classes.scrollLabel")} tabIndex={0}>

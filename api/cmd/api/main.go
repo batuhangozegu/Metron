@@ -131,7 +131,7 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	authHTTP := auth.HTTP{Service: authService, Secure: os.Getenv("COOKIE_SECURE") == "true"}
-	riskService := risk.Service{Accounts: riskAccounts, Store: riskStore, Engine: enginev1.NewRiskServiceClient(conn)}
+	riskService := risk.Service{Accounts: riskAccounts, Store: riskStore, Engine: enginev1.NewRiskServiceClient(conn), Prices: trading.Paper{Tickers: tickers}}
 	liveService := &accounts.LiveService{Box: box}
 	if store, ok := accountStore.(accounts.LiveStore); ok {
 		liveService.Store = store
