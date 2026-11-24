@@ -1,14 +1,28 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader } from "@/components/metron/card";
 import { useAuth } from "@/components/metron/auth-provider";
 import { useLocale } from "@/components/metron/locale-provider";
 import { ApiError, apiRequest, type TradingAccount } from "@/lib/auth";
 import { getMessages } from "@/lib/messages";
 import { tradingError } from "@/lib/trading";
+
+/** Two or more mutually exclusive options drawn as one bordered strip of buttons. */
+export function Segmented<T extends string>({ name, legend, value, options, onChange }: {
+  name: string; legend: ReactNode; value: T; options: readonly { value: T; label: ReactNode }[]; onChange: (value: T) => void;
+}) {
+  return <fieldset className="flex min-w-0 flex-col gap-2">
+    <legend className="micro-label mb-2 text-muted">{legend}</legend>
+    <div className="grid gap-1 border border-line bg-raised p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+      {options.map(option => <label key={option.value} className={`relative flex min-h-control cursor-pointer items-center justify-center border px-3 py-2 text-sm focus-within:outline-2 focus-within:outline-offset-2 ${value === option.value ? "border-line bg-surface text-text" : "border-transparent text-muted"}`}>
+        <input type="radio" name={name} value={option.value} checked={value === option.value} onChange={() => onChange(option.value)} className="sr-only" />
+        {option.label}
+      </label>)}
+    </div>
+  </fieldset>;
+}
 
 export function LiveAccountForm({ onCreated }: { onCreated: (account: TradingAccount) => void }) {
   const locale = useLocale();
@@ -19,6 +33,8 @@ export function LiveAccountForm({ onCreated }: { onCreated: (account: TradingAcc
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
+  const [market, setMarket] = useState<"spot" | "futures">("spot");
+  const [environment, setEnvironment] = useState<"testnet" | "mainnet">("testnet");
   async function connect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending.current) return;
@@ -33,7 +49,7 @@ export function LiveAccountForm({ onCreated }: { onCreated: (account: TradingAcc
     setBusy(true);
     setError(null);
     try {
-      const account = await apiRequest<TradingAccount>("/accounts/live", { name, market: fields.get("market"), environment: fields.get("environment"), api_key, api_secret });
+      const account = await apiRequest<TradingAccount>("/accounts/live", { name, market, environment, api_key, api_secret });
       form.reset();
       onCreated(account);
       setCreated(true);
@@ -47,20 +63,19 @@ export function LiveAccountForm({ onCreated }: { onCreated: (account: TradingAcc
       setBusy(false);
     }
   }
-  const control = "min-h-control w-full rounded-control border border-line bg-raised px-3 text-text";
-  return <Card className="auth-card"><CardHeader title={t("connect")} />
-    <form onSubmit={connect} className="border-t border-line p-6" aria-busy={busy}>
-      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-5">
-        <div className="flex flex-col gap-2"><label htmlFor="live-name" className="micro-label text-muted">{t("name")}</label><Input id="live-name" name="name" required maxLength={100} /></div>
-        <div className="flex flex-col gap-2"><label htmlFor="live-market" className="micro-label text-muted">{t("market")}</label><select id="live-market" name="market" defaultValue="spot" className={control}>{(["spot", "futures"] as const).map(market => <option key={market} value={market}>{t(`market.${market}`)}</option>)}</select></div>
-        <div className="flex flex-col gap-2"><label htmlFor="live-environment" className="micro-label text-muted">{t("environment")}</label><select id="live-environment" name="environment" defaultValue="testnet" className={control}><option value="testnet">{t("testnet")}</option><option value="mainnet">{t("mainnet")}</option></select></div>
-        <div className="flex flex-col gap-2"><label htmlFor="live-key" className="micro-label text-muted">{t("apiKey")}</label><Input id="live-key" name="api_key" required autoComplete="off" spellCheck={false} /></div>
-        <div className="flex flex-col gap-2"><label htmlFor="live-secret" className="micro-label text-muted">{t("apiSecret")}</label><Input id="live-secret" name="api_secret" type="password" required autoComplete="new-password" /></div>
-        <p className="text-small text-caution">{t("safety")}</p>
-        {error && <p role="alert" className="text-small text-limit">{error}</p>}
-        {created && <p role="status" className="text-small">{t("live.created")}</p>}
-        <Button type="submit" className="self-start">{busy ? auth("working") : t("connect")}</Button>
-      </fieldset>
-    </form>
-  </Card>;
+  return <form onSubmit={connect} className="p-6" aria-busy={busy}>
+    <fieldset disabled={busy} className="flex min-w-0 flex-col gap-5">
+      <div className="flex flex-col gap-2"><label htmlFor="live-name" className="micro-label text-muted">{t("name")}</label><Input id="live-name" name="name" required maxLength={100} /></div>
+      <Segmented name="live-market" legend={t("market")} value={market} onChange={setMarket}
+        options={[{ value: "spot", label: t("market.spot") }, { value: "futures", label: t("market.futures") }]} />
+      <Segmented name="live-environment" legend={t("environment")} value={environment} onChange={setEnvironment}
+        options={[{ value: "testnet", label: t("testnet") }, { value: "mainnet", label: <span className="text-limit">{t("mainnet")}</span> }]} />
+      <div className="flex flex-col gap-2"><label htmlFor="live-key" className="micro-label text-muted">{t("apiKey")}</label><Input id="live-key" name="api_key" required autoComplete="off" spellCheck={false} /></div>
+      <div className="flex flex-col gap-2"><label htmlFor="live-secret" className="micro-label text-muted">{t("apiSecret")}</label><Input id="live-secret" name="api_secret" type="password" required autoComplete="new-password" /></div>
+      <p className="text-small text-caution">{t("safety")}</p>
+      {error && <p role="alert" className="text-small text-limit">{error}</p>}
+      {created && <p role="status" className="text-small">{t("live.created")}</p>}
+      <Button type="submit" className="self-start">{busy ? auth("working") : t("connect")}</Button>
+    </fieldset>
+  </form>;
 }

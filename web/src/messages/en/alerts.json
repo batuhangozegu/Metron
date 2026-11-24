@@ -18,7 +18,7 @@
   "invalid": "Choose a symbol and enter a positive decimal price.",
   "limit": "You already have 50 active alerts. Cancel an alert before creating another.",
   "created": "Alert created.",
-  "retry": "Retry",
+  "retry": "Refresh",
   "working": "Please wait?",
   "notificationTitle": "Metron price alert",
   "notificationBody": "{symbol} reached {price} USDT ? target {direction} {target}",

@@ -34,5 +34,8 @@
   "live.keys": "Binance rejected the API keys. Check the key, secret, environment and trading permissions.",
   "delete": "Delete live account",
   "delete.conflict": "This live account cannot be deleted while it has open positions.",
-  "delete.done": "Live account deleted."
+  "delete.done": "Live account deleted.",
+  "add": "Add account",
+  "mode.paper": "Paper",
+  "mode.binance": "Binance"
 }
