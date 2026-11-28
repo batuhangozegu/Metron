@@ -8,9 +8,16 @@ The design is entirely new and the scope is more detailed. The main focus is a r
 
 ## Status
 
-Market data (roadmap step 1) connects Binance candles and live prices to the web Markets page, with volume-based coin classes and daily ATR. Other web and mobile screens still use sample data; see [ROADMAP.md](docs/ROADMAP.md).
+The first release (roadmap steps 0–8, plus price alerts) is coded: live market data, accounts with optional 2FA, risk checks with separate spot and futures rule sets, paper trading with stop tracking, saved limits and check history, portfolio tracking and journal, the mobile app, and real Binance spot/USDT-M accounts with exchange-side stops. Real trading on Binance's test environment has not been tried yet; see [ROADMAP.md](docs/ROADMAP.md).
 
-Accounts and sign-in (step 2 backend) now support cookie sessions, optional TOTP two-factor authentication and paper accounts. Web and mobile sign-in screens still need connecting.
+## Experimental: trade ideas (planned, not built)
+
+Today Metron suggests a **stop** (ATR-based) and a **position size** for a trade the user has already chosen. It does not yet say *what* to trade. The planned experimental feature adds that step:
+
+- **Spot buy ideas.** Long-only suggestions for spot accounts: which watched pair looks like a buy now, with entry, ATR stop, target and size from the existing risk engine.
+- **Leveraged futures ideas.** Long or short suggestions for USDT-M accounts. Leverage is not picked for excitement: it follows from the stop distance and risk per trade, so the position never risks more than the account's saved limits allow, and it is capped well below the exchange maximum.
+- **Method.** Time-series analysis of the hourly and daily candles the engine already stores: trend (moving-average slope and crossovers), momentum, volatility regime (ATR percentile) and volume. Each idea carries a confidence score and the reasons behind it. Other methods, such as simple forecasting models, can be compared later through backtests.
+- **Guard rails.** An idea is only a suggestion: it is never sent automatically, it must pass the normal pre-trade check, and it is tried on paper accounts first. Ideas are recorded so their hit rate can be measured honestly. This is not investment advice.
 
 ## Running locally
 
